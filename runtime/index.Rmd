@@ -263,8 +263,7 @@ allQResults <- get_all_questionnaire_results()
 
 adjust_times <- function(dataset, minTime) { # make sure we start at t=0
   dataset$time <- dataset$time - minTime
-  dataset <- subset(dataset)#, time <= 180)#dataset <- subset(dataset)
-  print(dataset$time[1])
+  dataset <- subset(dataset, time <= 180)#dataset <- subset(dataset)
   return(dataset)
 }
 
@@ -297,11 +296,11 @@ preprocess_data <- function(participant, trialNum){
   rightFoot = get_t_data(participant, "rightfoot", trialNum)
   hip = get_t_data(participant, "hip", trialNum)
   targetData = get_t_data(participant, "steptargets", trialNum)
-#get_t_data(participant, "leftnoise", trialNum),
-#get_t_data(participant, "rightnoise", trialNum),
-#rightFoot <- calc_final_pos(rightFoot, rightNoise)
-#leftFoot <- calc_final_pos(leftFoot, leftNoise)
-  minTime <- get_p_results(participant,"start_time",trialNum)
+  leftDisturbance <- get_t_data(participant, "leftdisturbance", trialNum)
+  rightDisturbance <- get_t_data(participant, "rightdisturbance", trialNum)
+#rightFoot <- calc_final_pos(rightFoot, rightDisturbance)
+#leftFoot <- calc_final_pos(leftFoot, leftDisturbance)
+  minTime <- leftFoot$time[1] #get_p_results(participant,"start_time",trialNum)
 
   moveSpeed = get_move_speed(participant)
   leftFoot = adjust_times(leftFoot, minTime)
@@ -312,6 +311,8 @@ preprocess_data <- function(participant, trialNum){
   return(list(
     leftFoot = leftFoot,
     rightFoot = rightFoot,
+    leftDisturbance = leftDisturbance,
+    rightDisturbance = rightDisturbance,
     hip = adjust_times(hip, minTime),
     targetData = adjust_times(targetData, minTime)
   ))
