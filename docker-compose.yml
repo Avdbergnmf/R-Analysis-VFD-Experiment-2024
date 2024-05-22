@@ -1,0 +1,18 @@
+services:
+  rocker:
+    build:
+      context: .  # Assumes the Dockerfile is in the current directory
+      dockerfile: Dockerfile.rocker
+    ports:
+      - "8787:8787"
+    expose:
+      - 8787
+    volumes:
+      - ./runtime:/home/rstudio/workspace
+    env_file: .rstudio.env
+  #proxy:
+  #    image: nginx:alpine
+  #    ports:
+  #        - 80:80
+  #    volumes:
+  #        - ./default.conf:/etc/nginx/conf.d/default.conf

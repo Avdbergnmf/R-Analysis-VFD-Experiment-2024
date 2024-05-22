@@ -1,0 +1,715 @@
+
+
+
+```{r}
+calculate_gait_parameters <- function(gaitData) {
+  heelStrikesData <- gaitData$heelStrikesData # should already be sorted based on time
+  footLiftsData <- gaitData$footLiftsData
+  
+  # time-based
+  stepTimes <- diff(heelStrikesData$time) # Calculate step times  >>> NOTE: The first heelstrike is only used as a starting point to the second
+  swingTimes <- heelStrikesData$time - footLiftsData$time # Calculate swing times <<< L = N   (not N-1)
+  swingTimes <- tail(swingTimes, -1) # remove the FIRST swingTime (we have to sacrifice the first step to be able to do diff's)
+  stanceTimes <- stepTimes - swingTimes # Calculate stance times
+
+  # position-based
+  stepWidths <- diff(heelStrikesData$pos_x) # Calculate step width
+  stepWidths <- ifelse(head(heelStrikesData$foot, -1) == "Right", stepWidths * -1, stepWidths) # Adjust sign based on which foot is stepping
+  finalStepWidths <- diff(heelStrikesData$final_pos_x)
+  finalStepWidths <- ifelse(head(heelStrikesData$foot, -1) == "Right", finalStepWidths * -1, finalStepWidths)
+
+  stepLengths <- diff(heelStrikesData$actual_pos_z) # Calculate step lengths
+  finalStepLengths <- diff(heelStrikesData$actual_final_pos_z) # Calculate step lengths
+  
+  speed <- stepLengths / stepTimes # Calculate speed
+  
+  # Lets also add some info about the noise and foot positions
+  heelStrikesData <- tail(heelStrikesData, -1) # remove the first heelstrike
+  footLiftsData <- tail(footLiftsData, -1) # remove the first heelstrike
+  
+  # We ignore the steps onto and away from a target
+  # and also add to the ignore list the outliers in the stepTimes and stepLengths (these are very obvious ways to remove the misdetected steps)
+  targetSteps <- heelStrikesData$target
+  targetSteps <- targetSteps | lead(heelStrikesData$target, default = FALSE) # add step before
+  targetSteps <- targetSteps | lag(heelStrikesData$target, default = FALSE) | lag(heelStrikesData$target, 2, default = FALSE) # add steps after (until foot is placed back onto new position)
+  heelStrikesData$targetIgnoreSteps <- targetSteps
+  
+  # Detect outliers
+  heelStrikesData$outlierSteps <- detect_outliers(stepTimes) | detect_outliers(stepLengths)
+  #stepsToIgnore <- outlierSteps
+
+  # additionally, we ignore the first few steps as the treadmill is still speeding up
+  ignoreFirstN <- 1
+  heelStrikesData$outlierSteps[1:ignoreFirstN] <- TRUE
+
+  doPrint <- FALSE
+  if (doPrint) {
+    print("totalsteps")
+    print(length(stepTimes))
+    print("targetSteps")
+    print(sum(targetSteps))
+    print("outlierSteps")
+    print(sum(outlierSteps))
+    print("stepsToIgnore")
+    print(sum(targetSteps | outlierSteps))
+  }
+
+  # Make a list of all the gait parameters
+  gaitParams <- list(
+    stepTimes = stepTimes,
+    stanceTimes = stanceTimes,
+    swingTimes = swingTimes,
+    finalStepWidths = finalStepWidths,
+    stepLengths = stepLengths,
+    finalStepLengths = finalStepLengths,
+    stepWidths = stepWidths,
+    speed = speed,
+    heelStrikes = heelStrikesData, # We also add the heelstrikes info as it's interesting for plotting.
+    footLifts = footLiftsData
+  )
+
+  return(gaitParams)
+}
+
+detect_outliers <- function(data) {
+  Q1 <- quantile(data, 0.25)
+  Q3 <- quantile(data, 0.75)
+  IQR <- Q3 - Q1
+
+  # Define the upper and lower bounds for outliers
+  upper_bound <- Q3 + 1.5 * IQR
+  lower_bound <- Q1 - 1.5 * IQR
+
+  return(!(data >= lower_bound & data <= upper_bound))
+}
+
+gaitParams <- calculate_gait_parameters(gaitData) # example usage
+```
+
+
+#### Put all results in df
+
+To make things easier to plot, we create 1 big data frame with all our gait parameters for all participants:
+
+```{r cache=TRUE, echo=FALSE}
+VFD_conditions <- c(TRUE, FALSE) # VFD conditions
+
+# Initialize an empty data frame
+allGaitParams <- data.frame()
+
+print("Creating allGaitParameters...")
+# Loop over all participants
+for (participant in participants) {
+  print("-----")
+  print(paste("----- -----Participant: ", participant))
+  # Loop over VFD conditions
+  for (VFD in VFD_conditions) {
+    print(paste("----- ----- ----- -----VFD...", VFD))
+    # Get footEvents for participant
+    footEvents <- find_foot_events(participant, VFD)
+    
+    # Calculate gait data and parameters
+    gaitData <- get_gait_data(footEvents, participant, VFD)
+    gaitParams <- calculate_gait_parameters(gaitData)
+    
+    # Convert the list of gait parameters to a data frame
+    gaitParamsDf <- as.data.frame(gaitParams)
+    
+    # Add a column for the participant identifier
+    gaitParamsDf$participant <- participant
+    gaitParamsDf$VFD <- VFD
+
+    # Bind this participant's gait parameters to the overall data frame
+    allGaitParams <- rbind(allGaitParams, gaitParamsDf)
+  }
+}
+# Now allGaitParams is a data frame with the gait parameters for all participants and both VFD conditions
+```
+
+
+### Calculate means (& define categories)
+We also calculate the means for each of the gait parameters, and put them in a summary table, to easily reference later when plotting.
+
+```{r}
+categories <- c("participant", "VFD")#, "heelStrikes.foot")
+numericDataTypes <- sapply(allGaitParams, is.numeric)
+logicalDataTypes <- sapply(allGaitParams, is.logical)
+dataTypes <- names(numericDataTypes[numericDataTypes | logicalDataTypes])
+dataTypes <- setdiff(dataTypes, categories)
+
+get_summ <- function(dataType, categories) {
+  # Filter out the good data
+  filtered <- allGaitParams[allGaitParams$heelStrikes.targetIgnoreSteps == FALSE & allGaitParams$heelStrikes.outlierSteps == FALSE, ]
+  
+  filtered %>%
+    group_by(across(all_of(categories))) %>%
+    summarise(
+      mean = mean(.data[[dataType]], na.rm = TRUE),
+      sd = sd(.data[[dataType]], na.rm = TRUE),
+      cv = sd(.data[[dataType]], na.rm = TRUE) / mean(.data[[dataType]], na.rm = TRUE),
+      .groups = "drop"
+    )
+}
+
+mu <- lapply(dataTypes, get_summ, categories = categories) # c("participant", "VFD"))
+mu <- setNames(mu, dataTypes)
+```
+
+
+## Plotting
+
+Click here to save the figures
+```{r, echo=FALSE}
+inputPanel(
+  actionButton("save", "Save figures")
+)
+```
+
+### Plot Steps function
+
+For the plotting we can use pretty much the same code, with some different inputs. To do this easily we define some methods here (echo set to false, see source code for more info).
+
+```{r, echo=FALSE}
+plot_steps <- function(participant, VFD, start=1, end=500, x_axis = "time", y_axis = "pos_z") { # start=first step to plot, end=last step to plot
+  filteredGaitParams <- allGaitParams[allGaitParams$participant == participant & allGaitParams$VFD == VFD, ]
+    
+  preprocessedData <- get_preprocessed_data(participant, VFD) 
+  rightData <- preprocessedData$rightFoot
+  
+  leftData <- preprocessedData$leftFoot
+  
+  # Filter out a subset of the steps if needed
+  if (start > 1) {start <- start - 1} # make sure we get the step before
+  steps <- start:end
+
+  if (length(steps) > 1) {
+    filteredGaitParams <- filteredGaitParams[filteredGaitParams$heelStrikes.step %in% steps,]
+  }
+  
+  timeMin <- min(filteredGaitParams$heelStrikes.time)
+  timeMax <- max(filteredGaitParams$heelStrikes.time)
+  
+  rightData <- rightData %>% filter(time > timeMin & time < timeMax)
+  leftData <- leftData %>% filter(time > timeMin & time < timeMax)
+  
+  # Add a new column to both dataframes to identify the foot
+  rightData$foot <- "Right"
+  leftData$foot <- "Left"
+  # Combine the dataframes
+  both <- rbind(rightData, leftData)
+  both <- both[order(both$time), ] # Order by time
+
+  rParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Right", ]
+  lParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Left", ]
+  rTargets <- rParams[rParams$heelStrikes.target, ]
+  lTargets <- lParams[lParams$heelStrikes.target, ]
+  
+  # Create the plot
+  targetSize <- 5
+  footEventSize <- 2
+  p <- ggplot(both, aes(x = .data[[x_axis]], y = .data[[y_axis]], color = .data$foot)) +
+    geom_path() +
+    # footlifts
+    geom_point(data = rParams, aes(x = .data[[paste0("footLifts.", x_axis)]], y = .data[[paste0("footLifts.", y_axis)]]), shape = 24, color = "red", size = footEventSize) +
+    geom_point(data = lParams, aes(x = .data[[paste0("footLifts.", x_axis)]], y = .data[[paste0("footLifts.", y_axis)]]), shape = 24, color = "blue", size = footEventSize) + # 12=empty square
+    # heelstrikes
+    geom_point(data = rParams, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 25, color = "red", size = footEventSize) + # 16=ball
+    geom_point(data = lParams, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 25, color = "blue", size = footEventSize) +
+    # targets
+    geom_point(data = rTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "red", size = targetSize) +
+    geom_point(data = lTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "blue", size = targetSize) + # 10=target
+    scale_color_manual(values = c("Right" = "black", "Left" = "grey"))
+  
+  if (x_axis != "time" && y_axis != "time") {
+    p <- p + coord_equal()
+  }
+
+  return(p)
+}
+
+
+add_lines <- function(p, footEvents, rightData, leftData, start, end, x_axis = "time", y_axis = "pos_z") { # start=first step to plot, end=last step to plot
+  heelStrikes <- footEvents$heelStrikes
+
+  # Filter out a subset of the steps if needed
+  if (start > 1) {
+    start <- start - 1
+  } # make sure we get the step before
+  steps <- start:end
+
+  if (length(steps) > 1) {
+    heelStrikes <- subset(heelStrikes, step %in% steps)
+    # Filter out the steps we want to plot
+    rHeelStrikes <- subset(heelStrikes, .data$foot == "Right")
+    timeMin <- min(rHeelStrikes$time)
+    timeMax <- max(rHeelStrikes$time)
+    rightData <- subset(rightData, time > timeMin & time < timeMax)
+    leftData <- subset(leftData, time > timeMin & time < timeMax)
+  }
+
+  # Add a new column to both dataframes to identify the foot
+  rightData$foot <- "Right"
+  leftData$foot <- "Left"
+
+  # Create the plot
+  p <- p + geom_path(data = rightData, aes(x = .data[[x_axis]], y = .data[[y_axis]]), color = "pink") +
+    geom_path(data = leftData, aes(x = .data[[x_axis]], y = .data[[y_axis]]), color = "lightblue")
+  if (x_axis != "time" && y_axis != "time") {
+    p <- p + coord_equal()
+  }
+  return(p)
+}
+
+#plot_steps(participants[1], TRUE) # example use
+```
+This will create a plot with the inputted data, also marking down the step events (footlift, heelstrike, and target steps).
+
+### Plot Steps and VFD
+
+We can now use this method to plot some of the stepping data:
+```{r,echo=FALSE}
+xOptions <- c("time", "pos_x", "pos_y", "pos_z")
+
+xOptionsVFD <- c("time", "magnitude", "offset_x", "offset_y", "offset_z", "final_pos_x", "final_pos_y", "final_pos_z", "rel_pos_x", "rel_pos_y", "rel_pos_z")
+xOptions <- c(xOptions, xOptionsVFD)
+
+inputPanel(
+  checkboxInput("plot2D", "Do plot",
+    value = TRUE
+  ),
+  selectizeInput("participant", "participant",
+    choices = participants, selected = participants[1], multiple = FALSE
+  ),
+  selectizeInput("VFD", "VFD",
+    choices = c(TRUE, FALSE), selected = TRUE, multiple = FALSE
+  ),
+  selectizeInput("xplot", "xplot",
+    choices = xOptions, selected = xOptions[2], multiple = FALSE
+  ),
+  selectizeInput("yplot", "yplot",
+    choices = xOptions, selected = xOptions[3], multiple = FALSE
+  ),
+  numericInput("start", "start",
+    min = 0, max = 500, value = 0, step = 1
+  ),
+  numericInput("end", "end",
+    min = 0, max = 500, value = 0, step = 1
+  ),
+  numericInput("plotheight", "plotheight",
+    min = 50, max = Inf, value = 500, step = 50
+  )
+)
+
+makeLinePlot <- reactive({
+  # create plot
+  return(plot_steps(input$participant, input$VFD, input$start, input$end, input$xplot, input$yplot))
+})
+
+renderPlot(
+  {
+    if (input$plot2D) {
+      makeLinePlot()
+    }
+  },
+  height = reactive(input$plotheight)
+)
+
+observeEvent(input$save, {
+  p <- makeLinePlot()
+  ggsave("linePlot.svg", plot = p, device = "svg") # ,height=reactive(input$plotheight))#, height = 3, width = 3, unit = 'in')
+})
+```
+
+### Plot gait parameters
+
+Let's plot the distribution of the gait parameters for the different groups. Use the input fields to split the histograms in different ways.
+
+```{r, echo=FALSE}
+categoriesInputs <- append(categories, "None")
+
+inputPanel(
+  selectizeInput("plot", "Plot",
+    choices = dataTypes, selected = dataTypes[1], multiple = FALSE
+  ),
+  selectizeInput("group", "Group by",
+    choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+  ),
+  selectizeInput("position", "Bar positions",
+    choices = c("stack", "identity", "dodge"), selected = "identity", multiple = FALSE
+  ),
+  selectizeInput("split", "Split by",
+    choices = categoriesInputs, selected = "None", multiple = FALSE
+  ),
+  checkboxInput("means", "Show means",
+    value = TRUE
+  ),
+  numericInput("height", "Height per plot",
+    min = 50, max = 500, value = 200, step = 50
+  ),
+  numericInput("bin", "Bin width",
+    min = 0.001, max = 0.5, value = 0.01, step = 0.01
+  ),
+)
+
+inputPanel(
+  selectizeInput("filterParticipants", "Participants", choices = participants, selected = participants, multiple = TRUE),
+  selectizeInput("filterVFD", "VFD", choices = c(TRUE, FALSE), selected = c(TRUE, FALSE), multiple = TRUE),
+  selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = FALSE, multiple = TRUE),
+  selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = FALSE, multiple = TRUE)
+)
+
+plotCount <- reactive({
+  colName <- as.character(input$split)
+  return(uniqueN(allGaitParams[[colName]]))
+})
+
+plotHeight <- reactive(
+  if (input$split == "None") {
+    return(input$height)
+  } else {
+    return(input$height * plotCount())
+  }
+)
+
+filteredParams <- reactive({
+  included <- allGaitParams[["participant"]] %in% input$filterParticipants
+  included <- included & allGaitParams[["VFD"]] %in% input$filterVFD
+  included <- included & allGaitParams[["heelStrikes.targetIgnoreSteps"]] %in% input$filterTargets
+  included <- included & allGaitParams[["heelStrikes.outlierSteps"]] %in% input$filterOutliers
+  
+  return(allGaitParams[included, ])
+})
+
+makeHistogramPlot <- reactive({
+  aes <- aes_string(x = input$plot)
+  a <- 1
+  fill <- "grey"
+  if (input$group != "None") {
+    fill <- "white"
+    aes <- modifyList(aes, aes_string(col = input$group))
+    if (input$position == "identity") {
+      a <- 1 / 2
+    }
+  }
+
+  p <- ggplot(filteredParams(), aes) +
+    geom_histogram(binwidth = input$bin, fill = fill, alpha = a, position = input$position)
+
+  if (input$means && input$split != "None") {
+    p <- p + geom_vline(mu[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$split), linetype = "dashed")
+  }
+  if (input$means && input$split == "None" && input$group != "None") {
+    p <- p + geom_vline(mu[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$group), linetype = "dashed")
+  }
+
+  if (input$split != "None") {
+    p <- p + facet_grid(sym(input$split))
+  }
+
+  return(p)
+})
+
+renderPlot(
+  {
+    makeHistogramPlot()
+  },
+  height = reactive(plotHeight())
+)
+
+observeEvent(input$save, {
+  p <- makeHistogramPlot()
+  ggsave("histo.svg", plot = p, device = "svg", height = reactive(plotHeight())) # , height = 3, width = 3, unit = 'in')
+})
+```
+
+### Scatterplots
+
+We can now use this method to plot some of the stepping data:
+```{r,echo=FALSE}
+inputPanel(
+  selectizeInput("xscatter", "xscatter",
+    choices = dataTypes, selected = dataTypes[1], multiple = FALSE
+  ),
+  selectizeInput("yscatter", "yscatter",
+    choices = dataTypes, selected = dataTypes[1], multiple = FALSE
+  )
+)
+
+make_scatter_plot <- reactive({
+  aes <- aes_string(x = input$xscatter, y = input$yscatter, col = input$group)
+
+  p <- ggplot(filteredParams(), aes) +
+    geom_point(alpha = 0.5) # Set the alpha to make overlapping points more visible
+
+  return(p)
+})
+
+renderPlot({
+  make_scatter_plot()
+})
+
+# observeEvent(input$save, {
+#  p = makeScatterPlot()
+#  ggsave("scatter.svg", plot = p, device = "svg")#, height = 3, width = 3, unit = 'in')
+# })
+```
+
+### Removed Steps (pie-charts)
+
+```{r}
+# Load the data
+df <- read.csv("./data/StepsRemovalData.csv")
+
+# Filter out any missing participants
+df <- subset(df, participant %in% participants)
+
+# Melt the data
+df_melted <- df %>%
+  pivot_longer(
+    cols = c(targetsteps, outliers, included),
+    names_to = "Step Type",
+    values_to = "Count"
+  )
+# Specify your desired order
+desired_order <- c("targetsteps", "outliers", "included")
+
+# Pie charts for each unique VFD value:
+for (VFD_value in unique(df$VFD)) {
+  df_filtered <- df_melted %>%
+    filter(VFD == VFD_value) %>%
+    group_by(`Step Type`) %>%
+    summarise(TotalCount = sum(Count), .groups = "drop")
+
+  # Convert `Step Type` to a factor and specify the order of the levels
+  df_filtered$`Step Type` <- factor(df_filtered$`Step Type`, levels = desired_order)
+
+  df_filtered$label_pos <- cumsum(df_filtered$TotalCount) - 0.5 * df_filtered$TotalCount
+
+  total_steps <- sum(df_filtered$TotalCount)
+
+  p <- ggplot(df_filtered, aes(x = "", y = TotalCount, fill = `Step Type`)) +
+    geom_bar(stat = "identity", width = 1) +
+    coord_polar("y", start = 0) +
+    theme_void() +
+    scale_fill_brewer(palette = "Pastel1") +
+    geom_text(aes(label = TotalCount, y = label_pos), color = "black") +
+    ggtitle(paste("VFD =", VFD_value, "| Total steps =", total_steps))
+
+  print(p)
+}
+
+# Pie charts for each unique participant value:
+for (participant_value in unique(df$participant)) {
+  df_filtered <- df_melted %>%
+    filter(participant == participant_value) %>%
+    group_by(`Step Type`) %>%
+    summarise(TotalCount = sum(Count), .groups = "drop")
+
+  # Convert `Step Type` to a factor and specify the order of the levels
+  df_filtered$`Step Type` <- factor(df_filtered$`Step Type`, levels = desired_order)
+
+  df_filtered$label_pos <- cumsum(df_filtered$TotalCount) - 0.5 * df_filtered$TotalCount
+
+  total_steps <- sum(df_filtered$TotalCount)
+
+  p <- ggplot(df_filtered, aes(x = "", y = TotalCount, fill = `Step Type`)) +
+    geom_bar(stat = "identity", width = 1) +
+    coord_polar("y", start = 0) +
+    theme_void() +
+    scale_fill_brewer(palette = "Pastel1") +
+    geom_text(aes(label = TotalCount, y = label_pos), color = "black") +
+    ggtitle(paste("Participant =", participant_value, "| Total steps =", total_steps))
+
+  print(p)
+}
+
+# Pie chart for all participant and VFD values:
+df_filtered <- df_melted %>%
+  group_by(`Step Type`) %>%
+  summarise(TotalCount = sum(Count), .groups = "drop")
+
+# Convert `Step Type` to a factor and specify the order of the levels
+df_filtered$`Step Type` <- factor(df_filtered$`Step Type`, levels = desired_order)
+
+df_filtered$label_pos <- cumsum(df_filtered$TotalCount) - 0.5 * df_filtered$TotalCount
+
+total_steps <- sum(df_filtered$TotalCount)
+
+p <- ggplot(df_filtered, aes(x = "", y = TotalCount, fill = `Step Type`)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  scale_fill_brewer(palette = "Pastel1") +
+  geom_text(aes(label = TotalCount, y = label_pos), color = "black") +
+  ggtitle(paste("All Participants & VFD | Total steps =", total_steps))
+
+p
+```
+
+
+### Plotting Questionnaires
+
+#### Plotting function
+```{r}
+plot_questionnaire_data <- function(qType, participants, cols_to_include) {
+  # Get the data
+  data <- calculate_all_scores(participants, qType)
+
+  # Only keep the columns to include in the plot
+  if (length(cols_to_include) == 0) {
+    cols_to_include <- setdiff(colnames(data), c("participant", "VFD"))
+  }
+  data <- data[, c("participant", "VFD", cols_to_include), drop = FALSE]
+
+  # Reshape the data to long format for ggplot
+  data_long <- reshape2::melt(data, id.vars = c("participant", "VFD"))
+
+  # Create the plot for each column to include
+  p <- ggpaired(
+    data = data_long,
+    x = "VFD",
+    y = "value",
+    id = "participant",
+    color = "VFD",
+    line.color = "gray",
+    line.size = 0.4
+  ) +
+    facet_wrap(~variable, scales = "free", ncol = length(cols_to_include)) +
+    labs(x = "VFD", y = "Score") +
+    ggtitle(paste0("Boxplots of ", qType, " Scores")) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    ylim(0, 7) # Set y-axis limits
+
+  return(p)
+}
+
+#p <- plot_questionnaire_data("IMI", participants, c()) # "none", "total" # EXAMPLE USAGE
+```
+
+
+#### Plots
+```{r, echo=FALSE}
+questionnaireList <- c("VEQ", "SSQ", "IMI")
+
+inputPanel(
+  selectizeInput("plotQ", "Plot Questionnaire", choices = questionnaireList, selected = questionnaireList[1], multiple = FALSE)
+)
+
+renderPlot({
+  plot_questionnaire_data(input$plotQ, participants, c())
+})
+```
+
+### Boxplot on Step variability
+
+#### Plotting function
+
+```{r}
+plot_variability_data <- function(datatype, metric) {
+  # Get the data
+  # cols_to_include <- c(metric)
+  data <- mu[[datatype]]
+  data <- data[, c("participant", "VFD", metric), drop = FALSE]
+  # Reshape the data to long format for ggplot
+  data_long <- reshape2::melt(data, id.vars = c("participant", "VFD"))
+
+  # Create the plot for each column to include
+  p <- ggpaired(
+    data = data_long,
+    x = "VFD",
+    y = "value",
+    id = "participant",
+    color = "VFD",
+    line.color = "gray",
+    line.size = 0.4
+  ) +
+    # facet_wrap(~ variable, scales = "free", ncol = length(cols_to_include)) +
+    labs(x = "VFD", y = metric) +
+    ggtitle(paste0("Boxplots of ", datatype, " (", metric, ") Scores")) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    coord_cartesian(ylim = range(data_long$value, na.rm = TRUE)) # Set y limits to the range of y values in data
+
+  return(p)
+}
+
+# p <- plot_variability_data("stepLengths", "cv") # example usage
+```
+
+#### Plots
+
+```{r, echo=FALSE}
+varDatatypes <- c("stepLengths", "stepWidths")
+varMetrics <- c("cv", "mean", "sd")
+inputPanel(
+  selectizeInput("plotVar", "Variability of", choices = varDatatypes, selected = varDatatypes[1], multiple = FALSE),
+  selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
+)
+
+renderPlot({
+  plot_variability_data(input$plotVar, input$plotMetric)
+})
+```
+
+## Power Analysis
+Based on these results, we can perform a power analysis to get an idea of the number of participants we want to work with for a followup experiment.
+
+```{r, echo=TRUE}
+
+
+# get the effect sizes
+data <- mu[["stepWidths"]]
+data <- data[, c("participant", "VFD", "cv"), drop = FALSE]
+print(data)
+
+compute_cohens_d <- function(group1, group2) {
+  mean1 <- mean(group1)
+  mean2 <- mean(group2)
+  pooled_sd <- sqrt(((length(group1) - 1) * var(group1) + (length(group2) - 1) * var(group2)) / 
+                    (length(group1) + length(group2) - 2))
+  d <- (mean1 - mean2) / pooled_sd
+  return(d)
+}
+# Separate the data into the two conditions
+data_vfd_true <- filter(data, VFD == TRUE)$cv
+data_vfd_false <- filter(data, VFD == FALSE)$cv
+cohens_d <- compute_cohens_d(data_vfd_true, data_vfd_false)
+print(cohens_d)
+
+# Assuming we aim for a power of 0.8, a significance level of 0.05,
+# and we expect a medium effect size (Cohen's d = 0.5) for a two-sample t-test
+effect_size <- cohens_d
+alpha <- 0.05
+power <- 0.8
+
+# Perform the power analysis
+pwr_result <- pwr.t.test(d = effect_size, power = power, sig.level = alpha, type = "paired", alternative = "greater")
+
+
+# Print the results
+print(pwr_result)
+
+# Extract and print the recommended number of participants per group
+required_n <- ceiling(pwr_result$n)
+cat("Number of participants required:", required_n, "\n")
+
+## PLOT
+
+# Desired levels of power to explore
+power_levels <- seq(0.6, 0.95, by = 0.05)
+#power_levels <- c(power_levels,0.99)
+# Initialize an empty vector to hold the calculated sample sizes
+sample_sizes <- numeric(length(power_levels))
+
+# Calculate the required sample size for each power level
+for (i in seq_along(power_levels)) {
+  pwr_result <- pwr.t.test(d = cohens_d, power = power_levels[i], sig.level = 0.05, type = "paired", alternative = "greater")
+  sample_sizes[i] <- ceiling(pwr_result$n)
+}
+
+# Now, plot the relationship between power and the number of participants
+plot(power_levels, sample_sizes, type = "b", pch = 19,
+     xlab = "Power", ylab = "Required Sample Size Per Group",
+     main = "Required Sample Size vs. Power", col = "blue")
+lines(power_levels, sample_sizes, type = "l", lwd = 2, col = "blue")
+grid(nx = NA, ny = NULL)
+```

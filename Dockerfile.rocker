@@ -1,0 +1,16 @@
+FROM rocker/rstudio:latest
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN install2.r --skipinstalled \
+    shiny rmarkdown flexdashboard plyr dplyr purrr data.table RColorBrewer \
+    ggplot2 ggpubr readxl rstatix plotrix car Rmisc tidyr devtools ggpattern \
+    lme4 emmeans sjstats lmerTest MuMIn svglite jsonlite pwr lme4 DT \
+    signal ggstatsplot ggside \
+    && rm -rf /tmp/downloaded_packages \
+    && strip /usr/local/lib/R/site-library/*/libs/*.so
+
+#USER rstudio
+ENV EDITOR_FOCUS_DIR "/home/rstudio/workspace"
+RUN mkdir -p "$EDITOR_FOCUS_DIR"
