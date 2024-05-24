@@ -27,8 +27,10 @@ ggpattern
 Matrix
 lme4
 DT
+lmerTest
 svglite
 jsonlite
+reshape2
 pwr
 signal
 zoo
