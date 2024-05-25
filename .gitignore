@@ -1,2 +1,6 @@
 runtime/data/
 /.vs
+
+runtime/index_cache
+runtime/index_data
+runtime/index.html
