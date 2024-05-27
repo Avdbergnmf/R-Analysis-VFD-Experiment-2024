@@ -7,9 +7,12 @@ RUN install2.r --skipinstalled \
     shiny rmarkdown flexdashboard plyr dplyr purrr data.table RColorBrewer \
     ggplot2 ggpubr readxl rstatix plotrix car Rmisc tidyr devtools ggpattern \
     lme4 emmeans sjstats lmerTest MuMIn svglite jsonlite pwr lme4 DT \
-    signal ggstatsplot ggside zoo \
+    signal ggstatsplot ggside zoo gridExtra ggExtra\
     && rm -rf /tmp/downloaded_packages \
     && strip /usr/local/lib/R/site-library/*/libs/*.so
+
+RUN apt-get update && apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended \
+    && rm -rf /var/lib/apt/lists/*
 
 #USER rstudio
 ENV EDITOR_FOCUS_DIR "/home/rstudio/workspace"

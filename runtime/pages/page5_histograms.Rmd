@@ -1,0 +1,83 @@
+### Options
+
+```{r}
+selectizeInput("plot", "Plot",
+  choices = dataTypes, selected = dataTypes[1], multiple = FALSE
+)
+selectizeInput("group", "Group by",
+  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+)
+selectizeInput("position", "Bar positions",
+  choices = c("stack", "identity", "dodge"), selected = "identity", multiple = FALSE
+)
+selectizeInput("split", "Split by",
+  choices = categoriesInputs, selected = "None", multiple = FALSE
+)
+checkboxInput("means", "Show means",
+  value = TRUE
+)
+numericInput("bin", "Bin width",
+  min = 0.001, max = 0.5, value = 0.01, step = 0.01
+)
+```
+
+Column
+--------------------------------------------
+
+### Histograms  {data-height=1500}
+```{r}
+plotOutput("hist")
+```
+
+```{r, context="server"}
+plotCount <- reactive({
+  colName <- as.character(input$split)
+  return(uniqueN(allGaitParams[[colName]]))
+})
+
+plotHeight <- reactive(
+  if (input$split == "None") {
+    return(input$plotheight)
+  } else {
+    return(input$plotheight * plotCount())
+  }
+)
+
+makeHistogramPlot <- reactive({
+  aes <- aes_string(x = input$plot)
+  a <- 1
+  fill <- "grey"
+  if (input$group != "None") {
+    fill <- "white"
+    aes <- modifyList(aes, aes_string(col = input$group))
+    if (input$position == "identity") {
+      a <- 1 / 2
+    }
+  }
+
+  p <- ggplot(filteredParams(), aes) +
+    geom_histogram(binwidth = input$bin, fill = fill, alpha = a, position = input$position)
+  
+  mu_dyn <- get_mu_dyn()
+  
+  if (input$means && input$split != "None") {
+    p <- p + geom_vline(mu_dyn[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$split), linetype = "dashed")
+  }
+  if (input$means && input$split == "None" && input$group != "None") {
+    p <- p + geom_vline(mu_dyn[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$group), linetype = "dashed")
+  }
+
+  if (input$split != "None") {
+    p <- p + facet_grid(sym(input$split))
+  }
+
+  return(p)
+})
+
+output$hist <- renderPlot(
+  {
+    makeHistogramPlot()
+  },
+  height = reactive(plotHeight())
+)
+```

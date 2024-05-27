@@ -1,4 +1,16 @@
+####### DEFINITIONS
+
 allTrials <- c(1,2,3,4,5,6) # VFD conditions
+# Getting types for later use
+categories <- c("participant", "VFD", "trialNum")   # "heelStrikes.foot"
+categoriesInputs <- append(categories, "None")
+getTypes <- function(dt){
+  numericDataTypes <- sapply(dt, is.numeric)
+  logicalDataTypes <- sapply(dt, is.logical)
+  dataTypes <- names(numericDataTypes[numericDataTypes | logicalDataTypes]) # exclude the logical dataTypes
+}
+
+############ FUNCTIONS
 
 calc_all_gait_params <- function(){
   # Initialize an empty data frame
@@ -20,6 +32,7 @@ calc_all_gait_params <- function(){
       gaitParamsDf$trialNum <- trial
       gaitParamsDf$VFD <- get_p_results(participant,"noise_enabled",trial) == "True"
       gaitParamsDf$practice <- get_p_results(participant,"practice",trial) == "True"
+      #gaitParamsDf$started_with_noise <- started_with_noise(participant)
       
       # Bind this participant's gait parameters to the overall data frame
       allGaitParams <- rbind(allGaitParams, gaitParamsDf)

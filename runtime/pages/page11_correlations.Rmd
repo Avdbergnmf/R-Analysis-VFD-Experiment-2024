@@ -1,0 +1,62 @@
+### Options
+
+```{r}
+selectInput("par", "Parametric data", 
+            choices = c("parametric", "nonparametric", "bayes", "robust"), 
+            selected = "parametric", multiple = FALSE)
+```
+
+Column
+--------------------------------------------
+
+### Correlation Plots  {data-height=500}
+
+#### Density Plot - VEQ
+```{r}
+plotOutput("corrVEQ")
+```
+
+#### Density Plot - IMI
+```{r}
+plotOutput("corrIMI")
+```
+
+### Correlation Results  {data-height=500}
+```{r}
+verbatimTextOutput("correlation_text")
+```
+
+### Scatter Plots with Correlation {data-height=1000}
+
+#### Scatter Plot
+```{r}
+plotOutput("scatter")
+```
+
+```{r, context="server"}
+output$corrVEQ <- renderPlot({
+  dt <- get_mu_dyn_long()
+  ggplot(dt, aes(VEQ)) + geom_density(fill = "gray") # [dt$VFD == FALSE, ]
+}, height = reactive(input$plotheight))
+
+output$correlation_text <- renderPrint({
+  dt <- get_mu_dyn_long()
+  
+  # Check normality of averages
+  print(shapiro.test(dt$grp.mean))
+  print(shapiro.test(dt$embodiment_Body))
+  print(shapiro.test(muFQ_$grp.mean))
+  print(shapiro.test(muFQ_$embodiment_Feet))
+  
+  correlationA <- cor(muAQ_$embodiment_Body, muAQ_$grp.mean, method = 'pearson')
+  correlationF <- cor(muFQ_$embodiment_Feet, muFQ_$grp.mean, method = 'pearson')
+  print(paste("Embodiment Body vs Distance:", correlationA))
+  print(paste("Embodiment Feet vs Distance:", correlationF))
+})
+
+output$scatter <- renderPlot({
+  dt <- get_mu_dyn_long()
+  ggscatterstats(data = dt, x = VEQ, y = stepWidths.cv, type = input$par)
+}, height = reactive(input$plotheight))
+
+```

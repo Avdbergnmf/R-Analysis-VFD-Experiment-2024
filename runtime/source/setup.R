@@ -46,3 +46,5 @@ library(zoo)  # For rolling statistics
 # For correlation plots
 library(ggstatsplot)
 library(ggside)
+# scatterplot with distribution on the sides
+library(ggExtra)

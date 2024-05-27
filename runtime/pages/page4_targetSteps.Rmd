@@ -1,0 +1,71 @@
+
+### Options
+```{r,echo=FALSE}
+selectizeInput("targetPlotPlot", "Plot",
+  choices = dataTypesTargets, selected = dataTypesTargets[2], multiple = FALSE
+)
+selectizeInput("targetPlotGroup", "Group by",
+  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+)
+selectizeInput("targetPlotPosition", "Bar positions",
+  choices = c("stack", "identity", "dodge"), selected = "identity", multiple = FALSE
+)
+selectizeInput("targetPlotSplit", "Split by",
+  choices = categoriesInputs, selected = "None", multiple = FALSE
+)
+
+numericInput("targetPlotBin", "Bin width",
+  min = 0.001, max = 0.5, value = 0.01, step = 0.01
+)
+```
+
+Column
+--------------------------------------------
+
+### Histograms  {data-height=1000}
+```{r}
+plotOutput("histTargets")
+```
+
+### Target Steps  {data-height=1000}
+```{r}
+plotOutput("targets")
+```
+
+
+```{r, context="server"}
+output$targets <- renderPlot({
+  p <- make_target_steps_plot(filteredTargetParams())
+  
+  return(p)
+}, height = reactive(input$plotheight))
+
+makeTargetHistogramPlot <- reactive({
+  aes <- aes_string(x = input$targetPlotPlot)
+  a <- 1
+  fill <- "grey"
+  if (input$targetPlotGroup != "None") {
+    fill <- "white"
+    aes <- modifyList(aes, aes_string(col = input$targetPlotGroup))
+    if (input$targetPlotPosition == "identity") {
+      a <- 1 / 2
+    }
+  }
+
+  p <- ggplot(filteredTargetParams(), aes) +
+    geom_histogram(binwidth = input$targetPlotBin, fill = fill, alpha = a, position = input$targetPlotPosition)
+
+  if (input$targetPlotSplit != "None") {
+    p <- p + facet_grid(sym(input$targetPlotSplit))
+  }
+
+  return(p)
+})
+
+output$histTargets <- renderPlot(
+  {
+    makeTargetHistogramPlot()
+  },
+  height = reactive(plotHeight())
+)
+```

@@ -1,0 +1,96 @@
+### Options
+
+```{r}
+muVars <- colnames(mu)
+defaultIndepVars <- c("VFD", "trialNum")
+defaultDepVar <- "stepWidths.cv"
+selectizeInput("depVar", "Dependent variable", choices = muVars, selected = defaultDepVar, multiple = FALSE)
+selectizeInput("indepVars", "Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
+checkboxInput("interaction", "Include Interaction (VFD*trialNum)", value = TRUE)
+```
+
+Column
+--------------------------------------------
+
+### Statistics Results  {data-height=500}
+```{r}
+#plotOutput("qq") ## QQ plot to check if we can use LMM?
+verbatimTextOutput("lmm_text")
+```
+### Tables
+
+#### Fixed effects {data-height=500}
+```{r}
+tableOutput("fixed_effects_table")
+```
+
+#### Random effects {data-height=500}
+```{r}
+tableOutput("random_effects_table")
+```
+
+```{r, context="server"}
+get_lmer = reactive({
+  dt <- get_mu_dyn_long()
+  
+  # Construct the formula dynamically using input$depVar and input$indepVars
+  dep_var <- input$depVar
+  indep_vars <- paste(input$indepVars, collapse = " + ")
+  
+  # Add interaction term if selected
+  if (input$interaction) {
+    formula_text <- paste(dep_var, "~", indep_vars, "+ (1 | participant) + VFD*trialNum")
+  } else {
+    formula_text <- paste(dep_var, "~", indep_vars, "+ (1 | participant)")
+  }
+  
+  formula <- as.formula(formula_text)
+  return(lmerTest::lmer(formula, data=dt, REML=FALSE)) # put lmerTest:: in front to get p values.
+})
+
+output$lmm_text <- renderPrint({
+  lmm <- get_lmer()
+  results <- summary(lmm)
+  
+  # Summarize the model
+  cat("\nLMM:\n")
+  print(lmm)
+  cat("\nRESULTS:\n")
+  print(results)
+})
+
+output$fixed_effects_table <- renderTable({
+  lmm <- get_lmer()
+  results <- summary(lmm)
+  fixed_effects <- results$coefficients
+  
+  # Convert to a data frame for rendering and include row names
+  fixed_effects_df <- as.data.frame(fixed_effects)
+  fixed_effects_df <- cbind(Effect = rownames(fixed_effects_df), fixed_effects_df)
+  rownames(fixed_effects_df) <- NULL
+  fixed_effects_df
+}, rownames = TRUE)
+
+output$random_effects_table <- renderTable({
+  lmm <- get_lmer()
+  random_effects <- as.data.frame(VarCorr(lmm))
+  
+  # Clean up the random effects table
+  random_effects_df <- cbind(Effect = rownames(random_effects), random_effects)
+  rownames(random_effects_df) <- NULL
+  
+  # Select only relevant columns
+  random_effects_df <- random_effects_df[, c("Effect", "grp", "vcov", "sdcor")]
+  
+  # Optionally rename columns for clarity
+  colnames(random_effects_df) <- c("Effect", "Group", "Variance", "Standard Deviation")
+  
+  random_effects_df
+}, rownames = TRUE)
+
+output$qq <- renderPlot({
+  lmm <- get_lmer()
+  p <- qqnorm(resid(lmm))
+  return(p)
+})
+```

@@ -1,0 +1,14 @@
+#### Filtering
+```{r}
+selectizeInput("filterParticipants", "Participants", choices = participants, selected = participants, multiple = TRUE)
+selectizeInput("filterVFD", "VFD", choices = c(TRUE, FALSE), selected = c(TRUE, FALSE), multiple = TRUE)
+selectizeInput("filterTrials", "Trials", choices = c(1,2,3,4,5,6), selected = c(1,2,3,4,5,6), multiple = TRUE)
+selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
+selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
+selectizeInput("filterPractice", "Familiarization", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
+```
+#### Figure Options
+```{r}
+numericInput("plotheight", "Plot Height",
+  min = 50, max = Inf, value = 500, step = 50)
+```

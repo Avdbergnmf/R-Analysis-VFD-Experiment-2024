@@ -1,0 +1,28 @@
+### Options
+```{r,echo=FALSE}
+selectizeInput("xscatter", "xscatter",
+  choices = dataTypes, selected = dataTypes[1], multiple = FALSE
+)
+selectizeInput("yscatter", "yscatter",
+  choices = dataTypes, selected = dataTypes[1], multiple = FALSE
+)
+
+selectizeInput("groupScatter", "Group by",
+  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+)
+```
+
+Column
+--------------------------------------------
+
+### Scatterplot  {data-height=1500}
+
+```{r}
+plotOutput("scatter_steps")
+```
+
+```{r, context="server"}
+output$scatter_steps <- renderPlot({
+  make_scatter_plot_steps(filteredParams(), input$groupScatter, input$xscatter, input$yscatter, TRUE)
+}, height = reactive(input$plotheight))
+```

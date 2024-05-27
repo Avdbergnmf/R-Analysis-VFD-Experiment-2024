@@ -66,7 +66,8 @@ get_p_detail <- function(pnum, detailName) {
 
 # If true, the participant started with noise VFD enabled, otherwise without it enabled
 started_with_noise <- function(pnum) {
-  return(get_p_detail(pnum, "vfd_first"))
+  secondTrialHasNoise <- get_p_results(pnum,"noise_enabled",2) == "True"
+  return(secondTrialHasNoise)
 }
 
 # get any type of data
@@ -91,6 +92,14 @@ get_t_data <- function(pnum, trackerType, trialNum) {
   )
   
   return(data)
+}
+
+# For changing up the selection inputs - bit costly, but not really needed to optimize this
+getOptions <- function(tracker){
+  exampleData <- get_t_data(participants[1],tracker,1)
+  numericTypes <- sapply(exampleData, is.numeric)
+  numeric_cols <- names(exampleData[numericTypes]) # names(numericDataTypes[numericDataTypes | logicalDataTypes])
+  return(numeric_cols)
 }
 
 get_q_file <- function(pnum, qType) { # qType = IMI / SSQ / VEQ
@@ -189,4 +198,86 @@ get_all_questionnaire_results <- function() {
     allQResults <- merge(allQResults, qData, by = c("participant", "VFD"), all = TRUE)
   }
   return(allQResults)
+}
+
+#### Some pre-processing we use later in plotting and get_foot_events
+
+preprocess_data <- function(participant, trialNum){
+  leftFoot = get_t_data(participant, "leftfoot", trialNum)
+  rightFoot = get_t_data(participant, "rightfoot", trialNum)
+  hip = get_t_data(participant, "hip", trialNum)
+  targetData = get_t_data(participant, "steptargets", trialNum)
+  leftDisturbance <- get_t_data(participant, "leftdisturbance", trialNum)
+  rightDisturbance <- get_t_data(participant, "rightdisturbance", trialNum)
+  #rightFoot <- calc_final_pos(rightFoot, rightDisturbance)
+  #leftFoot <- calc_final_pos(leftFoot, leftDisturbance)
+  minTime <- leftFoot$time[1] #get_p_results(participant,"start_time",trialNum)
+  
+  moveSpeed = get_move_speed(participant)
+  leftFoot = adjust_times(leftFoot, minTime)
+  leftFoot$actual_pos_z = leftFoot$pos_z + moveSpeed * leftFoot$time
+  rightFoot = adjust_times(rightFoot, minTime)
+  rightFoot$actual_pos_z = rightFoot$pos_z + moveSpeed * rightFoot$time
+  
+  return(list(
+    leftFoot = leftFoot,
+    rightFoot = rightFoot,
+    leftDisturbance = leftDisturbance,
+    rightDisturbance = rightDisturbance,
+    hip = adjust_times(hip, minTime),
+    targetData = adjust_times(targetData, minTime)
+  ))
+}
+
+apply_padding_and_filter <- function(column, poly_order, frame_size, fs, cutoff_freq = 5) { 
+  # Detect and remove outliers using a z-score method
+  detect_outliers_filter <- function(column, threshold = 3) {
+    # Calculate the z-scores
+    z_scores <- (column - mean(column, na.rm = TRUE)) / sd(column, na.rm = TRUE)
+    # Identify outliers
+    outliers <- abs(z_scores) > threshold
+    return(outliers)
+  }
+  
+  # Detect outliers
+  outliers <- detect_outliers_filter(column)
+  
+  # Replace outliers with NA
+  column[outliers] <- NA
+  
+  # Interpolate the missing values (linear interpolation)
+  column <- na.approx(column, rule = 2)
+  
+  # Calculate the number of points to pad (half the frame size generally works well)
+  pad_width <- 20
+  
+  # Create mirrored padding
+  padding_start <- rev(column[1:pad_width])
+  padding_end <- rev(column[(length(column) - pad_width + 1):length(column)])
+  
+  # Pad the column
+  padded_column <- c(padding_start, column, padding_end)
+  
+  # Apply Butterworth filter to the padded data
+  b <- butter(poly_order, cutoff_freq / (fs / 2))  # 4th order Butterworth filter
+  filtered_column <- filtfilt(b, padded_column)
+  
+  # Remove the padding
+  filtered_column <- filtered_column[(pad_width + 1):(length(filtered_column) - pad_width)]
+  
+  return(filtered_column)
+}
+
+detect_outliers <- function(data, targetIgnoreSteps) {
+  data_filtered <- data[!targetIgnoreSteps] # We don't use the target steps to calculate our interquartile ranges.
+  
+  Q1 <- quantile(data_filtered, 0.25)
+  Q3 <- quantile(data_filtered, 0.75)
+  IQR <- Q3 - Q1
+  
+  # Define the upper and lower bounds for outliers
+  upper_bound <- Q3 + 1.5 * IQR
+  lower_bound <- Q1 - 1.5 * IQR
+  
+  return(!(data >= lower_bound & data <= upper_bound))
 }

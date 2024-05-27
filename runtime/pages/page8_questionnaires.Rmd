@@ -1,0 +1,20 @@
+### Options
+
+```{r}
+questionnaireList <- c("VEQ", "SSQ", "IMI")
+selectizeInput("plotQ", "Plot Questionnaire", choices = questionnaireList, selected = questionnaireList[1], multiple = FALSE)
+```
+
+Column
+--------------------------------------------
+
+### Questionnaire Boxplots  {data-height=1500}
+```{r}
+plotOutput("q")
+```
+
+```{r, context="server"}
+output$q <- renderPlot({
+  plot_questionnaire_data(input$plotQ, participants, c())
+}, height = reactive(input$plotheight))
+```

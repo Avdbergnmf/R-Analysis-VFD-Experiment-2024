@@ -1,0 +1,30 @@
+### Plot Options
+```{r}
+checkboxInput("useFiltered", "Filter data",
+  value = FALSE
+)
+```
+
+Column
+--------------------------------------------
+
+
+### Removed Steps {data-height=500}
+
+
+```{r}
+plotOutput("pie")
+```
+
+```{r, context="server"}
+output$pie <- renderPlot(
+  {
+    if (input$useFiltered) {data <- filteredParams() }
+    else (data <- allGaitParams)
+    
+    return(make_pie_chart(data))
+  },
+  height = reactive(input$plotheight)
+)
+
+```

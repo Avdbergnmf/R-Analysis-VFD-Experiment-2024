@@ -1,0 +1,23 @@
+### Options
+
+```{r}
+questionnaireList <- c("VEQ", "SSQ", "IMI")
+varDatatypes <- c("stepLengths", "stepWidths")
+varMetrics <- c("cv", "mean", "sd")
+selectizeInput("plotVar", "Variability of", choices = varDatatypes, selected = varDatatypes[1], multiple = FALSE)
+selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
+```
+
+Column
+--------------------------------------------
+
+### Step Variability Plot  {data-height=1500}
+```{r}
+plotOutput("var")
+```
+
+```{r, context="server"}
+output$var <- renderPlot({
+  plot_variability_data(get_mu_dyn(), participants, input$plotVar, input$plotMetric)
+}, height = reactive(input$plotheight))
+```

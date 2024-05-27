@@ -55,5 +55,8 @@ get_full_mu <- function(allGaitParams, allQResults, dataTypes, categories){
     mu_full[[delta_col]] <- mu_full[[cv_col]] - mu_full[[avg_col]]
   }
   
+  # Create the new column using mutate and sapply
+  mu_full$started_with_noise <- sapply(mu_full$participant, started_with_noise)
+  
   return(mu_full)
 }

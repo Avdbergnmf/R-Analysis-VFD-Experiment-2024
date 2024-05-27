@@ -1,0 +1,45 @@
+### Options
+```{r,echo=FALSE}
+removePattern <- "heelStrikes\\.|toeOffs\\."
+muDataTypesFilt <- grep(removePattern, muDataTypes, value = TRUE, invert = TRUE)
+
+selectizeInput("muxscatter", "xscatter",
+  choices = muDataTypesFilt, selected = muDataTypesFilt[1], multiple = FALSE
+)
+selectizeInput("muyscatter", "yscatter",
+  choices = muDataTypesFilt, selected = muDataTypesFilt[1], multiple = FALSE
+)
+
+selectizeInput("groupScatter", "Group by",
+  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+)
+```
+
+Column
+--------------------------------------------
+
+### Scatterplot TrialData {data-height=1500}
+
+```{r}
+plotOutput("scatter_mu")
+```
+
+```{r, context="server"}
+make_scatter_plot_mu <- reactive({
+  if (input$groupScatter == "None") {
+    aes <- aes_string(x = input$muxscatter, y = input$muyscatter)
+  }
+  else{
+    aes <- aes_string(x = input$muxscatter, y = input$muyscatter, col = input$groupScatter)
+  }
+
+  p <- ggplot(get_mu_dyn_long(), aes) +
+    geom_point(alpha = 0.5) # Set the alpha to make overlapping points more visible
+
+  return(p)
+})
+
+output$scatter_mu <- renderPlot({
+  make_scatter_plot_mu()
+}, height = reactive(input$plotheight))
+```

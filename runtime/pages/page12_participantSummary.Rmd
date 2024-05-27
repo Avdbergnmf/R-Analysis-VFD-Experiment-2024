@@ -1,0 +1,184 @@
+### Options
+
+```{r}
+selectizeInput("participantSummary", "participant",
+  choices = participants, selected = participants[1], multiple = TRUE)
+
+checkboxInput("filterSummary", "Show filtered data",
+  value = FALSE)
+
+actionButton("generateReports", "Generate PDF Reports")
+
+downloadButton("downloadAll", "Download All PDFs", style = "display: block; margin-top: 20px; height: 40px; width: 300px;")
+uiOutput("downloadLinks")
+```
+
+Column
+--------------------------------------------
+
+### Downloads
+```{r}
+#uiOutput("downloadLinks")
+```
+### Progress
+```{r}
+verbatimTextOutput("progressText")
+```
+
+```{r, context="server"}
+get_extraTitle <- function(participant, trialNum){
+  VFD <- get_p_results(participant, "noise_enabled", trialNum)
+  return(paste("Trial number", trialNum, ", VFD =", VFD, ","))
+}
+
+generate_traj_plots <- function(data, participant, trials, axis_to_plot, doFilter) {
+  plots <- lapply(trials, function(trialNum) {
+    show_legend <- (trialNum == tail(trials, n = 1))
+    plot_steps_with_overlay(data, participant, trialNum, axis_to_plot, doFilter, show_legend = show_legend, extraTitle = get_extraTitle(participant, trialNum))
+  })
+  
+  y_limits <- range(unlist(lapply(plots, function(p) p$data[[axis_to_plot]])))
+  
+  plots <- lapply(plots, function(p, y_limits) {
+    p + scale_y_continuous(limits = y_limits)
+  }, y_limits = y_limits)
+  
+  # Apply the theming adjustments for x-axis
+  plots <- lapply(plots, function(p) p + theme(axis.title.x = element_blank(), axis.text.x = element_blank(), axis.ticks.x = element_blank()))
+  plots[[length(plots)]] <- plots[[length(plots)]] + theme(axis.title.x = element_text(), axis.text.x = element_text(), axis.ticks.x = element_line())
+  
+  return(plots)
+}
+
+generate_pie_charts <- function(data, participant, trials) {
+  pies <- lapply(trials, function(trialNum) {
+    show_legend <- (trialNum == tail(trials, n = 1))
+    trial_data <- data[data$participant == participant & data$trialNum == trialNum, ]
+    make_pie_chart(trial_data, get_extraTitle(participant, trialNum), show_legend)
+  })
+  return(pies)
+}
+
+generate_questionnaire_plots <- function(questionnaireList, participant) {
+  plots <- lapply(questionnaireList, function(questionnaire) {
+    plot_questionnaire_data(questionnaire, participant, c())
+  })
+  return(plots)
+}
+
+generate_variability_plots <- function(data, participant, varList) {
+  plots <- lapply(varList, function(var) {
+    plot_variability_data(data, participant, var, "cv")
+  })
+  return(plots)
+}
+
+generate_target_stepping_plot <- function(data, participant) {
+  target_data <- data[data$participant == participant, ]
+  make_target_steps_plot(target_data)
+}
+
+generate_scatter_plot <- function(data, participant) {
+  scatter_data <- data[data$participant == participant, ]
+  make_scatter_plot_steps(scatter_data, "VFD", "relHeelStrikes.pos_x", "relHeelStrikes.actual_pos_z")
+}
+
+
+
+# Reactive values to store the file paths
+pdf_file_paths <- reactiveVal(list())
+zip_file_path <- reactiveVal(NULL)
+
+observeEvent(input$generateReports, {
+  selected_participants <- input$participantSummary
+  doFilter <- input$filterSummary
+  trials <- c(2, 3, 5, 6)
+  
+  progress <- shiny::Progress$new()
+  progress$set(message = "Generating PDF reports", value = 0)
+  on.exit(progress$close())
+  
+  temp_dir <- tempdir()
+  files <- list()
+  
+  for (i in seq_along(selected_participants)) {
+    participant <- selected_participants[i]
+    progress$inc(1/length(selected_participants), detail = paste("Processing participant:", participant))
+    
+    traj_plots_z <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos_z", doFilter)
+    traj_plots_y <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos_y", doFilter)
+    traj_plots_x <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos_x", doFilter)
+    
+    pie_charts <- generate_pie_charts(allGaitParams, participant, trials)
+    
+    questionnaireList <- c("VEQ", "SSQ", "IMI")
+    questionnaire_plots <- generate_questionnaire_plots(questionnaireList, participant)
+    
+    varList <- c("stepWidths", "stepLengths")
+    variability_plots <- generate_variability_plots(get_mu_dyn(), participant, varList)
+    
+    target_stepping_plot <- generate_target_stepping_plot(filteredTargetParams(), participant)
+    
+    scatter_plot <- generate_scatter_plot(filteredParams(), participant)
+    
+    # Create the PDF report for each participant
+    output_file <- file.path(temp_dir, paste0("participant_report_", participant, "_", Sys.Date(), ".pdf"))
+    rmarkdown::render("pages/pdf.Rmd", output_file = output_file, params = list(
+      traj_plots_z = traj_plots_z,
+      traj_plots_y = traj_plots_y,
+      traj_plots_x = traj_plots_x,
+      pie_charts = pie_charts,
+      questionnaire_plots = questionnaire_plots,
+      variability_plots = variability_plots,
+      target_stepping_plot = target_stepping_plot,
+      scatter_plot = scatter_plot
+    ), envir = new.env(parent = globalenv()))
+    
+    files[[participant]] <- output_file
+  }
+  
+  # Update the reactive value with the new file paths
+  pdf_file_paths(files)
+  
+  # Create a ZIP file containing all PDFs
+  file_paths <- unname(unlist(files))  # Extract file paths from the named list
+  zip_file <- file.path(temp_dir, paste0("all_participant_reports_", Sys.Date(), ".zip"))
+  zip(zipfile = zip_file, files = file_paths)
+  
+  # Store the ZIP file path in the reactive value
+  zip_file_path(zip_file)
+  
+  output$downloadLinks <- renderUI({
+    download_buttons <- lapply(names(files), function(participant) {
+      downloadButton(outputId = paste0("download_", participant), label = paste("Download PDF for participant", participant), style = "display: block; margin-bottom: 10px; height: 40px; width: 300px;")
+    })
+    
+    do.call(tagList, download_buttons)
+  })
+  
+  # Create individual download handlers for each PDF
+  lapply(names(files), function(participant) {
+    local({
+      local_participant <- participant
+      output[[paste0("download_", local_participant)]] <- downloadHandler(
+        filename = function() {
+          paste0("participant_report_", local_participant, "_", Sys.Date(), ".pdf")
+        },
+        content = function(file) {
+          file.copy(pdf_file_paths()[[local_participant]], file)
+        }
+      )
+    })
+  })
+})
+
+# Download handler for the ZIP file
+output$downloadAll <- downloadHandler(
+  filename = function() {
+    paste0("all_participant_reports_", Sys.Date(), ".zip")
+  },
+  content = function(file) {
+    file.copy(zip_file_path(), file)
+  }
+)
+```

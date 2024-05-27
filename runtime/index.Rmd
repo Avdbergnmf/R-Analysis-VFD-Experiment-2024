@@ -7,810 +7,117 @@ output:
 runtime: shinyrmd
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, cache=TRUE}
+setwd("~/workspace")
+#cache=TRUE, local=FALSE
 source('source/setup.R')
-```
-
-### Main code
-```{r data, include=FALSE, cache=TRUE}
-# global_env.R
-global_env <- new.env()
-
-source('source/dataloading.R')
+source('source/dataloading.R', local = FALSE)
 
 allQResults <- get_all_questionnaire_results() 
 
-source('source/datamanipulation.R')
+source('source/get_foot_events.R', local = FALSE)
 # Column definitions
 xOptions <- c("time", "pos_x", "pos_y", "pos_z")
 #xOptionsVFD <- c("time", "magnitude", "offset_x", "offset_y", "offset_z", "final_pos_x", "final_pos_y", "final_pos_z", "rel_pos_x", "rel_pos_y", "rel_pos_z")
 xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for pos rot trackers
 
 ## Gait params
-source('source/gaitparams.R')
+source('source/gaitparams.R', local = FALSE)
 allGaitParams <- calc_all_gait_params()
 allTargetParams <- calc_all_target_params()
-
-# Getting types for later use
-categories <- c("participant", "VFD", "trialNum")   # "heelStrikes.foot"
-categoriesInputs <- append(categories, "None")
-getTypes <- function(dt){
-  numericDataTypes <- sapply(dt, is.numeric)
-  logicalDataTypes <- sapply(dt, is.logical)
-  dataTypes <- names(numericDataTypes[numericDataTypes | logicalDataTypes]) # exclude the logical dataTypes
-}
 
 dataTypes         <- setdiff(getTypes(allGaitParams), categories)
 dataTypesTargets  <- setdiff(getTypes(allTargetParams), categories)
 
 ## Summary tables
-source('source/summaryparams.R')
+source('source/summaryparams.R', local = FALSE)
 mu <- get_full_mu(allGaitParams, allQResults, dataTypes, categories)
 muDataTypes <- setdiff(getTypes(mu), categories)
 
 ## Plotting code
-source('source/plotting.R')
+source('source/plotting.R', local = FALSE)
 ```
+
 
 Sidebar {.sidebar}
 =====================================
-
-#### Filtering
-```{r}
-selectizeInput("filterParticipants", "Participants", choices = participants, selected = participants, multiple = TRUE)
-selectizeInput("filterVFD", "VFD", choices = c(TRUE, FALSE), selected = c(TRUE, FALSE), multiple = TRUE)
-selectizeInput("filterTrials", "Trials", choices = c(1,2,3,4,5,6), selected = c(1,2,3,4,5,6), multiple = TRUE)
-selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
-selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
-selectizeInput("filterPractice", "Familiarization", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
+```{r, child='pages/sidebar.Rmd'}
 ```
 
-#### Figure Options
-```{r}
-numericInput("plotheight", "Plot Height",
-  min = 50, max = Inf, value = 500, step = 50)
-```
+
 
 Feet trajectories {data-orientation=columns}
 =====================================
-
-
-### Plot Options
-```{r}
-trialNumbers = c(1,2,3,4,5,6)
-checkboxInput("filter", "Show filtered data",
-  value = FALSE)
-selectizeInput("participant", "participant",
-  choices = participants, selected = participants[1], multiple = FALSE)
-selectizeInput("trialNum", "Trial Number",
-  choices = trialNumbers, selected = trialNumbers[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
-
-
-selectizeInput("xplot", "xplot",
-  choices = xOptions, selected = xOptions[2], multiple = FALSE)
-selectizeInput("yplot", "yplot",
-  choices = xOptions, selected = xOptions[3], multiple = FALSE)
-
-numericInput("start", "start at step nr",
-  min = 0, max = 500, value = 0, step = 1)
-numericInput("end", "end at step nr",
-  min = 0, max = 500, value = 0, step = 1)
+```{r, child='pages/page1_feetTrajectories.Rmd'}
 ```
 
-
-Column
---------------------------------------------
-### Feet trajectories {data-height=500}
-
-```{r}
-plotOutput("FeetTraj")
+Removed Steps
+=====================================
+```{r, child='pages/page2_removedSteps.Rmd'}
 ```
 
-```{r, context="server"}
-# Initialize reactiveVal to store the filtered parameters
-filteredParams <- reactiveVal()
-
-filter_data <- function(allGaitParams, filterParticipants, filterVFD, filterTrials, filterTargets, filterOutliers, filterPractice, additionalArg) {
-  included <- allGaitParams[["participant"]] %in% filterParticipants
-  included <- included & allGaitParams[["VFD"]] %in% filterVFD
-  included <- included & allGaitParams[["trialNum"]] %in% filterTrials
-  included <- included & allGaitParams[["heelStrikes.targetIgnoreSteps"]] %in% filterTargets
-  included <- included & allGaitParams[["heelStrikes.outlierSteps"]] %in% filterOutliers
-  included <- included & allGaitParams[["practice"]] %in% filterPractice
-  return(allGaitParams[included, ])
-}
-
-# Update the filtered parameters whenever any input changes
-observeEvent({
-  list(input$filterParticipants, input$filterVFD, input$filterTrials,
-       input$filterTargets, input$filterOutliers, input$filterPractice, input$additionalArg)
-}, {
-  filtered_data <- filter_data(
-    allGaitParams, 
-    input$filterParticipants, 
-    input$filterVFD, 
-    input$filterTrials, 
-    input$filterTargets, 
-    input$filterOutliers, 
-    input$filterPractice,
-    input$additionalArg  # The additional argument
-  )
-  filteredParams(filtered_data)
-})
-
-filteredTargetParams <- reactive({
-  included <- allTargetParams[["participant"]] %in% input$filterParticipants
-  included <- included & allTargetParams[["VFD"]] %in% input$filterVFD
-  included <- included & allTargetParams[["trialNum"]] %in% input$filterTrials
-  included <- included & allTargetParams[["practice"]] %in% input$filterPractice
-  
-  return(allTargetParams[included, ])
-})
-
-get_mu_dyn <- reactive({
-  mu_dyn <- lapply(dataTypes, get_summ, categories = categories, filteredData = filteredParams())
-  mu_dyn <- setNames(mu_dyn, dataTypes)
-  
-  return(mu_dyn)
-})
-
-get_mu_dyn_long <- reactive({
-  mu_dyn <- get_mu_dyn()
-  
-  # Convert list to a single data frame
-  mu_long <- bind_rows(mu_dyn, .id = "dataType") %>%
-    pivot_longer(
-      cols = -c(participant, VFD, trialNum, dataType), 
-      names_to = "statistic", 
-      values_to = "value"
-    )
-
-  # Create new column names and pivot to a wider format
-  mu_wide <- mu_long %>%
-    unite("new_col_name", dataType, statistic, sep = ".") %>%
-    pivot_wider(
-      names_from = new_col_name, 
-      values_from = value
-    )
-
-  merged_results <- merge(allQResults, mu_wide, by = c("participant", "VFD"), all = TRUE)
-  merged_results <- merged_results[!(merged_results$trialNum %in% c(1,4)),]
-  
-  ### Extra stuff to get relative CV from mean of NoVFD condition compared to VFD trials
-  
-  # Initialize new columns for deltaCv to 0.0 for each CV column
-  cv_columns <- grep("\\.cv$", colnames(merged_results), value = TRUE)
-  delta_cv_columns <- paste(cv_columns, "deltaCv", sep = ".")
-  merged_results[delta_cv_columns] <- 0.0
-  
-  # Calculate avgNoVFD for each participant for non-practice VFD==FALSE trials
-  noVFDTrials <- merged_results[merged_results$practice.mean == 0 & merged_results$VFD == FALSE, ]
-  avgNoVFD <- noVFDTrials %>%
-    group_by(participant) %>%
-    summarise(across(all_of(cv_columns), \(x) mean(x, na.rm = TRUE)), .groups = 'drop')
-  
-  # Join avgNoVFD with the main data frame
-  names(avgNoVFD)[-1] <- paste(sub("\\.cv$", "", names(avgNoVFD)[-1]), "avgNoVFD", sep = ".")
-  mu_full <- merge(merged_results, avgNoVFD, by = c("participant"), all = TRUE)
-  
-  # Calculate deltaCv for each .cv column
-  for (cv_col in cv_columns) {
-    avg_col <- paste(sub("\\.cv$", "", cv_col), "avgNoVFD", sep = ".")  # Construct the avgNoVFD column name
-    delta_col <- paste(cv_col, "deltaCv", sep = ".")  # Construct the deltaCv column name
-    
-    mu_full[[delta_col]] <- mu_full[[cv_col]] - mu_full[[avg_col]]
-    mu_full[mu_full$VFD == FALSE, delta_col] <- NA # these values make no sense so we remove them from the dataset
-  }
-  #mu_full$trialNum <- as.factor(mu_full$trialNum)
-  return(mu_full)
-})
-
-#reactive(), reactiveVal(), reactiveData()
-output$FeetTraj <- renderPlot(
-  {
-    plot_steps(filteredParams(), input$participant, as.numeric(input$trialNum), input$start, input$end, input$xplot, input$yplot, input$filter)
-  },
-  height = reactive(input$plotheight)
-)
-```
-
-# Removed Steps
-
-
-### Plot Options
-```{r}
-checkboxInput("useFiltered", "Filter data",
-  value = FALSE
-)
-```
-
-Column
---------------------------------------------
-
-
-### Removed Steps {data-height=500}
-
-
-```{r}
-plotOutput("pie")
-```
-
-```{r, context="server"}
-output$pie <- renderPlot(
-  {
-    if (input$useFiltered) {data <- filteredParams() }
-    else (data <- allGaitParams)
-    
-    return(make_pie_chart(data))
-  },
-  height = reactive(input$plotheight)
-)
-
-```
 
 2D Plot {data-orientation=columns}
 =====================================
-
-
-### Plot Options
-```{r}
-checkboxInput("plotlines", "plot lines",value=TRUE)
-checkboxInput("plotpoints", "plot points",value=FALSE)
-
-selectizeInput("xtracker", "Data to plot",
-  choices = trackers, selected = trackers[2], multiple = FALSE)
-#selectizeInput("ytracker", "Y Data to plot",
-#  choices = trackers, selected = trackers[2], multiple = FALSE)
-
-selectizeInput("participant2d", "participant",
-  choices = participants, selected = participants[1], multiple = FALSE)
-selectizeInput("trialNum2d", "Trial Number",
-  choices = trialNumbers, selected = trialNumbers[1], multiple = FALSE)
-
-
-selectizeInput("xplot2d", "xplot",
-  choices = xOptions2D, selected = xOptions2D[2], multiple = FALSE)
-selectizeInput("yplot2d", "yplot",
-  choices = xOptions2D, selected = xOptions2D[3], multiple = FALSE)
-
-numericInput("startTime", "start time (s)",
-  min = 0, max = 500, value = 0, step = 1)
-numericInput("endTime", "end time (s)",
-  min = 0, max = 500, value = 0, step = 1)
+```{r, child='pages/page3_twoDPlot.Rmd'}
 ```
 
 
-Column
---------------------------------------------
-### 2D plot {data-height=1500}
-
-```{r}
-plotOutput("TwoD")
-```
-
-```{r, context="server"}
-# For changing up the selection inputs - bit costly, but not really needed to optimize this
-getOptions <- function(tracker){
-  exampleData <- get_t_data(participants[1],tracker,1)
-  numericTypes <- sapply(exampleData, is.numeric)
-  numeric_cols <- names(exampleData[numericTypes]) # names(numericDataTypes[numericDataTypes | logicalDataTypes])
-  return(numeric_cols)
-}
-
-observeEvent(input$xtracker, {
-  choices <- getOptions(input$xtracker)
-  updateSelectInput(session= getDefaultReactiveDomain(),"xplot2d", choices = choices, selected = choices[1])
-  updateSelectInput(session= getDefaultReactiveDomain(),"yplot2d", choices = choices, selected = choices[1])
-})
-
-output$TwoD <- renderPlot(
-  { # note, 2 times xtracker, not distinguishing between x and y for now.
-    plot_2d(input$xtracker, input$xtracker, input$participant2d, as.numeric(input$trialNum2d), input$startTime, input$endTime, input$xplot2d, input$yplot2d, input$plotlines, input$plotpoints)
-  },
-  height = reactive(input$plotheight)
-)
+Target Steps
+=====================================
+```{r, child='pages/page4_targetSteps.Rmd'}
 ```
 
 
-# Target Steps
-
-### Options
-```{r,echo=FALSE}
-selectizeInput("targetPlotPlot", "Plot",
-  choices = dataTypesTargets, selected = dataTypesTargets[2], multiple = FALSE
-)
-selectizeInput("targetPlotGroup", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
-)
-selectizeInput("targetPlotPosition", "Bar positions",
-  choices = c("stack", "identity", "dodge"), selected = "identity", multiple = FALSE
-)
-selectizeInput("targetPlotSplit", "Split by",
-  choices = categoriesInputs, selected = "None", multiple = FALSE
-)
-
-numericInput("targetPlotBin", "Bin width",
-  min = 0.001, max = 0.5, value = 0.01, step = 0.01
-)
-```
-
-Column
---------------------------------------------
-
-### Histograms  {data-height=1000}
-```{r}
-plotOutput("histTargets")
-```
-
-### Target Steps  {data-height=1000}
-```{r}
-plotOutput("targets")
+Histograms 
+=====================================
+```{r, child='pages/page5_histograms.Rmd'}
 ```
 
 
-```{r, context="server"}
-
-circleFun <- function(center = c(0,0),r = 1, npoints = 100){
-    tt <- seq(0,2*pi,length.out = npoints)
-    xx <- center[1] + r * cos(tt)
-    yy <- center[2] + r * sin(tt)
-    return(data.frame(x = xx, y = yy))
-}
-
-output$targets <- renderPlot({
-  circle = circleFun(c(0,0),0.3,100)
-  dt = filteredTargetParams()
-  axesLims <- 0.5
-  p <- ggplot() +
-    geom_path(data = circle, aes(x = x, y = y), color = "black") +
-    geom_point(data = dt, aes(x = rel_x, y = rel_z,col=VFD), fill=rgb(0,0,0,0.2),shape = 21,size=10) + 
-    xlim(-axesLims,axesLims) +
-    ylim(-axesLims,axesLims)
-  
-  p <- p + coord_equal() +
-    labs(title = "Center Foot Relative to Target Center", x = "x", y = "z")
-  
-  return(p)
-}, height = reactive(input$plotheight))
-
-makeTargetHistogramPlot <- reactive({
-  aes <- aes_string(x = input$targetPlotPlot)
-  a <- 1
-  fill <- "grey"
-  if (input$targetPlotGroup != "None") {
-    fill <- "white"
-    aes <- modifyList(aes, aes_string(col = input$targetPlotGroup))
-    if (input$targetPlotPosition == "identity") {
-      a <- 1 / 2
-    }
-  }
-
-  p <- ggplot(filteredTargetParams(), aes) +
-    geom_histogram(binwidth = input$targetPlotBin, fill = fill, alpha = a, position = input$targetPlotPosition)
-
-  if (input$targetPlotSplit != "None") {
-    p <- p + facet_grid(sym(input$targetPlotSplit))
-  }
-
-  return(p)
-})
-
-output$histTargets <- renderPlot(
-  {
-    makeTargetHistogramPlot()
-  },
-  height = reactive(plotHeight())
-)
-```
-
-# Histograms 
-
-
-### Options
-
-```{r}
-selectizeInput("plot", "Plot",
-  choices = dataTypes, selected = dataTypes[1], multiple = FALSE
-)
-selectizeInput("group", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
-)
-selectizeInput("position", "Bar positions",
-  choices = c("stack", "identity", "dodge"), selected = "identity", multiple = FALSE
-)
-selectizeInput("split", "Split by",
-  choices = categoriesInputs, selected = "None", multiple = FALSE
-)
-checkboxInput("means", "Show means",
-  value = TRUE
-)
-numericInput("bin", "Bin width",
-  min = 0.001, max = 0.5, value = 0.01, step = 0.01
-)
-```
-
-Column
---------------------------------------------
-
-### Histograms  {data-height=1500}
-```{r}
-plotOutput("hist")
-```
-
-```{r, context="server"}
-plotCount <- reactive({
-  colName <- as.character(input$split)
-  return(uniqueN(allGaitParams[[colName]]))
-})
-
-plotHeight <- reactive(
-  if (input$split == "None") {
-    return(input$plotheight)
-  } else {
-    return(input$plotheight * plotCount())
-  }
-)
-
-makeHistogramPlot <- reactive({
-  aes <- aes_string(x = input$plot)
-  a <- 1
-  fill <- "grey"
-  if (input$group != "None") {
-    fill <- "white"
-    aes <- modifyList(aes, aes_string(col = input$group))
-    if (input$position == "identity") {
-      a <- 1 / 2
-    }
-  }
-
-  p <- ggplot(filteredParams(), aes) +
-    geom_histogram(binwidth = input$bin, fill = fill, alpha = a, position = input$position)
-  
-  mu_dyn <- get_mu_dyn()
-  
-  if (input$means && input$split != "None") {
-    p <- p + geom_vline(mu_dyn[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$split), linetype = "dashed")
-  }
-  if (input$means && input$split == "None" && input$group != "None") {
-    p <- p + geom_vline(mu_dyn[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$group), linetype = "dashed")
-  }
-
-  if (input$split != "None") {
-    p <- p + facet_grid(sym(input$split))
-  }
-
-  return(p)
-})
-
-output$hist <- renderPlot(
-  {
-    makeHistogramPlot()
-  },
-  height = reactive(plotHeight())
-)
-```
-
-# Scatterplots
-
-### Options
-```{r,echo=FALSE}
-selectizeInput("xscatter", "xscatter",
-  choices = dataTypes, selected = dataTypes[1], multiple = FALSE
-)
-selectizeInput("yscatter", "yscatter",
-  choices = dataTypes, selected = dataTypes[1], multiple = FALSE
-)
-
-selectizeInput("groupScatter", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
-)
-```
-
-Column
---------------------------------------------
-
-### Scatterplot  {data-height=1500}
-
-```{r}
-plotOutput("scatter")
-```
-
-```{r, context="server"}
-make_scatter_plot <- reactive({
-  if (input$groupScatter == "None") {
-    aes <- aes_string(x = input$xscatter, y = input$yscatter)
-  }
-  else{
-    aes <- aes_string(x = input$xscatter, y = input$yscatter, col = input$groupScatter)
-  }
-
-  p <- ggplot(filteredParams(), aes) +
-    geom_point(alpha = 0.5) # Set the alpha to make overlapping points more visible
-  
-  both_contain_pos <- grepl("pos", input$xscatter, ignore.case = TRUE) && grepl("pos", input$yscatter, ignore.case = TRUE)
-  if (both_contain_pos) {
-    p <- p + coord_equal()
-  }
-  
-  return(p)
-})
-
-output$scatter <- renderPlot({
-  make_scatter_plot()
-}, height = reactive(input$plotheight))
+Scatterplots
+=====================================
+```{r, child='pages/page6_scatterplots.Rmd'}
 ```
 
 
-# Scatterplots TrialData
-
-### Options
-```{r,echo=FALSE}
-removePattern <- "heelStrikes\\.|toeOffs\\."
-muDataTypesFilt <- grep(removePattern, muDataTypes, value = TRUE, invert = TRUE)
-
-selectizeInput("muxscatter", "xscatter",
-  choices = muDataTypesFilt, selected = muDataTypesFilt[1], multiple = FALSE
-)
-selectizeInput("muyscatter", "yscatter",
-  choices = muDataTypesFilt, selected = muDataTypesFilt[1], multiple = FALSE
-)
-
-selectizeInput("groupScatter", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
-)
+Scatterplots TrialData
+=====================================
+```{r, child='pages/page7_trialScatterplots.Rmd'}
 ```
 
-Column
---------------------------------------------
 
-### Scatterplot TrialData {data-height=1500}
-
-```{r}
-plotOutput("scatter_mu")
+Questionnaires 
+=====================================
+```{r, child='pages/page8_questionnaires.Rmd'}
 ```
 
-```{r, context="server"}
-make_scatter_plot_mu <- reactive({
-  if (input$groupScatter == "None") {
-    aes <- aes_string(x = input$muxscatter, y = input$muyscatter)
-  }
-  else{
-    aes <- aes_string(x = input$muxscatter, y = input$muyscatter, col = input$groupScatter)
-  }
 
-  p <- ggplot(get_mu_dyn_long(), aes) +
-    geom_point(alpha = 0.5) # Set the alpha to make overlapping points more visible
-
-  return(p)
-})
-
-output$scatter_mu <- renderPlot({
-  make_scatter_plot_mu()
-}, height = reactive(input$plotheight))
+Variability 
+=====================================
+```{r, child='pages/page9_variability.Rmd'}
 ```
 
-# Questionnaires 
 
-
-### Options
-
-```{r}
-questionnaireList <- c("VEQ", "SSQ", "IMI")
-selectizeInput("plotQ", "Plot Questionnaire", choices = questionnaireList, selected = questionnaireList[1], multiple = FALSE)
+Statistics {data-icon="fa-chart-bar"}
+=====================================
+```{r, child='pages/page10_statistics.Rmd'}
 ```
 
-Column
---------------------------------------------
 
-### Questionnaire Boxplots  {data-height=1500}
-```{r}
-plotOutput("q")
-```
-
-```{r, context="server"}
-output$q <- renderPlot({
-  plot_questionnaire_data(input$plotQ, participants, c())
-}, height = reactive(input$plotheight))
-```
-
-# Variability 
-
-
-### Options
-
-```{r}
-questionnaireList <- c("VEQ", "SSQ", "IMI")
-varDatatypes <- c("stepLengths", "stepWidths")
-varMetrics <- c("cv", "mean", "sd")
-selectizeInput("plotVar", "Variability of", choices = varDatatypes, selected = varDatatypes[1], multiple = FALSE)
-selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
-```
-
-Column
---------------------------------------------
-
-### Step Variability Plot  {data-height=1500}
-```{r}
-plotOutput("var")
-```
-
-```{r, context="server"}
-output$var <- renderPlot({
-  plot_variability_data(get_mu_dyn(), input$plotVar, input$plotMetric)
-}, height = reactive(input$plotheight))
+Correlations {data-icon="fa-chart-line"}
+=====================================
+```{r, child='pages/page11_correlations.Rmd'}
 ```
 
 
 
 
+<!-- PARTICIPANT SUMMARY REPORT PAGE STUFF -->
 
 
-
-
-
-# Statistics {data-icon="fa-chart-bar"}
-
-### Options
-
-```{r}
-muVars <- colnames(mu)
-defaultIndepVars <- c("VFD", "trialNum")
-defaultDepVar <- "stepWidths.cv"
-selectizeInput("depVar", "Dependent variable", choices = muVars, selected = defaultDepVar, multiple = FALSE)
-selectizeInput("indepVars", "Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
-checkboxInput("interaction", "Include Interaction (VFD*trialNum)", value = TRUE)
+Participant Summary {data-icon="fa-id-card-clip"}
+=====================================
+```{r, child='pages/page12_participantSummary.Rmd'}
 ```
 
-Column
---------------------------------------------
-
-### Statistics Results  {data-height=500}
-```{r}
-#plotOutput("qq") ## QQ plot to check if we can use LMM?
-verbatimTextOutput("lmm_text")
-```
-### Tables
-
-#### Fixed effects {data-height=500}
-```{r}
-tableOutput("fixed_effects_table")
-```
-
-#### Random effects {data-height=500}
-```{r}
-tableOutput("random_effects_table")
-```
-
-```{r, context="server"}
-get_lmer = reactive({
-  dt <- get_mu_dyn_long()
-  
-  # Construct the formula dynamically using input$depVar and input$indepVars
-  dep_var <- input$depVar
-  indep_vars <- paste(input$indepVars, collapse = " + ")
-  
-  # Add interaction term if selected
-  if (input$interaction) {
-    formula_text <- paste(dep_var, "~", indep_vars, "+ (1 | participant) + VFD*trialNum")
-  } else {
-    formula_text <- paste(dep_var, "~", indep_vars, "+ (1 | participant)")
-  }
-  
-  formula <- as.formula(formula_text)
-  return(lmerTest::lmer(formula, data=dt, REML=FALSE)) # put lmerTest:: in front to get p values.
-})
-
-output$lmm_text <- renderPrint({
-  lmm <- get_lmer()
-  results <- summary(lmm)
-  
-  # Summarize the model
-  cat("\nLMM:\n")
-  print(lmm)
-  cat("\nRESULTS:\n")
-  print(results)
-})
-
-output$fixed_effects_table <- renderTable({
-  lmm <- get_lmer()
-  results <- summary(lmm)
-  fixed_effects <- results$coefficients
-  
-  # Convert to a data frame for rendering and include row names
-  fixed_effects_df <- as.data.frame(fixed_effects)
-  fixed_effects_df <- cbind(Effect = rownames(fixed_effects_df), fixed_effects_df)
-  rownames(fixed_effects_df) <- NULL
-  fixed_effects_df
-}, rownames = TRUE)
-
-output$random_effects_table <- renderTable({
-  lmm <- get_lmer()
-  random_effects <- as.data.frame(VarCorr(lmm))
-  
-  # Clean up the random effects table
-  random_effects_df <- cbind(Effect = rownames(random_effects), random_effects)
-  rownames(random_effects_df) <- NULL
-  
-  # Select only relevant columns
-  random_effects_df <- random_effects_df[, c("Effect", "grp", "vcov", "sdcor")]
-  
-  # Optionally rename columns for clarity
-  colnames(random_effects_df) <- c("Effect", "Group", "Variance", "Standard Deviation")
-  
-  random_effects_df
-}, rownames = TRUE)
-
-output$qq <- renderPlot({
-  lmm <- get_lmer()
-  p <- qqnorm(resid(lmm))
-  return(p)
-})
-```
-
-
-
-
-# Correlations {data-icon="fa-chart-line"}
-
-### Options
-
-```{r}
-selectInput("par", "Parametric data", 
-            choices = c("parametric", "nonparametric", "bayes", "robust"), 
-            selected = "parametric", multiple = FALSE)
-```
-
-Column
---------------------------------------------
-
-### Correlation Plots  {data-height=500}
-
-#### Density Plot - VEQ
-```{r}
-plotOutput("corrVEQ")
-```
-
-#### Density Plot - IMI
-```{r}
-plotOutput("corrIMI")
-```
-
-### Correlation Results  {data-height=500}
-```{r}
-verbatimTextOutput("correlation_text")
-```
-
-### Scatter Plots with Correlation {data-height=1000}
-
-#### Scatter Plot
-```{r}
-plotOutput("scatter")
-```
-
-```{r, context="server"}
-output$corrVEQ <- renderPlot({
-  dt <- get_mu_dyn_long()
-  ggplot(dt, aes(VEQ)) + geom_density(fill = "gray") # [dt$VFD == FALSE, ]
-}, height = reactive(input$plotheight))
-
-output$correlation_text <- renderPrint({
-  dt <- get_mu_dyn_long()
-  
-  # Check normality of averages
-  print(shapiro.test(dt$grp.mean))
-  print(shapiro.test(dt$embodiment_Body))
-  print(shapiro.test(muFQ_$grp.mean))
-  print(shapiro.test(muFQ_$embodiment_Feet))
-  
-  correlationA <- cor(muAQ_$embodiment_Body, muAQ_$grp.mean, method = 'pearson')
-  correlationF <- cor(muFQ_$embodiment_Feet, muFQ_$grp.mean, method = 'pearson')
-  print(paste("Embodiment Body vs Distance:", correlationA))
-  print(paste("Embodiment Feet vs Distance:", correlationF))
-})
-
-output$scatter <- renderPlot({
-  dt <- get_mu_dyn_long()
-  ggscatterstats(data = dt, x = VEQ, y = stepWidths.cv, type = input$par)
-}, height = reactive(input$plotheight))
-
-```

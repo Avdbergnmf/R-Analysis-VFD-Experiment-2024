@@ -1,5 +1,4 @@
-plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=500, x_axis = "time", y_axis = "pos_z", doFilter = FALSE) { # start=first step to plot, end=last step to plot
-  
+plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=500, x_axis = "time", y_axis = "pos_z", doFilter = FALSE, show_legend = TRUE, extraTitle="", baseSize = 5) { # start=first step to plot, end=last step to plot
   filteredGaitParams <- filteredGaitParams[filteredGaitParams$participant == participant & filteredGaitParams$trialNum == trialNum, ]
   
   preprocessedData <- preprocess_data(participant, trialNum) 
@@ -57,10 +56,18 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
     # targets
     geom_point(data = rTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "red", size = targetSize) +
     geom_point(data = lTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "blue", size = targetSize) + # 10=target
-    scale_color_manual(values = c("Right" = "black", "Left" = "grey"))
+    scale_color_manual(values = c("Right" = "black", "Left" = "grey")) + 
+    theme_minimal(base_size = baseSize) + ggtitle(extraTitle)
   
   if (x_axis != "time" && y_axis != "time") {
     p <- p + coord_equal()
+  }
+  
+  if (!show_legend) {
+    p <- p + theme(legend.position = "none")
+  }
+  else {
+    p <- p + theme(legend.position = "inside", legend.position.inside = c(0.95, 0.15))
   }
   
   return(p)
@@ -95,6 +102,22 @@ add_lines <- function(p, footEvents, rightData, leftData, start, end, x_axis = "
   if (x_axis != "time" && y_axis != "time") {
     p <- p + coord_equal()
   }
+  return(p)
+}
+
+plot_steps_with_overlay <- function(data, selected_participant, selected_trialNum, axis_to_plot, doFilter, alpha = 0.15, show_legend = FALSE, extraTitle = "") {
+  p <- plot_steps(data, selected_participant, selected_trialNum, 0, 0, "time", axis_to_plot, doFilter, show_legend, extraTitle)
+  
+  VFD <- get_p_results(selected_participant, "noise_enabled", selected_trialNum)
+  if (VFD) {
+    color <- "green"
+  } else {
+    color <- "yellow"
+  }
+  
+  # Add a semi-transparent square (replace xmin, xmax, ymin, ymax with your desired coordinates)
+  p <- p + annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf, fill = color, alpha = alpha)
+  
   return(p)
 }
 
@@ -139,10 +162,11 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
 plot_questionnaire_data <- function(qType, participants, cols_to_include) {
   # Get the data
   data <- calculate_all_scores(qType)
+  data <- data[data$participant %in% participants, ]
   
   # Only keep the columns to include in the plot
   if (length(cols_to_include) == 0) {
-    cols_to_include <- setdiff(colnames(data), c("participant", "VFD"))
+    cols_to_include <- setdiff(colnames(data), c("participant", "VFD")) # just take all of them, except for participant and VFD (condition)
   }
   data <- data[, c("participant", "VFD", cols_to_include), drop = FALSE]
   
@@ -169,60 +193,19 @@ plot_questionnaire_data <- function(qType, participants, cols_to_include) {
   return(p)
 }
 
-OLD_plot_variability_data <- function(mu_dyn, datatype, metric) {
-  # Get the data
-  data <- mu_dyn[[datatype]]
-  data <- data[, c("participant", "VFD","trialNum", metric), drop = FALSE]
-  #data$trialNum <- as.factor(data$trialNum)
-  # Reshape the data to long format for ggplot
-  data_long <- reshape2::melt(data, id.vars = c("participant", "VFD", "trialNum"))
-  
-  #data_long$trialNum <- factor(data_long$trialNum)
-  num_trials = 6
-  colors <- brewer.pal(6, "Dark2")  # Adjust palette as needed
-  color_map <- setNames(colors, unique(data_long$trialNum))
-  data_long$color <- color_map[as.character(data_long$trialNum)]
-  
-  # Create the plot for each column to include
-  p <- ggpaired(
-    data = data_long,
-    x = "VFD",
-    y = "value",
-    id = "participant",
-    color = "trialNum", # VFD, trialNum
-    line.color = "white",
-    point.color= "color",
-    line.size = 0.0
-  ) +
-    # facet_wrap(~ variable, scales = "free", ncol = length(cols_to_include)) +
-    labs(x = "VFD", y = metric) +
-    ggtitle(paste0("Boxplots of ", datatype, " (", metric, ") Scores")) +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    coord_cartesian(ylim = range(data_long$value, na.rm = TRUE))+ # Set y limits to the range of y values in data
-    scale_color_identity(name = "Trial Number", labels = names(color_map), aesthetics = "point.color")  # Tell ggplot2 to use the colors as they are
-  #scale_color_manual(values = color_map, )
-  
-  return(p)
-}
-
-plot_variability_data <- function(mu_dyn, datatype, metric) {
+plot_variability_data <- function(mu_dyn, participants, datatype, metric, baseSize = 10) {
   # Get the data
   data <- mu_dyn[[datatype]]
   data <- data[, c("participant", "VFD", "trialNum", metric), drop = FALSE]
-  
   # Identify the min and max trial numbers for each condition and participant
-  data <- data %>%
-    group_by(participant, VFD) %>%
-    mutate(trial_pair = ifelse(trialNum == min(trialNum), 1, 2))
+  #data <- data %>%
+  #  group_by(participant, VFD) %>%
+  #  mutate(trial_pair = ifelse(trialNum == min(trialNum), 1, 2))
   
   # Reshape the data to long format for ggplot
-  data_long <- melt(data, id.vars = c("participant", "VFD", "trialNum", "trial_pair"))
-  
-  # Set the color map for the trial pairs
-  colors <- brewer.pal(2, "Dark2")
-  color_map <- setNames(colors, unique(data_long$trial_pair))
-  data_long$color <- color_map[as.character(data_long$trial_pair)]
-  
+  data_long <- melt(data, id.vars = c("participant", "VFD", "trialNum")) # "trial_pair"
+  data_long <- data_long[data_long$participant %in% participants, ]
+  data_long$trialNum <- as.factor(data_long$trialNum)
   #data_long$trial_pair <- as.factor(data_long$trial_pair)
   
   # Create the plot
@@ -231,21 +214,23 @@ plot_variability_data <- function(mu_dyn, datatype, metric) {
     x = "VFD",
     y = "value",
     id = "participant",
-    color = "trial_pair", # VFD, trialNum
+    color = "trialNum", # VFD, trialNum, trial_pair
     line.color = "grey",
     point.color = "color",
     line.size = 0.0
   ) +
     labs(x = "VFD", y = metric) +
     ggtitle(paste0("Boxplots of ", datatype, " (", metric, ") Scores")) +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    coord_cartesian(ylim = range(data_long$value, na.rm = TRUE)) + # Set y limits to the range of y values in data
-    scale_color_identity(name = "Trial Pair", labels = names(color_map), aesthetics = "point.color") # Use the colors as they are
+    theme(plot.title = element_text(hjust = 0.5)) + coord_cartesian(ylim = c(0,0.3)) + 
+    theme_minimal(base_size = baseSize)
+    #coord_cartesian(ylim = range(data_long$value, na.rm = TRUE)) # Set y limits to the range of y values in data
+    #scale_color_identity(name = "Trial Pair", labels = names(color_map), aesthetics = "point.color") + # Use the colors as they are
+    
   
   return(p)
 }
 
-make_pie_chart <- function(data){
+make_pie_chart <- function(data, titleExtra = "", show_legend = TRUE, baseSize = 5){
   #data <- filteredParams()
   targetIgnoreSteps <- length(data[data$heelStrikes.targetIgnoreSteps==TRUE & data$heelStrikes.outlierSteps == FALSE,]$VFD)
   outlierSteps <- length(data[data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE,]$VFD)
@@ -277,7 +262,83 @@ make_pie_chart <- function(data){
     theme_void() +
     scale_fill_brewer(palette = "Pastel1") +
     geom_text(aes(label = TotalCount, y = label_pos), color = "black") +
-    ggtitle(paste("Total steps =", total_steps))
+    ggtitle(paste0(titleExtra, "Total steps = ", total_steps)) +
+    theme_minimal(base_size = baseSize)
+  
+  if (!show_legend) {
+    p <- p + theme(legend.position = "none")
+  }
   
   return(p)
+}
+
+
+#### Target plots
+
+circleFun <- function(center = c(0,0),r = 1, npoints = 100){
+  tt <- seq(0,2*pi,length.out = npoints)
+  xx <- center[1] + r * cos(tt)
+  yy <- center[2] + r * sin(tt)
+  return(data.frame(x = xx, y = yy))
+}
+
+make_target_steps_plot <- function(targetData){
+  #filteredTargetParams()
+  circle = circleFun(c(0,0),0.3,100)
+  axesLims <- 0.3
+  p <- ggplot() +
+    geom_path(data = circle, aes(x = x, y = y), color = "black") +
+    geom_point(data = targetData, aes(x = rel_x, y = rel_z,col=VFD), fill=rgb(0,0,0,0.2),shape = 21,size=5) + 
+    xlim(-axesLims,axesLims) +
+    ylim(-axesLims,axesLims)
+  
+  p <- p + coord_equal() +
+    labs(title = "Center Foot Relative to Target Center", x = "x", y = "z")
+  
+  return(p)
+}
+
+
+### Scatter plots
+make_scatter_plot_steps <- function(data, group, xplot, yplot, show_legend = FALSE, baseSize = 10){
+  if (group == "None") {
+    aes <- aes_string(x = xplot, y = yplot)
+  }
+  else{
+    aes <- aes_string(x = xplot, y = yplot, col = group)
+  }
+  
+  p <- ggplot(data, aes) +
+    geom_point(alpha = 0.5) + # Set the alpha to make overlapping points more visible
+    theme_minimal(base_size = baseSize)
+  
+  if (!show_legend) {
+    p <- p + theme(legend.position = "none")
+  }
+  #else {
+  #  p <- p + theme(legend.position = "inside", legend.position.inside = c(0.95, 0.15))
+  #}
+  
+  both_contain_pos <- grepl("pos", xplot, ignore.case = TRUE) && grepl("pos", yplot, ignore.case = TRUE)
+  if (both_contain_pos) {
+    p <- p + coord_equal()
+  }
+  
+  # Add marginal density plots
+  p <- ggMarginal(p, type = "density", margins = "both", groupColour = TRUE, groupFill = TRUE)
+  
+  return(p)
+}
+
+###### Extra
+
+# Function to save plot as an image
+save_plot <- function(plot, filename) {
+  ggsave(filename, plot, device = "png", width = 8, height = 4)
+}
+
+save_plot_as_pdf <- function(plot, filename) {
+  pdf(filename, width = 8, height = 4)
+  print(plot)
+  dev.off()
 }
