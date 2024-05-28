@@ -1,3 +1,24 @@
+### Layout helpers
+get_sized_theme <- function(baseSize){
+  return(theme(
+    axis.title = element_text(size = baseSize * 2),
+    axis.text = element_text(size = baseSize),
+    legend.title = element_text(size = baseSize * 1.5),
+    legend.text = element_text(size = baseSize),
+    plot.title = element_text(size = baseSize * 2.5)
+  ))
+}
+
+get_proper_legend <- function(show_legend, position = "inside") {
+  if (!show_legend) {
+    return(theme(legend.position = "none"))
+  }
+  else {
+    if (position == "inside") { return(theme(legend.position = position, legend.position.inside = c(0.95, 0.15))) }
+    else { theme(legend.position = position) }
+  }
+}
+
 plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=500, x_axis = "time", y_axis = "pos_z", doFilter = FALSE, show_legend = TRUE, extraTitle="", baseSize = 5) { # start=first step to plot, end=last step to plot
   filteredGaitParams <- filteredGaitParams[filteredGaitParams$participant == participant & filteredGaitParams$trialNum == trialNum, ]
   
@@ -43,8 +64,8 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
   lTargets <- lParams[lParams$heelStrikes.target, ]
   
   # Create the plot
-  targetSize <- 5
-  footEventSize <- 2
+  targetSize <- round(baseSize/2)
+  footEventSize <- round(baseSize/4)
   p <- ggplot(both, aes(x = .data[[x_axis]], y = .data[[y_axis]], color = .data$foot)) +
     geom_path() +
     # toeOffs
@@ -57,18 +78,14 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
     geom_point(data = rTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "red", size = targetSize) +
     geom_point(data = lTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "blue", size = targetSize) + # 10=target
     scale_color_manual(values = c("Right" = "black", "Left" = "grey")) + 
-    theme_minimal(base_size = baseSize) + ggtitle(extraTitle)
+    ggtitle(extraTitle) + 
+    theme_minimal(base_size = baseSize) # get_sized_theme(baseSize)
   
   if (x_axis != "time" && y_axis != "time") {
     p <- p + coord_equal()
   }
   
-  if (!show_legend) {
-    p <- p + theme(legend.position = "none")
-  }
-  else {
-    p <- p + theme(legend.position = "inside", legend.position.inside = c(0.95, 0.15))
-  }
+  p <- p + get_proper_legend(show_legend)
   
   return(p)
 }
@@ -105,8 +122,8 @@ add_lines <- function(p, footEvents, rightData, leftData, start, end, x_axis = "
   return(p)
 }
 
-plot_steps_with_overlay <- function(data, selected_participant, selected_trialNum, axis_to_plot, doFilter, alpha = 0.15, show_legend = FALSE, extraTitle = "") {
-  p <- plot_steps(data, selected_participant, selected_trialNum, 0, 0, "time", axis_to_plot, doFilter, show_legend, extraTitle)
+plot_steps_with_overlay <- function(data, selected_participant, selected_trialNum, axis_to_plot, doFilter, alpha = 0.15, show_legend = FALSE, extraTitle = "", baseSize = 10) {
+  p <- plot_steps(data, selected_participant, selected_trialNum, 0, 0, "time", axis_to_plot, doFilter, show_legend, extraTitle, baseSize)
   
   VFD <- get_p_results(selected_participant, "noise_enabled", selected_trialNum)
   if (VFD) {
@@ -121,7 +138,7 @@ plot_steps_with_overlay <- function(data, selected_participant, selected_trialNu
   return(p)
 }
 
-plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTime, x_axis = "time", y_axis = "pos_z", plotlines = TRUE, plotpoints = FALSE) { 
+plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTime, x_axis = "time", y_axis = "pos_z", plotlines = TRUE, plotpoints = FALSE, extraTitle = "", override_ylims = c(), baseSize = 10) { 
   xData <- get_t_data(participant, xtracker, trialNum)
   yData <- get_t_data(participant, ytracker, trialNum)
   startTime <- get_p_results(participant,"start_time",trialNum)
@@ -141,7 +158,13 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
   )
   
   p <- ggplot(xData, aes(.data[[x_axis]], .data[[y_axis]])) +  
-    labs(title = "Time Series Plot", x = x_axis, y = y_axis)
+    labs(x = x_axis, y = y_axis) + 
+    theme_minimal(base_size = baseSize) + 
+    ggtitle(paste(extraTitle,",",x_axis,"vs.",y_axis))
+  
+  if (length(override_ylims)==2) {
+    p <- p + coord_cartesian(ylim = override_ylims) #ylim(override_ylims)#
+  }
   
   if (plotlines) { 
     p <- p + geom_path()
@@ -159,7 +182,7 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
 }
 
 
-plot_questionnaire_data <- function(qType, participants, cols_to_include) {
+plot_questionnaire_data <- function(qType, participants, cols_to_include, baseSize = 10) {
   # Get the data
   data <- calculate_all_scores(qType)
   data <- data[data$participant %in% participants, ]
@@ -186,14 +209,45 @@ plot_questionnaire_data <- function(qType, participants, cols_to_include) {
   ) +
     facet_wrap(~variable, scales = "free", ncol = length(cols_to_include)) +
     labs(x = "VFD", y = "Score") +
-    ggtitle(paste0("Boxplots of ", qType, " Scores")) +
+    ggtitle(paste0(qType, " Scores")) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    ylim(0, 7) # Set y-axis limits
+    ylim(0, 7) + # Set y-axis limits +
+    get_sized_theme(baseSize) #theme_minimal(base_size = baseSize)
+    
+  return(p)
+}
+
+make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwidth, position, baseSize){
+  aes <- aes_string(x = xinput)
+  a <- 1
+  fill <- "grey"
+  if (group != "None") {
+    fill <- "white"
+    aes <- modifyList(aes, aes_string(col = group))
+    if (position == "identity") {
+      a <- 1 / 2
+    }
+  }
+  
+  p <- ggplot(data, aes) +
+    geom_histogram(binwidth = binwidth, fill = fill, alpha = a, position = position) +
+    theme_minimal(base_size = baseSize)
+  
+  if (showMeans && split != "None") {
+    p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = split), linetype = "dashed")
+  }
+  if (showMeans && split == "None" && group != "None") {
+    p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = group), linetype = "dashed")
+  }
+  
+  if (split != "None") {
+    p <- p + facet_grid(sym(split))
+  }
   
   return(p)
 }
 
-plot_variability_data <- function(mu_dyn, participants, datatype, metric, baseSize = 10) {
+plot_variability_data <- function(mu_dyn, participants, datatype, metric, ylims = c(0,0.3), baseSize = 10) {
   # Get the data
   data <- mu_dyn[[datatype]]
   data <- data[, c("participant", "VFD", "trialNum", metric), drop = FALSE]
@@ -220,9 +274,9 @@ plot_variability_data <- function(mu_dyn, participants, datatype, metric, baseSi
     line.size = 0.0
   ) +
     labs(x = "VFD", y = metric) +
-    ggtitle(paste0("Boxplots of ", datatype, " (", metric, ") Scores")) +
-    theme(plot.title = element_text(hjust = 0.5)) + coord_cartesian(ylim = c(0,0.3)) + 
-    theme_minimal(base_size = baseSize)
+    ggtitle(paste0(datatype, " (", metric, ")")) +
+    theme(plot.title = element_text(hjust = 0.5)) + coord_cartesian(ylim = ylims) + 
+    get_sized_theme(baseSize)# theme_minimal(base_size = baseSize)
     #coord_cartesian(ylim = range(data_long$value, na.rm = TRUE)) # Set y limits to the range of y values in data
     #scale_color_identity(name = "Trial Pair", labels = names(color_map), aesthetics = "point.color") + # Use the colors as they are
     
@@ -230,7 +284,7 @@ plot_variability_data <- function(mu_dyn, participants, datatype, metric, baseSi
   return(p)
 }
 
-make_pie_chart <- function(data, titleExtra = "", show_legend = TRUE, baseSize = 5){
+make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize = 10){
   #data <- filteredParams()
   targetIgnoreSteps <- length(data[data$heelStrikes.targetIgnoreSteps==TRUE & data$heelStrikes.outlierSteps == FALSE,]$VFD)
   outlierSteps <- length(data[data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE,]$VFD)
@@ -261,19 +315,40 @@ make_pie_chart <- function(data, titleExtra = "", show_legend = TRUE, baseSize =
     coord_polar(theta = "y", start = 0) +
     theme_void() +
     scale_fill_brewer(palette = "Pastel1") +
-    geom_text(aes(label = TotalCount, y = label_pos), color = "black") +
-    ggtitle(paste0(titleExtra, "Total steps = ", total_steps)) +
-    theme_minimal(base_size = baseSize)
+    geom_text(aes(label = TotalCount, y = label_pos), color = "black", size=round(baseSize/2)) +
+    ggtitle(paste0(extraTitle, "Total steps = ", total_steps)) +
+    theme_minimal(base_size = baseSize)#get_sized_theme(baseSize)# theme_minimal(base_size = baseSize)
   
-  if (!show_legend) {
-    p <- p + theme(legend.position = "none")
-  }
+  p <- p + get_proper_legend(show_legend, "right")
   
   return(p)
 }
 
 
 #### Target plots
+
+make_target_histogram <- function(data, group, split, xinput, binwidth, position, baseSize = 10){
+  aes <- aes_string(x = xinput)
+  a <- 1
+  fill <- "grey"
+  if (group != "None") {
+    fill <- "white"
+    aes <- modifyList(aes, aes_string(col = group))
+    if (position == "identity") {
+      a <- 1 / 2
+    }
+  }
+  
+  p <- ggplot(data, aes) +
+    geom_histogram(binwidth = binwidth, fill = fill, alpha = a, position = position) + 
+    theme_minimal(base_size = baseSize)
+  
+  if (split != "None") {
+    p <- p + facet_grid(sym(split))
+  }
+  
+  return(p)
+}
 
 circleFun <- function(center = c(0,0),r = 1, npoints = 100){
   tt <- seq(0,2*pi,length.out = npoints)
@@ -282,7 +357,7 @@ circleFun <- function(center = c(0,0),r = 1, npoints = 100){
   return(data.frame(x = xx, y = yy))
 }
 
-make_target_steps_plot <- function(targetData){
+make_target_steps_plot <- function(targetData, show_legend=TRUE, baseSize = 10){
   #filteredTargetParams()
   circle = circleFun(c(0,0),0.3,100)
   axesLims <- 0.3
@@ -290,10 +365,17 @@ make_target_steps_plot <- function(targetData){
     geom_path(data = circle, aes(x = x, y = y), color = "black") +
     geom_point(data = targetData, aes(x = rel_x, y = rel_z,col=VFD), fill=rgb(0,0,0,0.2),shape = 21,size=5) + 
     xlim(-axesLims,axesLims) +
-    ylim(-axesLims,axesLims)
+    ylim(-axesLims,axesLims) + 
+    theme_minimal(base_size = baseSize)
+  
+  p <- p + get_proper_legend(show_legend)
   
   p <- p + coord_equal() +
     labs(title = "Center Foot Relative to Target Center", x = "x", y = "z")
+  
+  # Add marginal density plots
+  p <- ggMarginal(p, type = "density", margins = "both", groupColour = TRUE, groupFill = TRUE)
+  
   
   return(p)
 }
@@ -330,15 +412,30 @@ make_scatter_plot_steps <- function(data, group, xplot, yplot, show_legend = FAL
   return(p)
 }
 
+make_scatter_plot_mu <- function(data, xinput, yinput, group, baseSize = 10){
+  if (group == "None") {
+    aes <- aes_string(x = xinput, y = yinput)
+  }
+  else{
+    aes <- aes_string(x = xinput, y = yinput, col = group)
+  }
+  
+  p <- ggplot(data, aes) +
+    geom_point(alpha = 0.5) + # Set the alpha to make overlapping points more visible
+    theme_minimal(base_size = baseSize)
+  
+  return(p)
+}
+
 ###### Extra
 
 # Function to save plot as an image
-save_plot <- function(plot, filename) {
-  ggsave(filename, plot, device = "png", width = 8, height = 4)
-}
-
-save_plot_as_pdf <- function(plot, filename) {
-  pdf(filename, width = 8, height = 4)
-  print(plot)
-  dev.off()
+save_plot <- function(plot, filename, width=8, height=4, pdf=FALSE) {
+  if (!pdf) {
+    ggsave(filename, plot, device = "png", width = width, height = height)
+  } else {
+    pdf(filename, width = width, height = height)
+    print(plot)
+    dev.off()
+  }
 }

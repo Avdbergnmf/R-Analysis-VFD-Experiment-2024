@@ -43,40 +43,9 @@ plotHeight <- reactive(
   }
 )
 
-makeHistogramPlot <- reactive({
-  aes <- aes_string(x = input$plot)
-  a <- 1
-  fill <- "grey"
-  if (input$group != "None") {
-    fill <- "white"
-    aes <- modifyList(aes, aes_string(col = input$group))
-    if (input$position == "identity") {
-      a <- 1 / 2
-    }
-  }
-
-  p <- ggplot(filteredParams(), aes) +
-    geom_histogram(binwidth = input$bin, fill = fill, alpha = a, position = input$position)
-  
-  mu_dyn <- get_mu_dyn()
-  
-  if (input$means && input$split != "None") {
-    p <- p + geom_vline(mu_dyn[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$split), linetype = "dashed")
-  }
-  if (input$means && input$split == "None" && input$group != "None") {
-    p <- p + geom_vline(mu_dyn[[input$plot]], mapping = aes_string(xintercept = "mean", col = input$group), linetype = "dashed")
-  }
-
-  if (input$split != "None") {
-    p <- p + facet_grid(sym(input$split))
-  }
-
-  return(p)
-})
-
 output$hist <- renderPlot(
   {
-    makeHistogramPlot()
+    make_histogram(filteredParams(), get_mu_dyn(), input$means, input$group, input$split, input$plot, input$bin, input$position, baseSize=input$baseSize)
   },
   height = reactive(plotHeight())
 )

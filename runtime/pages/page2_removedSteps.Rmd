@@ -22,7 +22,7 @@ output$pie <- renderPlot(
     if (input$useFiltered) {data <- filteredParams() }
     else (data <- allGaitParams)
     
-    return(make_pie_chart(data))
+    return(make_pie_chart(data, baseSize=input$baseSize))
   },
   height = reactive(input$plotheight)
 )

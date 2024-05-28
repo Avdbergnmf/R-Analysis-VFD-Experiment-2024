@@ -35,36 +35,14 @@ plotOutput("targets")
 
 ```{r, context="server"}
 output$targets <- renderPlot({
-  p <- make_target_steps_plot(filteredTargetParams())
+  p <- make_target_steps_plot(filteredTargetParams(), baseSize=input$baseSize)
   
   return(p)
 }, height = reactive(input$plotheight))
 
-makeTargetHistogramPlot <- reactive({
-  aes <- aes_string(x = input$targetPlotPlot)
-  a <- 1
-  fill <- "grey"
-  if (input$targetPlotGroup != "None") {
-    fill <- "white"
-    aes <- modifyList(aes, aes_string(col = input$targetPlotGroup))
-    if (input$targetPlotPosition == "identity") {
-      a <- 1 / 2
-    }
-  }
-
-  p <- ggplot(filteredTargetParams(), aes) +
-    geom_histogram(binwidth = input$targetPlotBin, fill = fill, alpha = a, position = input$targetPlotPosition)
-
-  if (input$targetPlotSplit != "None") {
-    p <- p + facet_grid(sym(input$targetPlotSplit))
-  }
-
-  return(p)
-})
-
 output$histTargets <- renderPlot(
   {
-    makeTargetHistogramPlot()
+    make_target_histogram(filteredTargetParams(), input$targetPlotGroup, input$targetPlotSplit, input$targetPlotPlot, input$targetPlotBin, input$targetPlotPosition, baseSize = input$baseSize)
   },
   height = reactive(plotHeight())
 )

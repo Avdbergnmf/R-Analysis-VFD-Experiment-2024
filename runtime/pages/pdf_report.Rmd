@@ -1,0 +1,186 @@
+---
+title: "Participant Report for: `r params$participant`"
+output: pdf_document
+params:
+  participant: NA
+  traj_plots_z: NA
+  traj_plots_y: NA
+  traj_plots_x: NA
+  pie_charts: NA
+  questionnaire_plots: NA
+  variability_plots: NA
+  target_stepping_plot: NA
+  scatter_plot: NA
+  disturbance_plots_z_l: NA
+  disturbance_plots_x_l: NA
+  disturbance_plots_z_r: NA
+  disturbance_plots_x_r: NA
+  eye_plots_x: NA
+  eye_plots_z: NA
+---
+
+```{r setup, include=FALSE}
+library(gridExtra)
+library(grid)
+
+# Access parameters
+participant <- params$participant
+traj_plots_z <- params$traj_plots_z
+traj_plots_y <- params$traj_plots_y
+traj_plots_x <- params$traj_plots_x
+pie_charts <- params$pie_charts
+questionnaire_plots <- params$questionnaire_plots
+variability_plots <- params$variability_plots
+target_stepping_plot <- params$target_stepping_plot
+scatter_plot <- params$scatter_plot
+disturbance_plots_z_l <- params$disturbance_plots_z_l
+disturbance_plots_x_l <- params$disturbance_plots_x_l
+disturbance_plots_z_r <- params$disturbance_plots_z_r
+disturbance_plots_x_r <- params$disturbance_plots_x_r
+eye_plots_x <- params$eye_plots_x
+eye_plots_z <- params$eye_plots_z
+```
+
+### Page 1: Variability Plots, Scatter Plot, Target Stepping Plot
+```{r, fig.width = 8.3, fig.height = 9}
+# Combine variability plots with scatter plot and target stepping plot
+all_plots <- list(scatter_plot, target_stepping_plot)
+
+# Arrange Variability Plots, Scatter Plot, and Target Stepping Plot
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = all_plots, ncol = 2, widths = c(1.5,1)),
+    arrangeGrob(grobs = variability_plots, ncol = 3)
+  ),
+  ncol = 1, heights = c(1,1)
+)
+```
+
+### Page 2: Questionnaire Results
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Questionnaire Results
+grid.arrange(
+  grobs = questionnaire_plots,
+  ncol = 1,
+  heights = c(1, 1, 1)  # Adjust height ratios if needed
+)
+```
+
+### Page 3: Right-Left - x pos - Foot Trajectories
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Ensure that all elements are grobs
+#foot_trajectories <- lapply(1:length(traj_plots_z), function(i) {
+#  list(ggplotGrob(traj_plots_z[[i]]), ggplotGrob(traj_plots_y[[i]]), ggplotGrob(traj_plots_x[[i]]))
+#})
+# Flatten the list of lists into a single list
+#foot_trajectories <- do.call(c, foot_trajectories)
+
+# Arrange Foot Trajectories and Pie Charts
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = traj_plots_x, ncol = 1)
+  ), ncol = 1
+)
+```
+
+### Page 4: Front-Back - z pos - Foot Trajectories
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Foot Trajectories and Pie Charts
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = traj_plots_z, ncol = 1))
+)
+```
+
+### Page 5: Up-Down - y pos - Foot Trajectories
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Foot Trajectories and Pie Charts
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = traj_plots_y, ncol = 1))
+)
+```
+
+### Page 6: Pie-Charts
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Foot Trajectories and Pie Charts
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = lapply(pie_charts, ggplotGrob), ncol = 2, heights = c(1, 1))
+    )
+)
+```
+
+
+### Page 7: Eye - hit pos x
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Eye Plots - hit pos x
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = eye_plots_x, ncol = 1)
+  ), ncol = 1
+)
+```
+
+### Page 8: Eye - hit pos z
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Eye Plots - hit pos z
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = eye_plots_z, ncol = 1)
+  ), ncol = 1
+)
+```
+
+
+### Page 9: Left Disturbance - offset z
+
+```{r, fig.width = 8.3, fig.height = 11}
+# Arrange Disturbance Plots - offset z
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = disturbance_plots_z_l, ncol = 1)
+  ), ncol = 1
+)
+```
+
+### Page 10: Left Disturbance - offset x
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Disturbance Plots - offset x
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = disturbance_plots_x_l, ncol = 1)
+  ), ncol = 1
+)
+```
+
+### Page 11: Right Disturbance - offset z
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Disturbance Plots - offset z
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = disturbance_plots_z_r, ncol = 1)
+  ), ncol = 1
+)
+```
+
+### Page 12: Right Disturbance - offset x
+
+```{r, fig.width = 8.3, fig.height = 11.7}
+# Arrange Disturbance Plots - offset x
+grid.arrange(
+  grobs = list(
+    arrangeGrob(grobs = disturbance_plots_x_r, ncol = 1)
+  ), ncol = 1
+)
+```
+
+

@@ -44,7 +44,7 @@ observeEvent(input$xtracker, {
 
 output$TwoD <- renderPlot(
   { # note, 2 times xtracker, not distinguishing between x and y for now.
-    plot_2d(input$xtracker, input$xtracker, input$participant2d, as.numeric(input$trialNum2d), input$startTime, input$endTime, input$xplot2d, input$yplot2d, input$plotlines, input$plotpoints)
+    plot_2d(input$xtracker, input$xtracker, input$participant2d, as.numeric(input$trialNum2d), input$startTime, input$endTime, input$xplot2d, input$yplot2d, input$plotlines, input$plotpoints, baseSize=input$baseSize)
   },
   height = reactive(input$plotheight)
 )

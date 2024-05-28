@@ -23,6 +23,6 @@ plotOutput("scatter_steps")
 
 ```{r, context="server"}
 output$scatter_steps <- renderPlot({
-  make_scatter_plot_steps(filteredParams(), input$groupScatter, input$xscatter, input$yscatter, TRUE)
+  make_scatter_plot_steps(filteredParams(), input$groupScatter, input$xscatter, input$yscatter, TRUE, baseSize = input$baseSize)
 }, height = reactive(input$plotheight))
 ```

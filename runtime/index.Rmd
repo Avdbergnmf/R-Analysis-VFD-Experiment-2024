@@ -7,22 +7,21 @@ output:
 runtime: shinyrmd
 ---
 
-```{r setup, include=FALSE, cache=TRUE}
-setwd("~/workspace")
+```{r setup, include=FALSE}
 #cache=TRUE, local=FALSE
 source('source/setup.R')
 source('source/dataloading.R', local = FALSE)
 
 allQResults <- get_all_questionnaire_results() 
 
-source('source/get_foot_events.R', local = FALSE)
+source('source/find_foot_events.R', local = FALSE)
 # Column definitions
 xOptions <- c("time", "pos_x", "pos_y", "pos_z")
 #xOptionsVFD <- c("time", "magnitude", "offset_x", "offset_y", "offset_z", "final_pos_x", "final_pos_y", "final_pos_z", "rel_pos_x", "rel_pos_y", "rel_pos_z")
 xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for pos rot trackers
 
 ## Gait params
-source('source/gaitparams.R', local = FALSE)
+source('source/calc_all_gait_params.R', local = FALSE)
 allGaitParams <- calc_all_gait_params()
 allTargetParams <- calc_all_target_params()
 
@@ -41,7 +40,11 @@ source('source/plotting.R', local = FALSE)
 
 Sidebar {.sidebar}
 =====================================
-```{r, child='pages/sidebar.Rmd'}
+```{r, child='pages/sidebar_dynamicDataFiltering.Rmd'}
+```
+
+```{r, context="server", local=FALSE}
+source('source/get_filtered_data.R', local = TRUE)
 ```
 
 

@@ -32,7 +32,7 @@ calc_all_gait_params <- function(){
       gaitParamsDf$trialNum <- trial
       gaitParamsDf$VFD <- get_p_results(participant,"noise_enabled",trial) == "True"
       gaitParamsDf$practice <- get_p_results(participant,"practice",trial) == "True"
-      #gaitParamsDf$started_with_noise <- started_with_noise(participant)
+      gaitParamsDf$started_with_noise <- started_with_noise(participant)
       
       # Bind this participant's gait parameters to the overall data frame
       allGaitParams <- rbind(allGaitParams, gaitParamsDf)

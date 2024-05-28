@@ -18,6 +18,6 @@ plotOutput("var")
 
 ```{r, context="server"}
 output$var <- renderPlot({
-  plot_variability_data(get_mu_dyn(), participants, input$plotVar, input$plotMetric)
+  plot_variability_data(get_mu_dyn(), participants, input$plotVar, input$plotMetric, baseSize = input$baseSize)
 }, height = reactive(input$plotheight))
 ```

@@ -206,7 +206,7 @@ calculate_gait_parameters <- function(participant, trialNum) {
   targetSteps <- targetSteps | lag(heelStrikesData$target, default = FALSE) | lag(heelStrikesData$target, 2, default = FALSE) # add steps after (until foot is placed back onto new position)
   heelStrikesData$targetIgnoreSteps <- targetSteps
   # Detect outliers
-  heelStrikesData$outlierSteps <- detect_outliers(stepTimes, targetSteps) | detect_outliers(stepLengths, targetSteps)  | detect_outliers(gaitData$heelStrikes$pos_y, targetSteps) | detect_outliers(gaitData$toeOffs$pos_y, targetSteps)
+  heelStrikesData$outlierSteps <- detect_outliers(stepWidths, targetSteps) | detect_outliers(stepTimes, targetSteps) | detect_outliers(stepLengths, targetSteps)  | detect_outliers(gaitData$heelStrikes$pos_y, targetSteps) | detect_outliers(gaitData$toeOffs$pos_y, targetSteps)
   
   #stepsToIgnore <- outlierSteps
   # Make a list of all the gait parameters
