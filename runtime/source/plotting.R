@@ -247,24 +247,25 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
   return(p)
 }
 
-plot_variability_data <- function(mu, participants, datatype, metric, xaxis = c("VFD"), baseSize = 10) {
-  ylims = c(0,0.3)
-  if (metric == "sd") {
-    ylims = c(0,0.05)
-  }
+plot_variability_data <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
   
-  # Construct the column name for the specified datatype and metric
-  column_name <- paste0(datatype, ".", metric)
+  if (grepl(".sd", datatype)) {
+    ylims = c(0,0.05)
+  } else if (grepl(".cv", datatype)) {
+    ylims = c(0,0.3)
+  } else {
+    ylims = c()
+  }
   
   # Filter data for the specified columns and participants
   data_long <- mu %>%
-    select(c("participant", "trialNum", all_of(xaxis), !!column_name))
+    select(c("participant", "trialNum", all_of(xaxis), !!datatype))
   data_long <- data_long[data_long$participant %in% participants,]  #filter(participant %in% participants)
   
   # Reshape data to long format for ggplot
   data_long <- data_long %>%
     pivot_longer(
-      cols = !!column_name,
+      cols = !!datatype,
       names_to = "variable",
       values_to = "value"
     )
@@ -279,13 +280,15 @@ plot_variability_data <- function(mu, participants, datatype, metric, xaxis = c(
   p <- ggplot(data_long, aes(x = xaxis_combined, y = value)) +
     geom_boxplot() + # geom_violin(trim = FALSE, fill = "lightblue", color = "black") +
     geom_jitter(aes(color = trialNum), width = 0.2, size = 2, alpha = 0.7) +
-    labs(x = paste(xaxis, collapse = " + "), y = metric) +
-    ggtitle(paste0(datatype, " (", metric, ")")) +
+    labs(x = paste(xaxis, collapse = " + "), y = datatype) +
+    ggtitle(datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    coord_cartesian(ylim = ylims) +
     scale_color_discrete(name = "Trial Number") +
     get_sized_theme(baseSize)
   
+  if (length(ylims)==2) {
+    p <- p + coord_cartesian(ylim = ylims)
+  }
   return(p)
 }
 

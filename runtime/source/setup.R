@@ -25,7 +25,7 @@ library(lme4)
 library(DT)
 library(lmerTest) # to get p-values from lmer
 #library(sjstats)
-#library(emmeans)
+library(emmeans)
 #library(MuMIn)
 
 # saving figures

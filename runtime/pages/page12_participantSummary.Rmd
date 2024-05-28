@@ -73,7 +73,7 @@ generate_questionnaire_plots <- function(questionnaireList, participant, baseSiz
 
 generate_variability_plots <- function(data, participant, varList, baseSize = 10) {
   plots <- lapply(varList, function(var) {
-    plot_variability_data(data, participant, var[[1]], var[[2]], baseSize = baseSize)
+    plot_variability_data(data, participant, var, baseSize = baseSize)
   })
   return(plots)
 }
@@ -124,7 +124,7 @@ observeEvent(input$generateReports, {
     
     questionnaireList <- c("VEQ", "SSQ", "IMI")
     questionnaire_plots <- generate_questionnaire_plots(questionnaireList, participant, baseSize)
-    varList <- list(list("stepWidths","sd"),list("stepWidths","cv"), list("stepLengths","cv"))
+    varList <- c("stepWidths.sd","stepWidths.cv", "stepLengths.cv")
     variability_plots <- generate_variability_plots(get_mu_dyn_long(), c(participant), varList, baseSize)
     
     target_stepping_plot <- generate_target_stepping_plot(filteredTargetParams(), participant, baseSize)

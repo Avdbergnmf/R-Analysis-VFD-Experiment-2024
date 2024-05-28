@@ -47,7 +47,7 @@ dataTypesTargets  <- setdiff(getTypes(allTargetParams), categories)
 source('source/summaryparams.R', local = FALSE)
 mu <- get_full_mu(allGaitParams, allQResults, dataTypes, categories)
 muDataTypes <- setdiff(getTypes(mu), categories)
-
+muVars <- colnames(mu)
 ## Plotting code
 source('source/plotting.R', local = FALSE)
 ```

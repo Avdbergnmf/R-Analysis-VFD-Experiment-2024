@@ -2,10 +2,9 @@
 
 ```{r}
 questionnaireList <- c("VEQ", "SSQ", "IMI")
-varDatatypes <- c("stepLengths", "stepWidths")
 varMetrics <- c("cv", "mean", "sd")
-selectizeInput("plotVar", "Variability of", choices = varDatatypes, selected = varDatatypes[1], multiple = FALSE)
-selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
+selectizeInput("plotVar", "Variable", choices = muVars, selected = "stepWidths.sd", multiple = FALSE)
+#selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
 selectizeInput("varCategory", "Category", choices = categoriesExtra, selected = "VFD", multiple = TRUE)
 ```
 
@@ -21,6 +20,6 @@ plotOutput("var")
 output$var <- renderPlot({
   mu <- get_mu_dyn_long()
   
-  plot_variability_data(mu, participants, input$plotVar, input$plotMetric, input$varCategory, baseSize = input$baseSize)
+  plot_variability_data(mu, participants, input$plotVar, input$varCategory, baseSize = input$baseSize)
 }, height = reactive(input$plotheight))
 ```

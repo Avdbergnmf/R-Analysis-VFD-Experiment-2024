@@ -1,12 +1,11 @@
 ### Options
 
 ```{r}
-muVars <- colnames(mu)
 defaultIndepVars <- c("VFD", "trialNum")
-defaultDepVar <- "stepWidths.cv"
+defaultDepVar <- "stepWidths.sd"
 selectizeInput("depVar", "Dependent variable", choices = muVars, selected = defaultDepVar, multiple = FALSE)
 selectizeInput("indepVars", "Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
-checkboxInput("interaction", "Include Interaction (VFD*trialNum)", value = TRUE)
+checkboxInput("interaction", "Include Interaction", value = TRUE)
 ```
 
 Column
@@ -29,24 +28,36 @@ tableOutput("fixed_effects_table")
 tableOutput("random_effects_table")
 ```
 
+#### Post-hoc tests {data-height=500}
+```{r}
+tableOutput("post_hoc_table")
+```
+
 ```{r, context="server"}
-get_lmer = reactive({
+get_lmer <- reactive({
   dt <- get_mu_dyn_long()
   
   # Construct the formula dynamically using input$depVar and input$indepVars
   dep_var <- input$depVar
-  indep_vars <- paste(input$indepVars, collapse = " + ")
+  indep_vars <- input$indepVars
   
-  # Add interaction term if selected
+  # Add interaction terms if selected
   if (input$interaction) {
-    formula_text <- paste(dep_var, "~", indep_vars, "+ (1 | participant) + VFD*trialNum")
+    indep_vars_interaction <- paste(indep_vars, collapse = " * ")
   } else {
-    formula_text <- paste(dep_var, "~", indep_vars, "+ (1 | participant)")
+    indep_vars_interaction <- paste(indep_vars, collapse = " + ")
   }
   
+  # Construct the formula text
+  formula_text <- paste(dep_var, "~", indep_vars_interaction, "+ (1 | participant)")
+  
+  # Convert to formula
   formula <- as.formula(formula_text)
-  return(lmerTest::lmer(formula, data=dt, REML=FALSE)) # put lmerTest:: in front to get p values.
+  
+  # Fit the model
+  return(lmerTest::lmer(formula, data = dt, REML = FALSE)) # put lmerTest:: in front to get p values.
 })
+
 
 output$lmm_text <- renderPrint({
   lmm <- get_lmer()
@@ -59,6 +70,13 @@ output$lmm_text <- renderPrint({
   print(results)
 })
 
+set_digits <- function(df, digits = 4){
+    # Format the numbers to display more digits
+  df <- df %>%
+    mutate(across(where(is.numeric), ~ format(round(.x, digits = digits), nsmall = digits)))
+  return(df)
+}
+
 output$fixed_effects_table <- renderTable({
   lmm <- get_lmer()
   results <- summary(lmm)
@@ -68,6 +86,9 @@ output$fixed_effects_table <- renderTable({
   fixed_effects_df <- as.data.frame(fixed_effects)
   fixed_effects_df <- cbind(Effect = rownames(fixed_effects_df), fixed_effects_df)
   rownames(fixed_effects_df) <- NULL
+  
+  fixed_effects_df <- set_digits(fixed_effects_df)
+  
   fixed_effects_df
 }, rownames = TRUE)
 
@@ -85,6 +106,8 @@ output$random_effects_table <- renderTable({
   # Optionally rename columns for clarity
   colnames(random_effects_df) <- c("Effect", "Group", "Variance", "Standard Deviation")
   
+  random_effects_df <- set_digits(random_effects_df)
+  
   random_effects_df
 }, rownames = TRUE)
 
@@ -93,4 +116,45 @@ output$qq <- renderPlot({
   p <- qqnorm(resid(lmm))
   return(p)
 })
+
+output$post_hoc_table <- renderTable({
+  lmm <- get_lmer()
+  results <- summary(lmm)
+  
+  # Extract fixed effects excluding the intercept
+  fixed_effects <- results$coefficients
+  effects_to_test <- rownames(fixed_effects)
+  effects_to_test <- effects_to_test[effects_to_test != "(Intercept)"]
+  #significant_effects <- rownames(results$coefficients)[results$coefficients[, "Pr(>|t|)"] < 0.05]
+  #significant_effects <- significant_effects[significant_effects != "(Intercept)"]
+  
+  if (length(effects_to_test) > 0) {
+    posthoc_results <- list()
+    
+    # Iterate through the independent variables selected
+    for (indep_var in input$indepVars) {
+      # Check each effect to see if it contains the independent variable (handle interactions)
+      for (effect in effects_to_test) {
+        # Perform post-hoc test for each level of the independent variable
+        posthoc_test <- emmeans::emmeans(lmm, specs = indep_var)
+        pairwise_comparisons <- emmeans::contrast(posthoc_test, method = "pairwise")
+        #posthoc_results[[effect]] <- summary(posthoc_test)
+        pairwise_results <- summary(pairwise_comparisons)
+        posthoc_results[[effect]] <- pairwise_results
+      }
+    }
+    
+    # Combine posthoc results into a single data frame
+    posthoc_df <- do.call(rbind, lapply(posthoc_results, function(x) as.data.frame(x)))
+    posthoc_df <- cbind(Effect = rep(names(posthoc_results), sapply(posthoc_results, nrow)), posthoc_df)
+    
+    # Format the numbers to display more digits
+    posthoc_df <- set_digits(posthoc_df)
+    
+    return(posthoc_df)
+  } else {
+    return(data.frame(Message = "No significant main or interaction effects found."))
+  }
+}, rownames = TRUE)
+
 ```
