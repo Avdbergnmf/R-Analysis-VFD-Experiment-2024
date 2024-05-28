@@ -1,5 +1,6 @@
 runtime/data/
 /.vs
+runtime/.vs
 
 runtime/index_cache
 runtime/index_data
