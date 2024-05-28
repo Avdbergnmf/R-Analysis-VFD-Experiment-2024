@@ -73,7 +73,7 @@ generate_questionnaire_plots <- function(questionnaireList, participant, baseSiz
 
 generate_variability_plots <- function(data, participant, varList, baseSize = 10) {
   plots <- lapply(varList, function(var) {
-    plot_variability_data(data, participant, var[[1]], var[[2]], ylims = var[[3]], baseSize = baseSize)
+    plot_variability_data(data, participant, var[[1]], var[[2]], baseSize = baseSize)
   })
   return(plots)
 }
@@ -124,14 +124,12 @@ observeEvent(input$generateReports, {
     
     questionnaireList <- c("VEQ", "SSQ", "IMI")
     questionnaire_plots <- generate_questionnaire_plots(questionnaireList, participant, baseSize)
-    
-    varList <- list(list("stepWidths","sd", c(0,0.1)),list("stepWidths","cv", c(0,0.3)), list("stepLengths","cv", c(0,0.3)))
-    variability_plots <- generate_variability_plots(get_mu_dyn(), participant, varList, baseSize)
+    varList <- list(list("stepWidths","sd"),list("stepWidths","cv"), list("stepLengths","cv"))
+    variability_plots <- generate_variability_plots(get_mu_dyn_long(), c(participant), varList, baseSize)
     
     target_stepping_plot <- generate_target_stepping_plot(filteredTargetParams(), participant, baseSize)
     
     scatter_plot <- generate_scatter_plot(filteredParams(), participant, baseSize)
-    
     # 2D plots
     disturbance_plots_z_l <- generate_2d_plots(filteredParams(), participant, trials, "leftdisturbance", "offset_z", baseSize)
     disturbance_plots_x_l <- generate_2d_plots(filteredParams(), participant, trials, "leftdisturbance", "offset_x", baseSize)

@@ -1,5 +1,5 @@
-get_summ <- function(dataType, categories, filteredData) {
-  filteredData %>%
+get_summ <- function(dataType, categories, data) {
+  data %>%
     group_by(across(all_of(categories))) %>%
     summarise(
       mean = mean(.data[[dataType]], na.rm = TRUE),
@@ -9,11 +9,22 @@ get_summ <- function(dataType, categories, filteredData) {
     )
 }
 
+get_mu <- function(data, types, categories){
+  mu <- lapply(types, get_summ, categories = categories, data = data)
+  mu <- setNames(mu, types)
+  
+  return(mu)
+}
+
 # This table is huge (like 160 columns)
-get_full_mu <- function(allGaitParams, allQResults, dataTypes, categories){
+get_full_mu <- function(data, allQResults, dataTypes, categories){
+  # Define the list of columns to remove - We add these later, but remove them here so they are not considered for the summary table
+  columns_to_remove <- c("practice", "startedWithNoise")
+  data <- data %>% select(-all_of(columns_to_remove)) # Remove the specified columns from the data
+  types <- setdiff(dataTypes, columns_to_remove) # also remove them from our types list
+  
   # Assuming mu is a list of data frames, each corresponding to a dataType
-  mu <- lapply(dataTypes, get_summ, categories = categories, filteredData = allGaitParams)
-  mu <- setNames(mu, dataTypes)
+  mu <- get_mu(data, types, categories)
   
   # Convert list to a single data frame
   mu_long <- bind_rows(mu, .id = "dataType") %>%
@@ -32,11 +43,13 @@ get_full_mu <- function(allGaitParams, allQResults, dataTypes, categories){
     )
   
   merged_results <- merge(allQResults, mu_wide, by = c("participant", "VFD"), all = TRUE)
+  #merged_results <- merged_results[!(merged_results$trialNum %in% c(1,4)),]
   
   # Initialize new columns for deltaCv to 0.0 for each CV column
   cv_columns <- grep("\\.cv$", colnames(merged_results), value = TRUE)
   delta_cv_columns <- paste(cv_columns, "deltaCv", sep = ".")
   merged_results[delta_cv_columns] <- 0.0
+  
   # Calculate avgNoVFD for each participant for non-practice VFD==FALSE trials
   noVFDTrials <- merged_results[merged_results$practice.mean == 0 & merged_results$VFD == FALSE, ]
   avgNoVFD <- noVFDTrials %>%
@@ -53,10 +66,16 @@ get_full_mu <- function(allGaitParams, allQResults, dataTypes, categories){
     delta_col <- paste(cv_col, "deltaCv", sep = ".")  # Construct the deltaCv column name
     
     mu_full[[delta_col]] <- mu_full[[cv_col]] - mu_full[[avg_col]]
+    mu_full[mu_full$VFD == FALSE, delta_col] <- NA # these values make no sense so we remove them from the dataset
   }
   
   # Create the new column using mutate and sapply
-  mu_full$started_with_noise <- sapply(mu_full$participant, started_with_noise)
+  mu_full$startedWithNoise <- sapply(mu_full$participant, started_with_noise)
+  mu_full$practice <- mapply(get_p_results, mu_full$participant, "practice", mu_full$trialNum)
+  
+  mu_full <- mu_full %>%
+    select(participant, trialNum, startedWithNoise, practice, everything())
+  
   
   return(mu_full)
 }

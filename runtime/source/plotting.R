@@ -247,42 +247,48 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
   return(p)
 }
 
-plot_variability_data <- function(mu_dyn, participants, datatype, metric, ylims = c(0,0.3), baseSize = 10) {
-  # Get the data
-  data <- mu_dyn[[datatype]]
-  data <- data[, c("participant", "VFD", "trialNum", metric), drop = FALSE]
-  # Identify the min and max trial numbers for each condition and participant
-  #data <- data %>%
-  #  group_by(participant, VFD) %>%
-  #  mutate(trial_pair = ifelse(trialNum == min(trialNum), 1, 2))
+plot_variability_data <- function(mu, participants, datatype, metric, xaxis = c("VFD"), baseSize = 10) {
+  ylims = c(0,0.3)
+  if (metric == "sd") {
+    ylims = c(0,0.05)
+  }
   
-  # Reshape the data to long format for ggplot
-  data_long <- melt(data, id.vars = c("participant", "VFD", "trialNum")) # "trial_pair"
-  data_long <- data_long[data_long$participant %in% participants, ]
+  # Construct the column name for the specified datatype and metric
+  column_name <- paste0(datatype, ".", metric)
+  
+  # Filter data for the specified columns and participants
+  data_long <- mu %>%
+    select(c("participant", "trialNum", all_of(xaxis), !!column_name))
+  data_long <- data_long[data_long$participant %in% participants,]  #filter(participant %in% participants)
+  
+  # Reshape data to long format for ggplot
+  data_long <- data_long %>%
+    pivot_longer(
+      cols = !!column_name,
+      names_to = "variable",
+      values_to = "value"
+    )
+  
+  # Set trialNum as factor so we can use it to color our datapoints
   data_long$trialNum <- as.factor(data_long$trialNum)
-  #data_long$trial_pair <- as.factor(data_long$trial_pair)
+  
+  # Create a combined x-axis variable
+  data_long$xaxis_combined <- apply(data_long[, xaxis], 1, paste, collapse = "_")
   
   # Create the plot
-  p <- ggpaired(
-    data = data_long,
-    x = "VFD",
-    y = "value",
-    id = "participant",
-    color = "trialNum", # VFD, trialNum, trial_pair
-    line.color = "grey",
-    point.color = "color",
-    line.size = 0.0
-  ) +
-    labs(x = "VFD", y = metric) +
+  p <- ggplot(data_long, aes(x = xaxis_combined, y = value)) +
+    geom_boxplot() + # geom_violin(trim = FALSE, fill = "lightblue", color = "black") +
+    geom_jitter(aes(color = trialNum), width = 0.2, size = 2, alpha = 0.7) +
+    labs(x = paste(xaxis, collapse = " + "), y = metric) +
     ggtitle(paste0(datatype, " (", metric, ")")) +
-    theme(plot.title = element_text(hjust = 0.5)) + coord_cartesian(ylim = ylims) + 
-    get_sized_theme(baseSize)# theme_minimal(base_size = baseSize)
-    #coord_cartesian(ylim = range(data_long$value, na.rm = TRUE)) # Set y limits to the range of y values in data
-    #scale_color_identity(name = "Trial Pair", labels = names(color_map), aesthetics = "point.color") + # Use the colors as they are
-    
+    theme(plot.title = element_text(hjust = 0.5)) +
+    coord_cartesian(ylim = ylims) +
+    scale_color_discrete(name = "Trial Number") +
+    get_sized_theme(baseSize)
   
   return(p)
 }
+
 
 make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize = 10){
   #data <- filteredParams()
@@ -358,7 +364,6 @@ circleFun <- function(center = c(0,0),r = 1, npoints = 100){
 }
 
 make_target_steps_plot <- function(targetData, show_legend=TRUE, baseSize = 10){
-  #filteredTargetParams()
   circle = circleFun(c(0,0),0.3,100)
   axesLims <- 0.3
   p <- ggplot() +
@@ -367,15 +372,13 @@ make_target_steps_plot <- function(targetData, show_legend=TRUE, baseSize = 10){
     xlim(-axesLims,axesLims) +
     ylim(-axesLims,axesLims) + 
     theme_minimal(base_size = baseSize)
-  
   p <- p + get_proper_legend(show_legend)
   
   p <- p + coord_equal() +
     labs(title = "Center Foot Relative to Target Center", x = "x", y = "z")
   
   # Add marginal density plots
-  p <- ggMarginal(p, type = "density", margins = "both", groupColour = TRUE, groupFill = TRUE)
-  
+  p <- ggExtra::ggMarginal(p, type = "density", margins = "both", groupColour = TRUE, groupFill = TRUE)
   
   return(p)
 }

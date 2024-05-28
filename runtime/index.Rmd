@@ -12,8 +12,6 @@ runtime: shinyrmd
 source('source/setup.R')
 source('source/dataloading.R', local = FALSE)
 
-allQResults <- get_all_questionnaire_results() 
-
 source('source/find_foot_events.R', local = FALSE)
 # Column definitions
 xOptions <- c("time", "pos_x", "pos_y", "pos_z")
@@ -22,8 +20,25 @@ xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for p
 
 ## Gait params
 source('source/calc_all_gait_params.R', local = FALSE)
-allGaitParams <- calc_all_gait_params()
-allTargetParams <- calc_all_target_params()
+# Check if the files already exist
+resultsFolder <- "results" 
+agpFile <- file.path(resultsFolder, "allGaitParams.rds")
+atpFile <- file.path(resultsFolder, "allTargetParams.rds")
+aqrFile <- file.path(resultsFolder, "allQResults.rds")
+if (file.exists(agpFile) && file.exists(atpFile) && file.exists(aqrFile)) {
+  # Load the existing tables from the files
+  allQResults <- readRDS(aqrFile)
+  allGaitParams <- readRDS(agpFile)
+  allTargetParams <- readRDS(atpFile)
+} else {
+  # Calculate the tables and save them to files
+  allQResults <- get_all_questionnaire_results()
+  allGaitParams <- calc_all_gait_params()
+  allTargetParams <- calc_all_target_params()
+  saveRDS(allQResults, aqrFile)
+  saveRDS(allGaitParams, agpFile)
+  saveRDS(allTargetParams, atpFile)
+}
 
 dataTypes         <- setdiff(getTypes(allGaitParams), categories)
 dataTypesTargets  <- setdiff(getTypes(allTargetParams), categories)
@@ -114,13 +129,13 @@ Correlations {data-icon="fa-chart-line"}
 ```
 
 
-
-
-<!-- PARTICIPANT SUMMARY REPORT PAGE STUFF -->
-
-
 Participant Summary {data-icon="fa-id-card-clip"}
 =====================================
 ```{r, child='pages/page12_participantSummary.Rmd'}
 ```
 
+
+Data Table {data-icon="fa-table"}
+=====================================
+```{r, child='pages/page13_table.Rmd'}
+```

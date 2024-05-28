@@ -1,0 +1,18 @@
+Column
+--------------------------------------------
+
+### Full Results Table {data-height=800}
+```{r}
+tableOutput("full_results_table")
+```
+
+
+
+```{r, context="server"}
+# New output for the giant table
+output$full_results_table <- renderTable({
+  dt <- get_mu_dyn_long()
+  return(dt)
+}, rownames = TRUE, options = list(pageLength = 100, scrollY = "500px"))
+
+```
