@@ -4,8 +4,9 @@
 defaultIndepVars <- c("VFD", "trialNum")
 defaultDepVar <- "stepWidths.sd"
 selectizeInput("depVar", "Dependent variable", choices = muVars, selected = defaultDepVar, multiple = FALSE)
-selectizeInput("indepVars", "Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
-checkboxInput("interaction", "Include Interaction", value = TRUE)
+selectizeInput("indepInterVars", "* Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
+selectizeInput("indepVars", "+ Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
+#checkboxInput("interaction", "Include Interaction", value = TRUE)
 ```
 
 Column
@@ -39,17 +40,20 @@ get_lmer <- reactive({
   
   # Construct the formula dynamically using input$depVar and input$indepVars
   dep_var <- input$depVar
-  indep_vars <- input$indepVars
   
   # Add interaction terms if selected
-  if (input$interaction) {
-    indep_vars_interaction <- paste(indep_vars, collapse = " * ")
-  } else {
-    indep_vars_interaction <- paste(indep_vars, collapse = " + ")
-  }
+  #if (input$interaction) {
+  #  indep_vars_interaction <- paste(indep_vars, collapse = " * ")
+  #} else {
+  #  indep_vars_interaction <- paste(indep_vars, collapse = " + ")
+  #}
+  
+  interVars <- paste(input$indepInterVars, collapse = " * ") 
+  otherVars <- paste(input$indepVars, collapse = " + ")
+  finalVars <- paste0(interVars," + ", otherVars)
   
   # Construct the formula text
-  formula_text <- paste(dep_var, "~", indep_vars_interaction, "+ (1 | participant)")
+  formula_text <- paste(dep_var, "~", finalVars, "+ (1 | participant)")
   
   # Convert to formula
   formula <- as.formula(formula_text)
