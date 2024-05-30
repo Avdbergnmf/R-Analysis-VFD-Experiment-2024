@@ -42,5 +42,5 @@ filteredTargetParams <- reactive({
 })
 
 get_mu_dyn_long <- reactive({
-  return(get_full_mu(filteredParams(), allQResults, dataTypes, categories))
+  return(get_full_mu(filteredParams(), filteredTargetParams(), allQResults, categories))
 })
