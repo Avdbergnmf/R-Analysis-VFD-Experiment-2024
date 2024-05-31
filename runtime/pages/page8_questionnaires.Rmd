@@ -15,6 +15,6 @@ plotOutput("q")
 
 ```{r, context="server"}
 output$q <- renderPlot({
-  plot_questionnaire_data(input$plotQ, participants, c(), baseSize = input$baseSize)
+  plot_questionnaire_data(filteredQResults_new(), input$plotQ, baseSize = input$baseSize)
 }, height = reactive(input$plotheight))
 ```

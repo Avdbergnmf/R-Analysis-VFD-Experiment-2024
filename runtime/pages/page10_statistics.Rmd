@@ -41,13 +41,6 @@ get_lmer <- reactive({
   # Construct the formula dynamically using input$depVar and input$indepVars
   dep_var <- input$depVar
   
-  # Add interaction terms if selected
-  #if (input$interaction) {
-  #  indep_vars_interaction <- paste(indep_vars, collapse = " * ")
-  #} else {
-  #  indep_vars_interaction <- paste(indep_vars, collapse = " + ")
-  #}
-  
   interVars <- paste(input$indepInterVars, collapse = " * ") 
   otherVars <- paste(input$indepVars, collapse = " + ")
   finalVars <- paste0(interVars," + ", otherVars)
@@ -86,8 +79,15 @@ output$fixed_effects_table <- renderTable({
   results <- summary(lmm)
   fixed_effects <- results$coefficients
   
-  # Convert to a data frame for rendering and include row names
+  # Calculate effect sizes
+  residual_sd <- sigma(lmm)
   fixed_effects_df <- as.data.frame(fixed_effects)
+  fixed_effects_df$EffectSize <- fixed_effects_df$Estimate / residual_sd
+  
+  # Adjust p-values for multiple comparisons
+  fixed_effects_df$AdjustedP <- p.adjust(fixed_effects_df[["Pr(>|t|)"]], method = "bonferroni") # holm
+  
+  # Convert to a data frame for rendering and include row names
   fixed_effects_df <- cbind(Effect = rownames(fixed_effects_df), fixed_effects_df)
   rownames(fixed_effects_df) <- NULL
   
@@ -95,6 +95,7 @@ output$fixed_effects_table <- renderTable({
   
   fixed_effects_df
 }, rownames = TRUE)
+
 
 output$random_effects_table <- renderTable({
   lmm <- get_lmer()
@@ -141,7 +142,7 @@ output$post_hoc_table <- renderTable({
       for (effect in effects_to_test) {
         # Perform post-hoc test for each level of the independent variable
         posthoc_test <- emmeans::emmeans(lmm, specs = indep_var)
-        pairwise_comparisons <- emmeans::contrast(posthoc_test, method = "pairwise")
+        pairwise_comparisons <- emmeans::contrast(posthoc_test, method = "pairwise") # side = ">" --> check only one side
         #posthoc_results[[effect]] <- summary(posthoc_test)
         pairwise_results <- summary(pairwise_comparisons)
         posthoc_results[[effect]] <- pairwise_results

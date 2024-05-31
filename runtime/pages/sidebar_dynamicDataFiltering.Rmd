@@ -17,8 +17,9 @@ numericInput("baseSize", "Base Size",
   min = 1, max = Inf, value = 10, step = 1)
 ```
 
-#### Recalculate Tables
+
 ```{r}
-actionButton("recalc_tables", "Recalculate Tables", style = "margin-top: 20px;")
+#### Recalculate Tables
+#actionButton("recalc_tables", "Recalculate Tables", style = "margin-top: 20px;")
 ```
 

@@ -4,8 +4,9 @@ get_sized_theme <- function(baseSize){
     axis.title = element_text(size = baseSize * 2),
     axis.text = element_text(size = baseSize),
     legend.title = element_text(size = baseSize * 1.5),
-    legend.text = element_text(size = baseSize),
-    plot.title = element_text(size = baseSize * 2.5)
+    legend.text = element_text(size = baseSize * 1.5),
+    plot.title = element_text(size = baseSize * 2.5),
+    strip.text = element_text(size = baseSize * 1.5)
   ))
 }
 
@@ -182,20 +183,20 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
 }
 
 
-plot_questionnaire_data <- function(qType, participants, cols_to_include, baseSize = 10) {
-  # Get the data
-  data <- calculate_all_scores(qType)
-  data <- data[data$participant %in% participants, ]
-  
+plot_questionnaire_data <- function(data, qType, cols_to_include = c(), baseSize = 10) {
+  data <- filter_questionnaire_results(data,qType)
   # Only keep the columns to include in the plot
   if (length(cols_to_include) == 0) {
-    cols_to_include <- setdiff(colnames(data), c("participant", "VFD")) # just take all of them, except for participant and VFD (condition)
+    cols_to_include <- setdiff(colnames(data), c("participant", "VFD","none")) # just take all of them, except for participant and VFD (condition) - Also removing the none scale because in that case we are just interested in the total.
   }
   data <- data[, c("participant", "VFD", cols_to_include), drop = FALSE]
   
   # Reshape the data to long format for ggplot
   data_long <- reshape2::melt(data, id.vars = c("participant", "VFD"))
-  #data_long$trialNum <- as.factor(data_long$trialNum)
+  
+  qweights <- get_question_weights(qType)
+  min_plot <- if ("min_plot" %in% qweights$category) qweights[qweights$category == "min_plot", "weight"] else NULL
+  max_plot <- if ("max_plot" %in% qweights$category) qweights[qweights$category == "max_plot", "weight"] else NULL
   
   # Create the plot for each column to include
   p <- ggpaired(
@@ -211,8 +212,12 @@ plot_questionnaire_data <- function(qType, participants, cols_to_include, baseSi
     labs(x = "VFD", y = "Score") +
     ggtitle(paste0(qType, " Scores")) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    ylim(0, 7) + # Set y-axis limits +
     get_sized_theme(baseSize) #theme_minimal(base_size = baseSize)
+  
+  # Conditionally add y-axis limits if min_plot and max_plot are provided
+  if (!is.null(min_plot) && !is.null(max_plot)) {
+    p <- p + ylim(min_plot, max_plot)
+  }
     
   return(p)
 }
@@ -247,7 +252,7 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
   return(p)
 }
 
-plot_variability_data <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
+plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
   
   if (grepl(".sd", datatype)) {
     ylims = c(0,0.05)

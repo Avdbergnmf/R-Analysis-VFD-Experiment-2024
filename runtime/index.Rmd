@@ -20,25 +20,17 @@ xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for p
 
 ## Gait params
 source('source/calc_all_gait_params.R', local = FALSE)
-# Check if the files already exist
-resultsFolder <- "results" 
+
+# File paths
+resultsFolder <- "results"
 agpFile <- file.path(resultsFolder, "allGaitParams.rds")
 atpFile <- file.path(resultsFolder, "allTargetParams.rds")
 aqrFile <- file.path(resultsFolder, "allQResults.rds")
-if (file.exists(agpFile) && file.exists(atpFile) && file.exists(aqrFile)) {
-  # Load the existing tables from the files
-  allQResults <- readRDS(aqrFile)
-  allGaitParams <- readRDS(agpFile)
-  allTargetParams <- readRDS(atpFile)
-} else {
-  # Calculate the tables and save them to files
-  allQResults <- get_all_questionnaire_results()
-  allGaitParams <- calc_all_gait_params()
-  allTargetParams <- calc_all_target_params()
-  saveRDS(allQResults, aqrFile)
-  saveRDS(allGaitParams, agpFile)
-  saveRDS(allTargetParams, atpFile)
-}
+
+# Load or calculate the data
+allQResults <- load_or_calculate(aqrFile, get_all_questionnaire_results)
+allGaitParams <- load_or_calculate(agpFile, calc_all_gait_params)
+allTargetParams <- load_or_calculate(atpFile, calc_all_target_params)
 
 dataTypes         <- setdiff(getTypes(allGaitParams), categories)
 dataTypesTargets  <- setdiff(getTypes(allTargetParams), categories)
@@ -111,9 +103,9 @@ Questionnaires
 ```
 
 
-Variability 
+Boxplots 
 =====================================
-```{r, child='pages/page9_variability.Rmd'}
+```{r, child='pages/page9_boxplots.Rmd'}
 ```
 
 

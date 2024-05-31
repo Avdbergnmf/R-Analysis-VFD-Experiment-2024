@@ -85,7 +85,7 @@ get_full_gait_mu <- function(data, allQResults, categories){
 # Function to get full target mu with target parameters
 get_full_target_mu <- function(data, allQResults, categories) {
   dataTypes <- setdiff(getTypes(data), categories)
-  print(dataTypes)
+  
   # Define the list of columns to remove
   columns_to_remove <- c("practice", "startedWithNoise")
   data <- data %>% select(-all_of(columns_to_remove)) # Remove the specified columns from the data

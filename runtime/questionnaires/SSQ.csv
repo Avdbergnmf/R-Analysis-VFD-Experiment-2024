@@ -1,17 +1,17 @@
-QuestionID,question,mirror,category
-q1,General discomfort,false,none
-q2,Fatique,false,none
-q3,Headache,false,none
-q4,Eye strain,false,none
-q5,Difficulty focusing,false,none
-q6,Salivation increasing,false,none
-q7,Sweating,false,none
-q8,Nausea,false,none
-q9,Difficulty concentrating,false,none
-q10,Fullness of the Head,false,none
-q11,Blurred vision,false,none
-q12,Dizziness with eyes open,false,none
-q13,Dizziness with eyes closed,false,none
-q14,Vertigo (experienced as loss of orientation with respect to vertical upright),false,none
-q15,Stomach awareness (feeling of discomfort which is just short of nausea),false,none
-q16,Burping,false,none
+QuestionID,question,mirror,category,category2
+q1,General discomfort,false,nausea,oculomotor
+q2,Fatique,false,oculomotor
+q3,Headache,false,oculomotor
+q4,Eye strain,false,oculomotor
+q5,Difficulty focusing,false,oculomotor,disorientation
+q6,Salivation increasing,false,nausea
+q7,Sweating,false,nausea
+q8,Nausea,false,nausea,disorientation
+q9,Difficulty concentrating,false,nausea,oculomotor
+q10,Fullness of the Head,false,disorientation
+q11,Blurred vision,false,oculomotor,disorientation
+q12,Dizziness with eyes open,false,disorientation
+q13,Dizziness with eyes closed,false,disorientation
+q14,Vertigo (experienced as loss of orientation with respect to vertical upright),false,disorientation
+q15,Stomach awareness (feeling of discomfort which is just short of nausea),false,nausea
+q16,Burping,false,nausea

@@ -12,6 +12,16 @@ getTypes <- function(dt){
 }
 
 ############ FUNCTIONS
+# Helper function to load or calculate and save data
+load_or_calculate <- function(filePath, calculate_function) {
+  if (file.exists(filePath)) {
+    data <- readRDS(filePath)
+  } else {
+    data <- calculate_function()
+    saveRDS(data, filePath)
+  }
+  return(data)
+}
 
 calc_all_gait_params <- function(){
   # Initialize an empty data frame

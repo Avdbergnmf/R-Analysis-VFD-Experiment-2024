@@ -64,16 +64,27 @@ generate_pie_charts <- function(data, participant, trials, baseSize = 10) {
   return(pies)
 }
 
+filteredQResults <- reactive({
+  included <- allQResults[["participant"]] %in% input$filterParticipants
+  included <- included & allQResults[["VFD"]] %in% input$filterVFD
+  included <- included & allQResults[["trialNum"]] %in% input$filterTrials
+  included <- included & allQResults[["startedWithNoise"]] %in% input$filterStartCondition
+  
+  return(allQResults[included, ])
+})
+
+
 generate_questionnaire_plots <- function(questionnaireList, participant, baseSize = 10) {
+  data <- allQResults[allQResults$participant==participant, ] # just use the full (unfiltered) table
   plots <- lapply(questionnaireList, function(questionnaire) {
-    plot_questionnaire_data(questionnaire, participant, c(), baseSize = baseSize)
+    plot_questionnaire_data(data, questionnaire, baseSize = baseSize)
   })
   return(plots)
 }
 
 generate_variability_plots <- function(data, participant, varList, baseSize = 10) {
   plots <- lapply(varList, function(var) {
-    plot_variability_data(data, participant, var, baseSize = baseSize)
+    plot_boxplots(data, participant, var, baseSize = baseSize)
   })
   return(plots)
 }

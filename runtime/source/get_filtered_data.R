@@ -31,6 +31,13 @@ observeEvent({
   filteredParams(filtered_data)
 })
 
+filteredQResults_new <- reactive({
+  included <- allQResults[["participant"]] %in% input$filterParticipants
+  included <- included & allQResults[["VFD"]] %in% input$filterVFD
+  included <- included & allQResults[["startedWithNoise"]] %in% input$filterStartCondition
+  return(allQResults[included, ])
+})
+
 filteredTargetParams <- reactive({
   included <- allTargetParams[["participant"]] %in% input$filterParticipants
   included <- included & allTargetParams[["VFD"]] %in% input$filterVFD
