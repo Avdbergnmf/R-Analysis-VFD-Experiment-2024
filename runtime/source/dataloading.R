@@ -306,6 +306,12 @@ filter_questionnaire_results <- function(allQResults, qType) { # qType= "IMI", "
 
 #### Some pre-processing we use later in plotting and get_foot_events
 
+adjust_times <- function(dataset, minTime, maxTime=180) { # make sure we start at t=0
+  dataset$time <- dataset$time - minTime
+  dataset <- subset(dataset, time <= maxTime)#dataset <- subset(dataset)
+  return(dataset)
+}
+
 preprocess_data <- function(participant, trialNum){
   leftFoot = get_t_data(participant, "leftfoot", trialNum)
   rightFoot = get_t_data(participant, "rightfoot", trialNum)
@@ -318,18 +324,19 @@ preprocess_data <- function(participant, trialNum){
   minTime <- leftFoot$time[1] #get_p_results(participant,"start_time",trialNum)
   
   moveSpeed = get_move_speed(participant)
-  leftFoot = adjust_times(leftFoot, minTime)
+  maxTime <- ifelse(get_p_results(participant, "practice",trialNum)=="True",120,180)
+  leftFoot = adjust_times(leftFoot, minTime, maxTime)
   leftFoot$actual_pos_z = leftFoot$pos_z + moveSpeed * leftFoot$time
-  rightFoot = adjust_times(rightFoot, minTime)
+  rightFoot = adjust_times(rightFoot, minTime, maxTime)
   rightFoot$actual_pos_z = rightFoot$pos_z + moveSpeed * rightFoot$time
   
   return(list(
     leftFoot = leftFoot,
     rightFoot = rightFoot,
-    leftDisturbance = leftDisturbance,
-    rightDisturbance = rightDisturbance,
-    hip = adjust_times(hip, minTime),
-    targetData = adjust_times(targetData, minTime)
+    leftDisturbance = adjust_times(leftDisturbance, minTime, maxTime),
+    rightDisturbance = adjust_times(rightDisturbance, minTime, maxTime),
+    hip = adjust_times(hip, minTime, maxTime),
+    targetData = adjust_times(targetData, minTime, maxTime)
   ))
 }
 
@@ -372,16 +379,16 @@ apply_padding_and_filter <- function(column, poly_order, frame_size, fs, cutoff_
   return(filtered_column)
 }
 
-detect_outliers <- function(data, targetIgnoreSteps) {
-  data_filtered <- data[!targetIgnoreSteps] # We don't use the target steps to calculate our interquartile ranges.
+detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
+  data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our interquartile ranges.
   
   Q1 <- quantile(data_filtered, 0.25)
   Q3 <- quantile(data_filtered, 0.75)
   IQR <- Q3 - Q1
   
   # Define the upper and lower bounds for outliers
-  upper_bound <- Q3 + 1.5 * IQR
-  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + IQR_mlp * IQR
+  lower_bound <- Q1 - IQR_mlp * IQR
   
   return(!(data >= lower_bound & data <= upper_bound))
 }

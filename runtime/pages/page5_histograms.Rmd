@@ -13,9 +13,10 @@ selectizeInput("position", "Bar positions",
 selectizeInput("split", "Split by",
   choices = categoriesInputs, selected = "None", multiple = FALSE
 )
-checkboxInput("means", "Show means",
-  value = TRUE
-)
+#checkboxInput("means", "Show means",
+#  value = TRUE
+#)
+
 numericInput("bin", "Bin width",
   min = 0.001, max = 0.5, value = 0.01, step = 0.01
 )
@@ -45,7 +46,7 @@ plotHeight <- reactive(
 
 output$hist <- renderPlot(
   {
-    make_histogram(filteredParams(), get_mu_dyn(), input$means, input$group, input$split, input$plot, input$bin, input$position, baseSize=input$baseSize)
+    make_histogram(filteredParams(), get_mu_dyn_long(), FALSE, input$group, input$split, input$plot, input$bin, input$position, baseSize=input$baseSize)
   },
   height = reactive(plotHeight())
 )

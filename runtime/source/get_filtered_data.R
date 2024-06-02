@@ -2,7 +2,8 @@
 filteredParams <- reactiveVal()
 
 filter_data <- function(allGaitParams, filterParticipants, filterVFD, filterTrials, filterTargets, filterOutliers, filterPractice, filterStartCondition, additionalArg) {
-  included <- allGaitParams[["participant"]] %in% filterParticipants
+  included <- allGaitParams[["heelStrikes.incorrectDetection"]] %in% c(FALSE) # We remove these by default
+  included <- included & allGaitParams[["participant"]] %in% filterParticipants
   included <- included & allGaitParams[["VFD"]] %in% filterVFD
   included <- included & allGaitParams[["trialNum"]] %in% filterTrials
   included <- included & allGaitParams[["heelStrikes.targetIgnoreSteps"]] %in% filterTargets
@@ -39,6 +40,7 @@ filteredQResults_new <- reactive({
 })
 
 filteredTargetParams <- reactive({
+  #included <- allTargetParams[["heelStrikesData.incorrectDetection"]] %in% c(FALSE) # We remove these by default
   included <- allTargetParams[["participant"]] %in% input$filterParticipants
   included <- included & allTargetParams[["VFD"]] %in% input$filterVFD
   included <- included & allTargetParams[["trialNum"]] %in% input$filterTrials

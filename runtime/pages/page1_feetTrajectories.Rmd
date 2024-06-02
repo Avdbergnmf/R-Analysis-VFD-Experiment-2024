@@ -26,7 +26,7 @@ numericInput("end", "end at step nr",
 
 Column
 --------------------------------------------
-### Feet trajectories {data-height=500}
+### Feet trajectories {data-height=1500}
 
 ```{r}
 plotOutput("FeetTraj")

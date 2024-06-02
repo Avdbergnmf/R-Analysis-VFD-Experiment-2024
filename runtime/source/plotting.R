@@ -238,12 +238,12 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
     geom_histogram(binwidth = binwidth, fill = fill, alpha = a, position = position) +
     theme_minimal(base_size = baseSize)
   
-  if (showMeans && split != "None") {
-    p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = split), linetype = "dashed")
-  }
-  if (showMeans && split == "None" && group != "None") {
-    p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = group), linetype = "dashed")
-  }
+  #if (showMeans && split != "None") {
+  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = split), linetype = "dashed")
+  #}
+  #if (showMeans && split == "None" && group != "None") {
+  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = group), linetype = "dashed")
+  #}
   
   if (split != "None") {
     p <- p + facet_grid(sym(split))
