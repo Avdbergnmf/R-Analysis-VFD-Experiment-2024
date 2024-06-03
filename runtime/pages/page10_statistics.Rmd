@@ -7,6 +7,9 @@ selectizeInput("depVar", "Dependent variable", choices = muVars, selected = defa
 selectizeInput("indepInterVars", "* Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
 selectizeInput("indepVars", "+ Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
 #checkboxInput("interaction", "Include Interaction", value = TRUE)
+
+# Add a dropdown for selecting the correction method
+selectizeInput("correctionMethod", "Correction Method", choices = c("bonferroni", "tukey", "holm"), selected = "tukey", multiple = FALSE)
 ```
 
 Column
@@ -84,8 +87,9 @@ output$fixed_effects_table <- renderTable({
   fixed_effects_df <- as.data.frame(fixed_effects)
   fixed_effects_df$EffectSize <- fixed_effects_df$Estimate / residual_sd
   
-  # Adjust p-values for multiple comparisons
-  fixed_effects_df$AdjustedP <- p.adjust(fixed_effects_df[["Pr(>|t|)"]], method = "bonferroni") # holm
+  # Adjust p-values for multiple comparisons using the selected correction method
+  correction_method <- input$correctionMethod
+  fixed_effects_df$AdjustedP <- p.adjust(fixed_effects_df[["Pr(>|t|)"]], method = correction_method)
   
   # Convert to a data frame for rendering and include row names
   fixed_effects_df <- cbind(Effect = rownames(fixed_effects_df), fixed_effects_df)

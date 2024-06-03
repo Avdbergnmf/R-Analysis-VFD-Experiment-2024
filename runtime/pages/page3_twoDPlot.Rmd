@@ -24,6 +24,9 @@ numericInput("startTime", "start time (s)",
   min = 0, max = 500, value = 0, step = 1)
 numericInput("endTime", "end time (s)",
   min = 0, max = 500, value = 0, step = 1)
+
+# Add a download button for the plot
+downloadButton("download2dPlot", "Download Plot")
 ```
 
 
@@ -47,5 +50,15 @@ output$TwoD <- renderPlot(
     plot_2d(input$xtracker, input$xtracker, input$participant2d, as.numeric(input$trialNum2d), input$startTime, input$endTime, input$xplot2d, input$yplot2d, input$plotlines, input$plotpoints, baseSize=input$baseSize)
   },
   height = reactive(input$plotheight)
+)
+
+# Add a download handler for the plot
+output$download2dPlot <- downloadHandler(
+  filename = function() {
+    paste("2D_plot", Sys.Date(), ".svg", sep = "")
+  },
+  content = function(file) {
+    ggsave(file, plot = plot_2d(input$xtracker, input$xtracker, input$participant2d, as.numeric(input$trialNum2d), input$startTime, input$endTime, input$xplot2d, input$yplot2d, input$plotlines, input$plotpoints, baseSize = input$baseSize), device = "svg")
+  }
 )
 ```
