@@ -22,7 +22,7 @@ library(ggpattern) # To differentiate when printing in black and white
 
 # LMER stuff
 library(lme4)
-library(DT)
+library(DT) # for visual tables and stuff 
 library(lmerTest) # to get p-values from lmer
 #library(sjstats)
 library(emmeans)

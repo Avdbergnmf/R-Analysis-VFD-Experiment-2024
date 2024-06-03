@@ -51,17 +51,88 @@ get_move_speed <- function(pnum) { # return move speed in m/s
   return(get_p_results(pnum,"move_speed",trialNum) / 3.6)
 }
 
-get_p_detail <- function(pnum, detailName) {
+get_p_detail <- function(pnum, detail) {
   # get the path to the details file for the participant
-  detailsFile <- file.path(get_p_dir(pnum), "participant_details.csv")
+  detailsFile <- file.path(get_p_dir(pnum), "session_info/participant_details.csv")
   
   # read the csv file into a data frame
   details <- read.csv(detailsFile)
   
   # retrieve the value of the specific detail
-  detailValue <- details[[detailName]][1]
+  detailValue <- details[[detail]][1]
   
   return(detailValue)
+}
+
+library(dplyr)
+
+# here we make a big table to show us the demographics summary of our participant pool
+calculate_participant_details <- function(participants) {
+  details <- data.frame(participant = participants)
+  
+  # Retrieve details for each participant
+  details$age               <- sapply(participants, get_p_detail, detail = "age")
+  details$gender            <- sapply(participants, get_p_detail, detail = "gender")
+  details$startedWithNoise  <- sapply(participants, started_with_noise)
+  details$education         <- sapply(participants, get_p_detail, detail = "education")
+  details$vr_experience     <- sapply(participants, get_p_detail, detail = "vr_experience")
+  details$motion            <- sapply(participants, get_p_detail, detail = "motion")
+  details$noticed           <- sapply(participants, get_p_detail, detail = "noticed")
+  
+  # Calculate statistics for age
+  age_mean <- mean(details$age)
+  age_sd <- sd(details$age)
+  age_median <- median(details$age)
+  age_min <- min(details$age)
+  age_max <- max(details$age)
+  age_iqr <- IQR(details$age)
+  
+  # Format the age results
+  age_mean_sd <- sprintf("%.2f, SD: %.2f", age_mean, age_sd)
+  age_median_min_max_iqr <- sprintf("%d [%.0f, %.0f], IQR=%.2f", age_median, age_min, age_max, age_iqr)
+  
+  # Count the occurrences of each unique value in other columns
+  gender_counts <- table(details$gender)
+  started_counts <- table(details$startedWithNoise)
+  education_counts <- table(details$education)
+  vr_experience_counts <- table(details$vr_experience)
+  motion_counts <- table(details$motion)
+  noticed_counts <- table(details$noticed)
+  
+  # Create a result data frame
+  result <- data.frame(
+    Detail = c(
+      "Age (Mean, SD)", "Age (Median [Min, Max], IQR)", 
+      rep("Gender", length(gender_counts)), 
+      rep("Started With Noise", length(started_counts)),
+      rep("Education", length(education_counts)), 
+      rep("VR Experience", length(vr_experience_counts)), 
+      rep("Motion", length(motion_counts)), 
+      rep("Noticed", length(noticed_counts))
+    ),
+    Value = c(
+      age_mean_sd, age_median_min_max_iqr, 
+      as.vector(gender_counts), 
+      as.vector(started_counts), 
+      as.vector(education_counts), 
+      as.vector(vr_experience_counts), 
+      as.vector(motion_counts), 
+      as.vector(noticed_counts)
+    )
+  )
+  
+  # Add the names of the counted categories to the details
+  result$Category <- c(
+    "", "", 
+    names(gender_counts), 
+    names(started_counts), 
+    names(education_counts), 
+    names(vr_experience_counts), 
+    names(motion_counts), 
+    names(noticed_counts)
+  )
+  
+  return(result)
 }
 
 # If true, the participant started with noise VFD enabled, otherwise without it enabled
@@ -379,7 +450,7 @@ apply_padding_and_filter <- function(column, poly_order, frame_size, fs, cutoff_
   return(filtered_column)
 }
 
-detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
+detect_outliers <- function(data, ignoreSteps, also_mark_ignoreSteps_if_outlier = FALSE, IQR_mlp = 1.5) {
   data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our interquartile ranges.
   
   Q1 <- quantile(data_filtered, 0.25)
@@ -390,5 +461,52 @@ detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
   upper_bound <- Q3 + IQR_mlp * IQR
   lower_bound <- Q1 - IQR_mlp * IQR
   
-  return(!(data >= lower_bound & data <= upper_bound))
+  if (also_mark_ignoreSteps_if_outlier) {
+    # Initialize outliers vector as FALSE for all data points
+    outliers <- rep(FALSE, length(data))
+    # Mark outliers in the data that are not ignored
+    outliers[!ignoreSteps] <- !(data[!ignoreSteps] >= lower_bound & data[!ignoreSteps] <= upper_bound)
+    return(outliers)
+  }
+  else {
+    return(!(data >= lower_bound & data <= upper_bound))
+  }
+}
+
+calculate_step_statistics <- function(data, group_vars = c("participant")) {
+  # Group by specified variables and calculate the number of included and removed steps
+  step_summary <- data %>%
+    group_by(across(all_of(group_vars))) %>%
+    summarise(
+      total_steps = n(), # Use n() to count the number of rows
+      included_steps = sum(!heelStrikes.incorrectDetection & !heelStrikes.targetIgnoreSteps & !heelStrikes.outlierSteps),
+      removed_steps = sum(heelStrikes.incorrectDetection | heelStrikes.outlierSteps),
+      target_steps = sum(heelStrikes.targetIgnoreSteps),
+      .groups = 'drop'
+    )
+  
+  # Calculate the average and standard deviation for included steps
+  total_steps_avg <- mean(step_summary$total_steps)
+  total_steps_sd <- sd(step_summary$total_steps)
+  
+  # Calculate the average and standard deviation for included steps
+  included_steps_avg <- mean(step_summary$included_steps)
+  included_steps_sd <- sd(step_summary$included_steps)
+  
+  # Calculate the average and standard deviation for removed steps
+  removed_steps_avg <- mean(step_summary$removed_steps)
+  removed_steps_sd <- sd(step_summary$removed_steps)
+  
+  # Calculate the average and standard deviation for target steps
+  target_steps_avg <- mean(step_summary$target_steps)
+  target_steps_sd <- sd(step_summary$target_steps)
+  
+  # Create a result data frame
+  result <- data.frame(
+    Metric = c("Total Steps", "Included Steps", "Removed Steps", "Target Steps"),
+    Average = c(total_steps_avg, included_steps_avg, removed_steps_avg, target_steps_avg),
+    SD = c(total_steps_sd, included_steps_sd, removed_steps_sd, target_steps_sd)
+  )
+  
+  return(result)
 }

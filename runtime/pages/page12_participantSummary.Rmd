@@ -16,16 +16,22 @@ uiOutput("downloadLinks")
 Column
 --------------------------------------------
 
-### Downloads
+### Participant pool
 ```{r}
-#uiOutput("downloadLinks")
-```
-### Progress
-```{r}
-verbatimTextOutput("progressText")
+tableOutput("participant_details_table")
 ```
 
+
 ```{r, context="server"}
+### Participant pool summary
+output$participant_details_table <- renderTable({
+  participants <- input$participantSummary#filterParticipants
+  participant_details <- calculate_participant_details(participants)
+  
+  return(participant_details)
+}, rownames = TRUE, options = list(pageLength = 100, scrollY = "500px"))
+
+### PDF making stuff
 get_extraTitle <- function(participant, trialNum){
   VFD <- get_p_results(participant, "noise_enabled", trialNum)
   return(paste("Trial number", trialNum, ", VFD =", VFD, ","))

@@ -300,25 +300,22 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
 
 make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize = 10){
   #data <- filteredParams()
-  targetIgnoreSteps <- length(data[data$heelStrikes.targetIgnoreSteps==TRUE & data$heelStrikes.outlierSteps == FALSE,]$VFD)
-  outlierSteps <- length(data[data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE,]$VFD)
-  bothSteps <- length(data[data$heelStrikes.targetIgnoreSteps==TRUE & data$heelStrikes.outlierSteps == TRUE,]$VFD)
-  included <- length(data[data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == FALSE,]$VFD) # non filtered out
-  total_steps <- length(data$VFD)
+  #incorrectDetectionSteps   <- length(data[data$heelStrikes.incorrectDetection==TRUE  & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
+  #targetIgnoreSteps         <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
+  #outlierSteps              <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
+  #bothSteps                 <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
+  # new marking
+  incorrectDetectionSteps   <- length(data[data$heelStrikes.incorrectDetection==TRUE, ]$VFD)
+  targetIgnoreSteps         <- length(data[data$heelStrikes.targetIgnoreSteps==TRUE,  ]$VFD)
+  outlierSteps              <- length(data[data$heelStrikes.outlierSteps == TRUE,     ]$VFD)
+  included                  <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == FALSE,]$VFD) # non filtered out
+  total_steps               <- length(data$VFD)
   
   # Create a data frame for ggplot
   df_filtered <- data.frame(
-    StepType = factor(c("Both", "Target Ignore", "Outlier", "Included")),
-    TotalCount = c(bothSteps, targetIgnoreSteps, outlierSteps, included)
+    StepType = factor(c("Impossible", "Target Ignore", "Outlier", "Included")),
+    TotalCount = c(incorrectDetectionSteps, targetIgnoreSteps, outlierSteps, included)
   )
-  
-  ### LABELING LOOKS HELLA OFF, HARDCODE FIX FOR NOW
-  # Order the data frame by StepType for consistent plotting
-  #df_filtered <- df_filtered[order(df_filtered$StepType, decreasing = TRUE), ]
-  
-  # Calculate label positions for the pie chart
-  #df_filtered$midpoint <- cumsum(df_filtered$TotalCount) - df_filtered$TotalCount / 2
-  #df_filtered$label_pos <- df_filtered$midpoint / sum(df_filtered$TotalCount) * 2 * pi
   
   # Calculate label positions for the pie chart
   df_filtered$label_pos <- cumsum(df_filtered$TotalCount) - df_filtered$TotalCount/2

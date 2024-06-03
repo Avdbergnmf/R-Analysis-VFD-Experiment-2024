@@ -1,8 +1,8 @@
 # Initialize reactiveVal to store the filtered parameters
 filteredParams <- reactiveVal()
 
-filter_data <- function(allGaitParams, filterParticipants, filterVFD, filterTrials, filterTargets, filterOutliers, filterPractice, filterStartCondition, additionalArg) {
-  included <- allGaitParams[["heelStrikes.incorrectDetection"]] %in% c(FALSE) # We remove these by default
+filter_data <- function(allGaitParams, filterImpossible, filterParticipants, filterVFD, filterTrials, filterTargets, filterOutliers, filterPractice, filterStartCondition, additionalArg) {
+  included <- allGaitParams[["heelStrikes.incorrectDetection"]] %in% filterImpossible
   included <- included & allGaitParams[["participant"]] %in% filterParticipants
   included <- included & allGaitParams[["VFD"]] %in% filterVFD
   included <- included & allGaitParams[["trialNum"]] %in% filterTrials
@@ -15,11 +15,12 @@ filter_data <- function(allGaitParams, filterParticipants, filterVFD, filterTria
 
 # Update the filtered parameters whenever any input changes
 observeEvent({
-  list(input$filterParticipants, input$filterVFD, input$filterTrials,
+  list(input$filterImpossible, input$filterParticipants, input$filterVFD, input$filterTrials,
        input$filterTargets, input$filterOutliers, input$filterPractice, input$filterStartCondition, input$additionalArg)
 }, {
   filtered_data <- filter_data(
     allGaitParams, 
+    input$filterImpossible,
     input$filterParticipants, 
     input$filterVFD, 
     input$filterTrials, 
@@ -40,7 +41,6 @@ filteredQResults_new <- reactive({
 })
 
 filteredTargetParams <- reactive({
-  #included <- allTargetParams[["heelStrikesData.incorrectDetection"]] %in% c(FALSE) # We remove these by default
   included <- allTargetParams[["participant"]] %in% input$filterParticipants
   included <- included & allTargetParams[["VFD"]] %in% input$filterVFD
   included <- included & allTargetParams[["trialNum"]] %in% input$filterTrials

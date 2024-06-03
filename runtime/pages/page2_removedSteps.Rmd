@@ -3,28 +3,51 @@
 checkboxInput("useFiltered", "Filter data",
   value = FALSE
 )
+
+selectizeInput("groupStatsCategory", "Category", choices = categoriesExtra, selected = "participant", multiple = TRUE)
 ```
 
 Column
 --------------------------------------------
 
 
-### Removed Steps {data-height=500}
+### Removed Steps {data-height=600}
 
 
 ```{r}
 plotOutput("pie")
 ```
 
+### Step Statistics {data-height=500}
+
+```{r}
+tableOutput("step_table")
+```
+
 ```{r, context="server"}
 output$pie <- renderPlot(
   {
-    if (input$useFiltered) {data <- filteredParams() }
-    else (data <- allGaitParams)
+    if (input$useFiltered) {
+      data <- filteredParams()
+    } else {
+      data <- allGaitParams
+    }
     
-    return(make_pie_chart(data, baseSize=input$baseSize))
+    return(make_pie_chart(data, baseSize = input$baseSize))
   },
   height = reactive(input$plotheight)
 )
+
+output$step_table <- renderTable({
+  if (input$useFiltered) {
+    data <- filteredParams()
+  } else {
+    data <- allGaitParams
+  }
+  
+  step_stats <- calculate_step_statistics(data, input$groupStatsCategory)
+  
+  return(step_stats)
+}, rownames = TRUE, options = list(pageLength = 100, scrollY = "500px"))
 
 ```
