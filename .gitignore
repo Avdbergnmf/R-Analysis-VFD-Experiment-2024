@@ -5,3 +5,5 @@ runtime/.vs
 runtime/index_cache
 runtime/index_data
 runtime/index.html
+
+runtime/results/
