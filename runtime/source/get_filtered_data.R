@@ -7,6 +7,7 @@ filteredParams <- reactive({
   included <- included & data[["VFD"]] %in% input$filterVFD
   included <- included & data[["trialNum"]] %in% input$filterTrials
   included <- included & data[["trialNumWithinCondition"]] %in% input$filterTrialsWithinCondition
+  included <- included & data[["trialNumWithoutPractice"]] %in% input$filterTrialsWithoutPractice
   included <- included & data[["practice"]] %in% input$filterPractice
   # participant group based
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
@@ -37,6 +38,7 @@ filteredTargetParams <- reactive({
   included <- included & data[["VFD"]] %in% input$filterVFD
   included <- included & data[["trialNum"]] %in% input$filterTrials
   included <- included & data[["trialNumWithinCondition"]] %in% input$filterTrialsWithinCondition
+  included <- included & data[["trialNumWithoutPractice"]] %in% input$filterTrialsWithoutPractice
   included <- included & data[["practice"]] %in% input$filterPractice
   # participant group based
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition

@@ -46,10 +46,10 @@ summarize_table <- function(data, allQResults, categories){
   mu_full <- merge(allQResults, mu_wide, by = c("participant", "VFD"), all = TRUE)
   
   # Create the new column using mutate and sapply
-  mu_full$trialNumWithinCondition <-(mu_full$trialNum - 1) %% 3
+  mu_full$trialNumWithinCondition <- c(0, 1, 2, 0, 1, 2)[mu_full$trialNum]
+  mu_full$trialNumWithoutPractice <- c(0, 1, 2, 0, 3, 4)[mu_full$trialNum]
   mu_full$startedWithNoise <- sapply(mu_full$participant, started_with_noise)
   mu_full$practice <- mapply(get_p_results, mu_full$participant, "practice", mu_full$trialNum)
-  mu_full$startedWithNoise <- sapply(mu_full$participant, started_with_noise)
   mu_full$noticed <- sapply(mu_full$participant, noticed_vfd)
   
   mu_full <- mu_full %>%

@@ -6,7 +6,7 @@ xOptions <- c("time", "pos_x", "pos_y", "pos_z")
 xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for pos rot trackers
 categories <- c("participant", "VFD", "trialNum")   # "heelStrikes.foot"
 categoriesInputs <- append(categories, "None")
-columns_to_not_summarize <- c("practice", "startedWithNoise", "trialNumWithinCondition", "noticed")
+columns_to_not_summarize <- c("practice", "startedWithNoise", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed")
 categoriesExtra <- c(categories,columns_to_not_summarize)
 getTypes <- function(dt){
   numericDataTypes <- sapply(dt, is.numeric)
@@ -30,11 +30,13 @@ add_category_columns <- function(data, participant, trial){
   # Add a column for the participant identifier
   data$participant <- participant
   data$trialNum <- trial
-  data$trialNumWithinCondition <-  (trial - 1) %% 3 # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
-  data$VFD <- get_p_results(participant,"noise_enabled",trial) == "True"
   data$practice <- get_p_results(participant,"practice",trial) == "True"
+  data$VFD <- get_p_results(participant,"noise_enabled",trial) == "True"
   data$startedWithNoise <- started_with_noise(participant)
   data$noticed <- noticed_vfd(participant)
+  
+  data$trialNumWithinCondition <-  c(0, 1, 2, 0, 1, 2)[trial] # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
+  data$trialNumWithoutPractice <-  c(0, 1, 2, 0, 3, 4)[trial] # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
   
   return(data)
 }
