@@ -1,15 +1,20 @@
 ### Options
 
 ```{r}
-defaultIndepVars <- c("VFD", "trialNum")
+defaultIndepVars <- c("VFD")
 defaultDepVar <- "stepWidths.sd"
 selectizeInput("depVar", "Dependent variable", choices = muVars, selected = defaultDepVar, multiple = FALSE)
 selectizeInput("indepInterVars", "* Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
 selectizeInput("indepVars", "+ Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
-#checkboxInput("interaction", "Include Interaction", value = TRUE)
 
 # Add a dropdown for selecting the correction method
-selectizeInput("correctionMethod", "Correction Method", choices = c("bonferroni", "tukey", "holm"), selected = "tukey", multiple = FALSE)
+selectizeInput("correctionMethod", "Correction Method", choices = c("bonferroni", "tukey", "holm"), selected = "bonferroni", multiple = FALSE)
+
+# Add a text input for custom model formula
+textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "VFD * startedWithNoise + trialNum + (1 | participant)")
+
+# Add a checkbox to use the custom model formula
+checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
 ```
 
 Column
@@ -41,15 +46,17 @@ tableOutput("post_hoc_table")
 get_lmer <- reactive({
   dt <- get_mu_dyn_long()
   
-  # Construct the formula dynamically using input$depVar and input$indepVars
+  # Construct the formula dynamically using inputs
   dep_var <- input$depVar
-  
-  interVars <- paste(input$indepInterVars, collapse = " * ") 
-  otherVars <- paste(input$indepVars, collapse = " + ")
-  finalVars <- paste0(interVars," + ", otherVars)
-  
-  # Construct the formula text
-  formula_text <- paste(dep_var, "~", finalVars, "+ (1 | participant)")
+  if (input$useCustomModel && input$customModel != "") {
+    # Use custom model formula if checkbox is selected and text input is not empty
+    formula_text <-  paste(dep_var, "~", input$customModel)
+  } else {
+    interVars <- paste(input$indepInterVars, collapse = "*")
+    otherVars <- paste(input$indepVars, collapse = "+")
+    finalVars <- paste(interVars, "+", otherVars)
+    formula_text <- paste(dep_var, "~", finalVars, "+ (1 | participant)")
+  }
   
   # Convert to formula
   formula <- as.formula(formula_text)
