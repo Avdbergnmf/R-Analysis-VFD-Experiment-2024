@@ -7,3 +7,6 @@ runtime/index_data
 runtime/index.html
 
 runtime/results/
+
+runtime/.Rhistory
+runtime/Rplots.pdf
