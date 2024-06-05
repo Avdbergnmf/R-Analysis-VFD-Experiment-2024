@@ -2,6 +2,8 @@
 
 allTrials <- c(1,2,3,4,5,6) # VFD conditions
 # Getting types for later use
+xOptions <- c("time", "pos_x", "pos_y", "pos_z")
+xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for pos rot trackers
 categories <- c("participant", "VFD", "trialNum")   # "heelStrikes.foot"
 categoriesInputs <- append(categories, "None")
 columns_to_not_summarize <- c("practice", "startedWithNoise", "trialNumWithinCondition", "noticed")
