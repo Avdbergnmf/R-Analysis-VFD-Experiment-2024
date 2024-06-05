@@ -19,8 +19,8 @@ You can also just use the code with your local R-Studio installation:
 3. Browse the tabs and interact with the data
 
 ## Contents
-- `.rstudio.env`
-- `docker-compose.yml`
+- `.rstudio.env` - Contains the password for the rocker container.
+- `docker-compose.yml` - The description of how to create the docker container. This also sets the port and shared volume.
 - `Dockerfile.rocker` - The dockerfile used to build the docker container - based on [rocker/rstudio:4.4.0](https://rocker-project.org).
 
 - `runtime/` - contains all the code that is ran in the docker container. Note: also contains a `README.md` explaining its contents.
