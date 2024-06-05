@@ -8,18 +8,15 @@ runtime: shinyrmd
 ---
 
 ```{r setup, include=FALSE}
-#cache=TRUE, local=FALSE
 source('source/setup.R')
-source('source/dataloading.R', local = FALSE)
+source('source/data_loading.R', local = FALSE)
+source('source/pre_processing.R', local = FALSE)
 
 source('source/find_foot_events.R', local = FALSE)
-# Column definitions
-xOptions <- c("time", "pos_x", "pos_y", "pos_z")
-xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for pos rot trackers
 
-## Gait params
+## Get Results
 source('source/calc_all_gait_params.R', local = FALSE)
-
+source('source/get_questionnaire_results.R', local = FALSE)
 # File paths
 resultsFolder <- "results"
 agpFile <- file.path(resultsFolder, "allGaitParams.rds")
