@@ -10,9 +10,3 @@ services:
     volumes:
       - ./runtime:/home/rstudio/workspace
     env_file: .rstudio.env
-  #proxy:
-  #    image: nginx:alpine
-  #    ports:
-  #        - 80:80
-  #    volumes:
-  #        - ./default.conf:/etc/nginx/conf.d/default.conf
