@@ -230,3 +230,16 @@ calculate_gait_parameters <- function(participant, trialNum) {
   
   return(gaitParams)
 }
+
+
+calculate_target_data <- function(participant, trial){
+  # get the target tracker results
+  targetData <- get_t_data(participant, "steptargets", trial)
+  targetData$rel_x <- targetData$foot_x - targetData$target_x
+  targetData$rel_z <- targetData$foot_z - targetData$target_z
+  
+  # calculate total target distance
+  targetData$targetDist <- sqrt(targetData$rel_x^2 + targetData$rel_z^2)
+  
+  return(targetData)
+}

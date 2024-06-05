@@ -1,36 +1,20 @@
-# Initialize reactiveVal to store the filtered parameters
-filteredParams <- reactiveVal()
+# Filter data based on inputs
 
-filter_data <- function(allGaitParams, filterImpossible, filterParticipants, filterVFD, filterTrials, filterTargets, filterOutliers, filterPractice, filterStartCondition, additionalArg) {
-  included <- allGaitParams[["heelStrikes.incorrectDetection"]] %in% filterImpossible
-  included <- included & allGaitParams[["participant"]] %in% filterParticipants
-  included <- included & allGaitParams[["VFD"]] %in% filterVFD
-  included <- included & allGaitParams[["trialNum"]] %in% filterTrials
-  included <- included & allGaitParams[["heelStrikes.targetIgnoreSteps"]] %in% filterTargets
-  included <- included & allGaitParams[["heelStrikes.outlierSteps"]] %in% filterOutliers
-  included <- included & allGaitParams[["practice"]] %in% filterPractice
-  included <- included & allGaitParams[["startedWithNoise"]] %in% filterStartCondition
-  return(allGaitParams[included, ])
-}
-
-# Update the filtered parameters whenever any input changes
-observeEvent({
-  list(input$filterImpossible, input$filterParticipants, input$filterVFD, input$filterTrials,
-       input$filterTargets, input$filterOutliers, input$filterPractice, input$filterStartCondition, input$additionalArg)
-}, {
-  filtered_data <- filter_data(
-    allGaitParams, 
-    input$filterImpossible,
-    input$filterParticipants, 
-    input$filterVFD, 
-    input$filterTrials, 
-    input$filterTargets, 
-    input$filterOutliers, 
-    input$filterPractice,
-    input$filterStartCondition,
-    input$additionalArg  # The additional argument
-  )
-  filteredParams(filtered_data)
+filteredParams <- reactive({
+  data <- allGaitParams
+  included <- data[["participant"]] %in% input$filterParticipants
+  included <- included & data[["VFD"]] %in% input$filterVFD
+  included <- included & data[["trialNum"]] %in% input$filterTrials
+  included <- included & data[["trialNumWithinCondition"]] %in% input$filterTrialsWithinCondition
+  included <- included & data[["practice"]] %in% input$filterPractice
+  included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
+  included <- included & data[["noticed"]] %in% input$filterNoticed
+  # Step based
+  included <- included & data[["heelStrikes.incorrectDetection"]] %in% input$filterImpossible
+  included <- included & data[["heelStrikes.targetIgnoreSteps"]] %in% input$filterTargets
+  included <- included & data[["heelStrikes.outlierSteps"]] %in% input$filterOutliers
+  
+  return(data[included, ])
 })
 
 filteredQResults_new <- reactive({
@@ -41,13 +25,16 @@ filteredQResults_new <- reactive({
 })
 
 filteredTargetParams <- reactive({
-  included <- allTargetParams[["participant"]] %in% input$filterParticipants
-  included <- included & allTargetParams[["VFD"]] %in% input$filterVFD
-  included <- included & allTargetParams[["trialNum"]] %in% input$filterTrials
-  included <- included & allTargetParams[["practice"]] %in% input$filterPractice
-  included <- included & allTargetParams[["startedWithNoise"]] %in% input$filterStartCondition
+  data <- allTargetParams
+  included <- data[["participant"]] %in% input$filterParticipants
+  included <- included & data[["VFD"]] %in% input$filterVFD
+  included <- included & data[["trialNum"]] %in% input$filterTrials
+  included <- included & data[["trialNumWithinCondition"]] %in% input$filterTrialsWithinCondition
+  included <- included & data[["practice"]] %in% input$filterPractice
+  included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
+  included <- included & data[["noticed"]] %in% input$filterNoticed
   
-  return(allTargetParams[included, ])
+  return(data[included, ])
 })
 
 get_mu_dyn_long <- reactive({

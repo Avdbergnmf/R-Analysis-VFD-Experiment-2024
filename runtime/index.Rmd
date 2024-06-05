@@ -15,7 +15,6 @@ source('source/dataloading.R', local = FALSE)
 source('source/find_foot_events.R', local = FALSE)
 # Column definitions
 xOptions <- c("time", "pos_x", "pos_y", "pos_z")
-#xOptionsVFD <- c("time", "magnitude", "offset_x", "offset_y", "offset_z", "final_pos_x", "final_pos_y", "final_pos_z", "rel_pos_x", "rel_pos_y", "rel_pos_z")
 xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for pos rot trackers
 
 ## Gait params

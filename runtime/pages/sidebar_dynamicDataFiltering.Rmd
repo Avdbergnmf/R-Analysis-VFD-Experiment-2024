@@ -1,17 +1,25 @@
-#### Group Filtering
+#### Participant Filtering
 ```{r}
 selectizeInput("filterParticipants", "Participants", choices = participants, selected = participants, multiple = TRUE)
-selectizeInput("filterVFD", "VFD", choices = c(TRUE, FALSE), selected = c(TRUE, FALSE), multiple = TRUE)
-selectizeInput("filterTrials", "Trials", choices = c(1,2,3,4,5,6), selected = c(1,2,3,4,5,6), multiple = TRUE)
-selectizeInput("filterPractice", "Familiarization", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 selectizeInput("filterStartCondition", "Started with Noise", choices = c(TRUE, FALSE), selected = c(TRUE, FALSE), multiple = TRUE)
+selectizeInput("filterNoticed", "Participants that noticed VFD", choices = c(TRUE, FALSE), selected = c(TRUE, FALSE), multiple = TRUE)
 ```
+
+#### Trial Filtering
+```{r}
+selectizeInput("filterTrials", "Trials", choices = c(1,2,3,4,5,6), selected = c(1,2,3,4,5,6), multiple = TRUE)
+selectizeInput("filterVFD", "VFD", choices = c(TRUE, FALSE), selected = c(TRUE, FALSE), multiple = TRUE)
+selectizeInput("filterPractice", "Familiarization", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
+selectizeInput("filterTrialsWithinCondition", "Trials (within condition)", choices = c(0,1,2), selected = c(0,1,2), multiple = TRUE)
+```
+
 #### Step Filtering
 ```{r}
 selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
 selectizeInput("filterImpossible", "Impossible Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 ```
+
 #### Figure Options
 ```{r}
 numericInput("plotheight", "Plot Height",

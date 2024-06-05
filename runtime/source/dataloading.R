@@ -64,7 +64,9 @@ get_p_detail <- function(pnum, detail) {
   return(detailValue)
 }
 
-library(dplyr)
+noticed_vfd <- function(participant) {
+  return(get_p_detail(participant, "noticed")=="True")
+}
 
 # here we make a big table to show us the demographics summary of our participant pool
 calculate_participant_details <- function(participants) {
