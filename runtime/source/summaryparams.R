@@ -53,7 +53,7 @@ summarize_table <- function(data, allQResults, categories){
   mu_full$noticed <- sapply(mu_full$participant, noticed_vfd)
   
   mu_full <- mu_full %>%
-    select(participant, trialNum, columns_to_not_summarize, everything())
+    select(participant, trialNum, all_of(columns_to_not_summarize), everything())
   
   return(mu_full)
 }
