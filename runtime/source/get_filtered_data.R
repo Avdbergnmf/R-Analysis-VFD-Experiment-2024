@@ -3,10 +3,12 @@
 filteredParams <- reactive({
   data <- allGaitParams
   included <- data[["participant"]] %in% input$filterParticipants
+  # Trial based
   included <- included & data[["VFD"]] %in% input$filterVFD
   included <- included & data[["trialNum"]] %in% input$filterTrials
   included <- included & data[["trialNumWithinCondition"]] %in% input$filterTrialsWithinCondition
   included <- included & data[["practice"]] %in% input$filterPractice
+  # participant group based
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
   included <- included & data[["noticed"]] %in% input$filterNoticed
   # Step based
@@ -18,19 +20,25 @@ filteredParams <- reactive({
 })
 
 filteredQResults_new <- reactive({
-  included <- allQResults[["participant"]] %in% input$filterParticipants
-  included <- included & allQResults[["VFD"]] %in% input$filterVFD
-  included <- included & allQResults[["startedWithNoise"]] %in% input$filterStartCondition
-  return(allQResults[included, ])
+  data <- allQResults
+  included <- data[["participant"]] %in% input$filterParticipants
+  included <- included & data[["VFD"]] %in% input$filterVFD
+  # participant group based
+  included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
+  included <- included & data[["noticed"]] %in% input$filterNoticed
+  
+  return(data[included, ])
 })
 
 filteredTargetParams <- reactive({
   data <- allTargetParams
   included <- data[["participant"]] %in% input$filterParticipants
+  # Trial based
   included <- included & data[["VFD"]] %in% input$filterVFD
   included <- included & data[["trialNum"]] %in% input$filterTrials
   included <- included & data[["trialNumWithinCondition"]] %in% input$filterTrialsWithinCondition
   included <- included & data[["practice"]] %in% input$filterPractice
+  # participant group based
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
   included <- included & data[["noticed"]] %in% input$filterNoticed
   
