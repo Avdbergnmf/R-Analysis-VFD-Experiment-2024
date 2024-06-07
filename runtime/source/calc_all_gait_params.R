@@ -6,7 +6,7 @@ xOptions <- c("time", "pos_x", "pos_y", "pos_z")
 xOptions2D <- colnames(get_t_data(participants[1],"leftfoot",1)) # options for pos rot trackers
 categories <- c("participant", "VFD", "trialNum")   # "heelStrikes.foot"
 categoriesInputs <- append(categories, "None")
-columns_to_not_summarize <- c("practice", "startedWithNoise", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed")
+columns_to_not_summarize <- c("practice", "startedWithNoise", "conditionNumber", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed") # these are categorical columns we may want to use for our statistics but we dont want to summarize in our mu table
 categoriesExtra <- c(categories,columns_to_not_summarize)
 getTypes <- function(dt){
   numericDataTypes <- sapply(dt, is.numeric)
@@ -35,8 +35,9 @@ add_category_columns <- function(data, participant, trial){
   data$startedWithNoise <- started_with_noise(participant)
   data$noticed <- noticed_vfd(participant)
   
-  data$trialNumWithinCondition <-  c(0, 1, 2, 0, 1, 2)[trial] # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
-  data$trialNumWithoutPractice <-  c(0, 1, 2, 0, 3, 4)[trial] # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
+  data$conditionNumber          <- c(1, 1, 1, 2, 2, 2)[trial]
+  data$trialNumWithinCondition  <- c(0, 1, 2, 0, 1, 2)[trial] # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
+  data$trialNumWithoutPractice  <- c(0, 1, 2, 0, 3, 4)[trial] # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
   
   return(data)
 }

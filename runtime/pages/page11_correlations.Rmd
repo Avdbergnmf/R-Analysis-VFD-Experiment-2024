@@ -4,6 +4,12 @@
 selectInput("par", "Parametric data", 
             choices = c("parametric", "nonparametric", "bayes", "robust"), 
             selected = "parametric", multiple = FALSE)
+
+checkboxInput("processData", "Process Data for Conditions", value = TRUE)
+
+# Add selectors for x and y inputs for the correlation plot
+selectizeInput("xVar", "X Variable for Correlation Plot", choices = muVars, selected = muVars[1], multiple = FALSE)
+selectizeInput("yVar", "Y Variable for Correlation Plot", choices = muVars, selected = muVars[2], multiple = FALSE)
 ```
 
 Column
@@ -11,52 +17,119 @@ Column
 
 ### Correlation Plots  {data-height=500}
 
-#### Density Plot - VEQ
 ```{r}
-plotOutput("corrVEQ")
+# Add plot output for the correlation plot
+#plotOutput("correlation_plot")
+plotOutput("scatter")
 ```
 
-#### Density Plot - IMI
-```{r}
-plotOutput("corrIMI")
-```
 
 ### Correlation Results  {data-height=500}
 ```{r}
 verbatimTextOutput("correlation_text")
 ```
 
-### Scatter Plots with Correlation {data-height=1000}
-
-#### Scatter Plot
-```{r}
-plotOutput("scatter")
-```
-
 ```{r, context="server"}
-output$corrVEQ <- renderPlot({
-  dt <- get_mu_dyn_long()
-  ggplot(dt, aes(VEQ)) + geom_density(fill = "gray") # [dt$VFD == FALSE, ]
-}, height = reactive(input$plotheight))
+get_correlation_data <- reactive({
+  data <- get_mu_dyn_long()
+  if (input$processData) {
+    data <- summarize_across_conditions(data)
+    data <- calculate_vfd_difference(data)
+  }
+  return(data)
+})
 
+# Update the selectizeInput choices based on the filtered data for correlation plot
+observe({
+  data <- get_correlation_data()
+  numeric_cols <- names(data)[sapply(data, is.numeric)]
+  
+  updateSelectizeInput(session, "xVar", choices = numeric_cols, selected = "diff_VEQ.total")
+  updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = "diff_stepWidths.sd")
+})
+
+output$correlation_plot <- renderPlot({
+  dt <- get_correlation_data()
+  
+  ggplot(dt, aes_string(x = input$xVar, y = input$yVar)) +
+    geom_point(size=input$baseSize/5) +
+    geom_smooth(method = "lm") +
+    theme_minimal(base_size = input$baseSize) +
+    labs(
+      title = paste("Correlation between", input$xVar, "and", input$yVar),
+      x = input$xVar,
+      y = input$yVar
+    )
+})
+
+
+  
 output$correlation_text <- renderPrint({
-  dt <- get_mu_dyn_long()
+  dt <- get_correlation_data()
   
-  # Check normality of averages
-  print(shapiro.test(dt$grp.mean))
-  print(shapiro.test(dt$embodiment_Body))
-  print(shapiro.test(muFQ_$grp.mean))
-  print(shapiro.test(muFQ_$embodiment_Feet))
+  # Check normality of the selected variables
+  shapiro_x <- shapiro.test(dt[[input$xVar]])
+  shapiro_y <- shapiro.test(dt[[input$yVar]])
+  print(shapiro_x)
+  print(shapiro_y)
   
-  correlationA <- cor(muAQ_$embodiment_Body, muAQ_$grp.mean, method = 'pearson')
-  correlationF <- cor(muFQ_$embodiment_Feet, muFQ_$grp.mean, method = 'pearson')
-  print(paste("Embodiment Body vs Distance:", correlationA))
-  print(paste("Embodiment Feet vs Distance:", correlationF))
+  # Determine correlation method based on input
+  method <- switch(input$par,
+                   parametric = "pearson",
+                   nonparametric = "spearman",
+                   bayes = "bayes",
+                   robust = "robust")
+  print(paste("Using method:",method))
+  # Calculate correlation
+  if (method == "bayes") {
+    correlation <- correlationBF(dt[[input$xVar]], dt[[input$yVar]])
+    result_text <- paste("Bayesian correlation between", input$xVar, "and", input$yVar, ":", correlation)
+    cat(result_text, "\n")
+  } else if (method == "robust") {
+    correlation <- pbcor(dt[[input$xVar]], dt[[input$yVar]])
+    result_text <- paste("Robust correlation between", input$xVar, "and", input$yVar, ":", correlation)
+    cat(result_text, "\n")
+  } else {
+    correlation <- cor.test(dt[[input$xVar]], dt[[input$yVar]], method = method)
+    result_text <- paste("Correlation between", input$xVar, "and", input$yVar, ":",
+                         correlation$estimate, "\n",
+                         "p-value:", correlation$p.value, "\n",
+                         "Confidence interval:", correlation$conf.int[1], "-", correlation$conf.int[2])
+    cat(result_text, "\n")
+    
+    # Additional information
+    if (abs(correlation$estimate) > 0.7) {
+      strength <- "strong"
+    } else if (abs(correlation$estimate) > 0.5) {
+      strength <- "moderate"
+    } else {
+      strength <- "weak"
+    }
+    
+    cat("The correlation is", strength, "\n")
+    
+    if (correlation$p.value < 0.05) {
+      cat("The correlation is statistically significant.\n")
+    } else {
+      cat("The correlation is not statistically significant.\n")
+    }
+  }
 })
 
 output$scatter <- renderPlot({
-  dt <- get_mu_dyn_long()
-  ggscatterstats(data = dt, x = VEQ, y = stepWidths.cv, type = input$par)
+  dt <- get_correlation_data()
+  
+  # Ensure the selected variables exist in the dataset
+  if (input$xVar %in% names(dt) && input$yVar %in% names(dt)) {
+    x_var <- sym(input$xVar)
+    y_var <- sym(input$yVar)
+    
+    ggscatterstats(data = dt, x = !!x_var, y = !!y_var, type = input$par) + 
+      theme_minimal(base_size = input$baseSize)
+  } else {
+    # Print a message if the variables are not found
+    plot.new()
+    text(0.5, 0.5, "Selected variables not found in the dataset", cex = 1.5, col = "red")
+  }
 }, height = reactive(input$plotheight))
-
 ```

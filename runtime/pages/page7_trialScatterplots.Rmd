@@ -4,14 +4,18 @@ removePattern <- "heelStrikes\\.|toeOffs\\."
 muDataTypesFilt <- grep(removePattern, muDataTypes, value = TRUE, invert = TRUE)
 
 selectizeInput("muxscatter", "xscatter",
-  choices = muDataTypesFilt, selected = muDataTypesFilt[1], multiple = FALSE
+  choices = muDataTypesFilt, selected = "stepWidths.sd", multiple = FALSE
 )
 selectizeInput("muyscatter", "yscatter",
-  choices = muDataTypesFilt, selected = muDataTypesFilt[1], multiple = FALSE
+  choices = muDataTypesFilt, selected = "stepLengths.sd", multiple = FALSE
 )
 
 selectizeInput("groupScatter", "Group by",
   choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+)
+
+checkboxInput("summarizeCondition", "Average over condition",
+  value = TRUE
 )
 ```
 
@@ -25,7 +29,28 @@ plotOutput("scatter_mu")
 ```
 
 ```{r, context="server"}
+# Function to get and possibly summarize the data
+get_scatter_data <- reactive({
+  data <- get_mu_dyn_long()
+  if (input$summarizeCondition) {
+    data <- summarize_across_conditions(data)
+    data <- calculate_vfd_difference(data)
+  }
+  return(data)
+})
+
 output$scatter_mu <- renderPlot({
-  make_scatter_plot_mu(get_mu_dyn_long(), input$muxscatter, input$muyscatter, input$groupScatter, baseSize = input$baseSize)
+  make_scatter_plot_mu(get_scatter_data(), input$muxscatter, input$muyscatter, input$groupScatter, baseSize = input$baseSize)
 }, height = reactive(input$plotheight))
+
+
+# Update the selectizeInput choices based on the filtered data
+observe({
+  data <- get_scatter_data()
+  numeric_cols <- names(data)[sapply(data, is.numeric)]
+  
+  updateSelectizeInput(session, "muxscatter", choices = numeric_cols, selected = numeric_cols[1])
+  updateSelectizeInput(session, "muyscatter", choices = numeric_cols, selected = numeric_cols[2])
+})
+
 ```

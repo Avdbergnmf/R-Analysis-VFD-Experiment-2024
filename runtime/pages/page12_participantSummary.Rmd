@@ -3,7 +3,7 @@
 ```{r}
 selectizeInput("participantSummary", "participant",
   choices = participants, selected = participants[1], multiple = TRUE)
-
+actionButton("addAllParticipants", "Add All Participants")
 checkboxInput("filterSummary", "Show filtered data",
   value = FALSE)
 
@@ -23,6 +23,10 @@ tableOutput("participant_details_table")
 
 
 ```{r, context="server"}
+observeEvent(input$addAllParticipants, {
+  updateSelectizeInput(session, "participantSummary", selected = participants)
+})
+
 ### Participant pool summary
 output$participant_details_table <- renderTable({
   participants <- input$participantSummary#filterParticipants

@@ -26,7 +26,7 @@ library(DT) # for visual tables and stuff
 library(lmerTest) # to get p-values from lmer
 #library(sjstats)
 library(emmeans)
-#library(MuMIn)
+library(MuMIn)
 
 # saving figures
 library(svglite)

@@ -48,6 +48,7 @@ summarize_table <- function(data, allQResults, categories){
   # Create the new column using mutate and sapply
   mu_full$trialNumWithinCondition <- c(0, 1, 2, 0, 1, 2)[mu_full$trialNum]
   mu_full$trialNumWithoutPractice <- c(0, 1, 2, 0, 3, 4)[mu_full$trialNum]
+  mu_full$conditionNumber         <- c(1, 1, 1, 2, 2, 2)[mu_full$trialNum]
   mu_full$startedWithNoise <- sapply(mu_full$participant, started_with_noise)
   mu_full$practice <- mapply(get_p_results, mu_full$participant, "practice", mu_full$trialNum)
   mu_full$noticed <- sapply(mu_full$participant, noticed_vfd)
@@ -80,4 +81,51 @@ get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories)
   combined_mu <- merge(muGait, muTarget, by = matchByList, all = TRUE)
   
   return(combined_mu)
+}
+
+### SUMMARIZE AGAIN AND CALCULATE DIFF, SO WE CAN USE FOR CORRELATIONN PLOT
+
+summarize_across_conditions <- function(data) {
+  # Filter for the relevant trial numbers
+  data <- data %>%
+    dplyr::filter(trialNum %in% c(2, 3, 5, 6))
+  
+  # Group by participant and condition (trialNum)
+  summarized_data <- data %>%
+    mutate(condition = case_when(
+      trialNum %in% c(2, 3) ~ "condition_1",
+      trialNum %in% c(5, 6) ~ "condition_2"
+    )) %>%
+    group_by(participant, VFD, condition) %>%
+    summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)), .groups = "drop")
+  
+  return(summarized_data)
+}
+
+calculate_vfd_difference <- function(data) {
+  # Split the data into VFD==TRUE and VFD==FALSE
+  vfd_true <- data %>% dplyr::filter(VFD == TRUE)
+  vfd_false <- data %>% dplyr::filter(VFD == FALSE)
+  
+  # Ensure the columns are aligned for subtraction
+  vfd_true <- vfd_true %>% dplyr::select(-VFD)
+  vfd_false <- vfd_false %>% dplyr::select(-VFD)
+  
+  # Calculate the difference between VFD==TRUE and VFD==FALSE for each numeric column
+  difference_data <- vfd_true %>%
+    mutate(across(where(is.numeric), ~ . - vfd_false[[cur_column()]], .names = "diff_{.col}"))
+  
+  # Calculate the mean of VFD==TRUE and VFD==FALSE for each numeric column
+  mean_data <- vfd_true %>%
+    mutate(across(where(is.numeric), ~ (. + vfd_false[[cur_column()]]) / 2, .names = "mean_{.col}"))
+  
+  # Combine the difference and mean data
+  final_data <- difference_data %>%
+    left_join(mean_data %>% select(participant, condition, starts_with("mean_")), by = c("participant", "condition"))
+  
+  # Select relevant columns for the final output
+  final_output <- final_data %>%
+    select(participant, condition, starts_with("diff_"), starts_with("mean_"))
+  
+  return(final_output)
 }

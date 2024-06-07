@@ -11,7 +11,7 @@ selectizeInput("indepVars", "+ Independent variables", choices = muVars, selecte
 selectizeInput("correctionMethod", "Correction Method", choices = c("bonferroni", "tukey", "holm"), selected = "bonferroni", multiple = FALSE)
 
 # Add a text input for custom model formula
-textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "VFD * startedWithNoise + trialNum + (1 | participant)")
+textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "stepWidths.sd ~ VFD * (startedWithNoise + VEQ.total + IMI.total) + trialNumWithinCondition + (1 | participant)")
 
 # Add a checkbox to use the custom model formula
 checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
@@ -22,7 +22,6 @@ Column
 
 ### Statistics Results  {data-height=500}
 ```{r}
-#plotOutput("qq") ## QQ plot to check if we can use LMM?
 verbatimTextOutput("lmm_text")
 ```
 ### Tables
@@ -42,6 +41,33 @@ tableOutput("random_effects_table")
 tableOutput("post_hoc_table")
 ```
 
+### Check Assumptions
+#### QQ Plot  {data-height=500}
+- Interpret the Plot: The QQ plot compares the quantiles of the residuals from your model to the quantiles of a normal distribution. If the residuals are normally distributed, the points on the QQ plot will fall approximately along a straight line (the 45-degree reference line).
+- Look for Deviations: Significant deviations from the straight line suggest departures from normality. Small deviations are expected and acceptable, but large deviations or patterns (such as curves or S-shaped patterns) indicate that the residuals are not normally distributed.
+- Use QQ Line: The reference line (QQ line) helps in visualizing the deviation. The closer the points are to this line, the more normally distributed the residuals are.
+```{r}
+plotOutput("qq")
+```
+#### residuals_vs_fitted {data-height=1500}
+Check for homoscedasticity and non-linearity. Look for a random scatter of residuals around zero.
+
+```{r}
+plotOutput("residuals_vs_fitted")
+```
+#### scale_location {data-height=500}
+Check for homoscedasticity. Look for a horizontal line with equally spread points.
+
+```{r}
+plotOutput("scale_location")
+```
+#### residuals_vs_leverage {data-height=500}
+Check for influential cases. Look for any points outside the Cook's distance lines.
+
+```{r}
+plotOutput("residuals_vs_leverage")
+```
+
 ```{r, context="server"}
 get_lmer <- reactive({
   dt <- get_mu_dyn_long()
@@ -50,7 +76,8 @@ get_lmer <- reactive({
   dep_var <- input$depVar
   if (input$useCustomModel && input$customModel != "") {
     # Use custom model formula if checkbox is selected and text input is not empty
-    formula_text <-  paste(dep_var, "~", input$customModel)
+    #formula_text <-  paste(dep_var, "~", input$customModel)
+    formula_text <- input$customModel
   } else {
     interVars <- paste(input$indepInterVars, collapse = "*")
     otherVars <- paste(input$indepVars, collapse = "+")
@@ -75,6 +102,21 @@ output$lmm_text <- renderPrint({
   print(lmm)
   cat("\nRESULTS:\n")
   print(results)
+  
+  # Print AIC and BIC
+  aic_value <- AIC(lmm)
+  bic_value <- BIC(lmm)
+  log_likelihood <- logLik(lmm)
+  deviance <- deviance(lmm)
+  r_squared <- MuMIn::r.squaredGLMM(lmm)
+  
+  cat("\nModel fit statistics:\n")
+  cat("AIC:", aic_value, "\n")
+  cat("BIC:", bic_value, "\n")
+  cat("Log-likelihood:", log_likelihood, "\n")
+  cat("Deviance:", deviance, "\n")
+  cat("Marginal R-squared:", r_squared[1], "\n")
+  cat("Conditional R-squared:", r_squared[2], "\n")
 })
 
 set_digits <- function(df, digits = 4){
@@ -127,12 +169,6 @@ output$random_effects_table <- renderTable({
   random_effects_df
 }, rownames = TRUE)
 
-output$qq <- renderPlot({
-  lmm <- get_lmer()
-  p <- qqnorm(resid(lmm))
-  return(p)
-})
-
 output$post_hoc_table <- renderTable({
   lmm <- get_lmer()
   results <- summary(lmm)
@@ -172,5 +208,40 @@ output$post_hoc_table <- renderTable({
     return(data.frame(Message = "No significant main or interaction effects found."))
   }
 }, rownames = TRUE)
+
+output$qq <- renderPlot({
+  lmm <- get_lmer()
+  qqnorm(resid(lmm))
+  qqline(resid(lmm))
+}, height = reactive(input$plotheight))
+
+output$residuals_vs_fitted <- renderPlot({
+  lmm <- get_lmer()
+  plot(fitted(lmm), resid(lmm), 
+       xlab = "Fitted values", 
+       ylab = "Residuals",
+       main = "Residuals vs Fitted")
+  abline(h = 0, col = "red")
+}, height = reactive(input$plotheight))
+
+output$scale_location <- renderPlot({
+  lmm <- get_lmer()
+  sqrt_resid <- sqrt(abs(resid(lmm)))
+  plot(fitted(lmm), sqrt_resid,
+       xlab = "Fitted values",
+       ylab = "Square root of standardized residuals",
+       main = "Scale-Location Plot")
+  abline(h = 0, col = "red")
+}, height = reactive(input$plotheight))
+
+output$residuals_vs_leverage <- renderPlot({
+  lmm <- get_lmer()
+  leverage <- hatvalues(lmm)
+  plot(leverage, resid(lmm),
+       xlab = "Leverage",
+       ylab = "Residuals",
+       main = "Residuals vs Leverage Plot")
+  abline(h = 0, col = "red")
+}, height = reactive(input$plotheight))
 
 ```

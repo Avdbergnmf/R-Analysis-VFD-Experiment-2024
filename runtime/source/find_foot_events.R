@@ -203,14 +203,14 @@ calculate_gait_parameters <- function(participant, trialNum) {
   
   # Detect outliers
   # First, we throw out some incorrect steps that are just physically impossible (for example the first/last step sometimes is filled in as a 0.0s step, which is nonsensical)
-  heelStrikesData$incorrectDetection <-  stepLengths <= 0 | stepTimes < 0.05 | gaitData$toeOffs$pos_y > 1.0 | gaitData$heelStrikes$pos_y > 1.0 | gaitData$toeOffs$pos_y < 0.42 | gaitData$heelStrikes$pos_y < 0.42#| stepLengths > 2 | stepTimes > 2 | stepWidths > 1.0 | stepWidths < -0.5 | 
+  heelStrikesData$incorrectDetection <-  stepLengths <= 0 | stepTimes < 0.05 | gaitData$toeOffs$pos_y > 1.0 | gaitData$heelStrikes$pos_y > 1.0 | gaitData$toeOffs$pos_y < 0.42 | gaitData$heelStrikes$pos_y < 0.42 | stepLengths > 2 | stepTimes > 2 | stepWidths > 1.0 | stepWidths < -0.5
   heelStrikesData$incorrectDetection[heelStrikesData$targetIgnoreSteps] <- FALSE
   
   # no backwards stepsc | impossibly far step | impossibly fast step | impossibly long step | impossibly wide step | a little bit of negative may be possible, but not more than .5m | impossibly high TO | impossibly high HS | impossibly low TO (below floor) | impossibly low HS (below floor)
   
   alreadyIgnoredSteps <- targetSteps | heelStrikesData$incorrectDetection # we define those because we don't want to use them for calculating the IQRs for the outlier detection
   IQR_mlp <- 1.5
-  heelStrikesData$outlierSteps <- detect_outliers(stepWidths, alreadyIgnoredSteps, IQR_mlp) | detect_outliers(stepTimes, alreadyIgnoredSteps, IQR_mlp) | detect_outliers(stepLengths, alreadyIgnoredSteps, IQR_mlp)  #| detect_outliers(gaitData$heelStrikes$pos_y, alreadyIgnoredSteps, 3) | detect_outliers(gaitData$toeOffs$pos_y, alreadyIgnoredSteps, 3)
+  heelStrikesData$outlierSteps <- detect_outliers(stepWidths, alreadyIgnoredSteps, IQR_mlp) | detect_outliers(stepTimes, alreadyIgnoredSteps, IQR_mlp) | detect_outliers(stepLengths, alreadyIgnoredSteps, IQR_mlp) #| detect_outliers(gaitData$heelStrikes$pos_y, alreadyIgnoredSteps, 3) | detect_outliers(gaitData$toeOffs$pos_y, alreadyIgnoredSteps, 3)
   
   #stepsToIgnore <- outlierSteps
   # Make a list of all the gait parameters
