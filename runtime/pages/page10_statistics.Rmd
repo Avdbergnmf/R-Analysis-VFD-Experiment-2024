@@ -237,11 +237,17 @@ output$scale_location <- renderPlot({
 output$residuals_vs_leverage <- renderPlot({
   lmm <- get_lmer()
   leverage <- hatvalues(lmm)
+  cooksd <- cooks.distance(lmm)
   plot(leverage, resid(lmm),
        xlab = "Leverage",
        ylab = "Residuals",
        main = "Residuals vs Leverage Plot")
   abline(h = 0, col = "red")
-}, height = reactive(input$plotheight))
+  points(leverage, resid(lmm), pch = 20, col = ifelse(cooksd > 4/(nrow(leverage) - length(coef(lmm))), "red", "black"))
+  # Add Cook's distance lines
+  cooksd_line <- 4/(nrow(leverage) - length(coef(lmm)))
+  abline(v = cooksd_line, col = "blue", lty = 2)
+  abline(v = 2 * cooksd_line, col = "blue", lty = 2)
+})
 
 ```

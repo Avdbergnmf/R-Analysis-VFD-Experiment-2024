@@ -20,10 +20,11 @@ get_proper_legend <- function(show_legend, position = "inside") {
   }
 }
 
-plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=500, x_axis = "time", y_axis = "pos_z", doFilter = FALSE, show_legend = TRUE, extraTitle="", baseSize = 5) { # start=first step to plot, end=last step to plot
+plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=500, x_axis = "time", y_axis = "pos_z", doFilter = FALSE, show_legend = TRUE, extraTitle="", baseSize = 5, xlim=NULL, ylim=NULL) { # start=first step to plot, end=last step to plot
   filteredGaitParams <- filteredGaitParams[filteredGaitParams$participant == participant & filteredGaitParams$trialNum == trialNum, ]
   
   preprocessedData <- preprocess_data(participant, trialNum) 
+  
   rightData <- preprocessedData$rightFoot
   leftData <- preprocessedData$leftFoot
   
@@ -35,11 +36,11 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
     filteredGaitParams <- filteredGaitParams[filteredGaitParams$heelStrikes.step %in% steps,]
   }
   
-  timeMin <- min(filteredGaitParams$heelStrikes.time)
-  timeMax <- max(filteredGaitParams$heelStrikes.time)
+  #timeMin <- min(filteredGaitParams$heelStrikes.time)
+  #timeMax <- max(filteredGaitParams$heelStrikes.time)
   
-  rightData <- rightData %>% dplyr::filter(time > timeMin & time < timeMax)
-  leftData <- leftData %>% dplyr::filter(time > timeMin & time < timeMax)
+  #rightData <- rightData %>% dplyr::filter(time > timeMin & time < timeMax)
+  #leftData <- leftData %>% dplyr::filter(time > timeMin & time < timeMax)
   
   if (doFilter) {
     numeric_columns <- sapply(rightData, is.numeric)  # Identify numeric columns
@@ -84,6 +85,15 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
   
   if (x_axis != "time" && y_axis != "time") {
     p <- p + coord_equal()
+  }
+  
+  xlimValid <- xlim[1] < xlim[2] && length(xlim)==2 && sum(is.na(xlim))==0
+  ylimValid <- ylim[1] < ylim[2] && length(ylim)==2 && sum(is.na(ylim))==0
+  if (!is.null(xlim) && xlimValid) {
+    p <- p + xlim(xlim)
+  }
+  if (!is.null(ylim) && ylimValid) {
+    p <- p + ylim(ylim)
   }
   
   p <- p + get_proper_legend(show_legend)

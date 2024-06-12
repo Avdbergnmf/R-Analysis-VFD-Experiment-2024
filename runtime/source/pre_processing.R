@@ -10,6 +10,7 @@ preprocess_data <- function(participant, trialNum){
   leftFoot = get_t_data(participant, "leftfoot", trialNum)
   rightFoot = get_t_data(participant, "rightfoot", trialNum)
   hip = get_t_data(participant, "hip", trialNum)
+  
   targetData = get_t_data(participant, "steptargets", trialNum)
   leftDisturbance <- get_t_data(participant, "leftdisturbance", trialNum)
   rightDisturbance <- get_t_data(participant, "rightdisturbance", trialNum)
@@ -24,14 +25,62 @@ preprocess_data <- function(participant, trialNum){
   rightFoot = adjust_times(rightFoot, minTime, maxTime)
   rightFoot$actual_pos_z = rightFoot$pos_z + moveSpeed * rightFoot$time
   
-  return(list(
+  data <- list(
     leftFoot = leftFoot,
     rightFoot = rightFoot,
     leftDisturbance = adjust_times(leftDisturbance, minTime, maxTime),
     rightDisturbance = adjust_times(rightDisturbance, minTime, maxTime),
     hip = adjust_times(hip, minTime, maxTime),
     targetData = adjust_times(targetData, minTime, maxTime)
-  ))
+  )
+  
+  data <- hardcoded_rotation_fix(data, participant, trialNum)
+  return(data)
+}
+
+######## Added this later as a hardcode fix to get my data rotated properly, because with one of the participants, this was necessary
+hardcoded_rotation_fix <- function(data, participant, trialNum){
+  if (participant == "15" && trialNum %in% c(5,6)) { # saw these trials needed a 4 deg rotation
+    return(rotate_preprocessed_data(data, -4*pi/180))
+  } else {
+    return(data)
+  }
+}
+
+rotate_preprocessed_data <- function(data, rotation) {
+  # Apply the rotation to each dataset in the list
+  data$leftFoot <- rotate_y(data$leftFoot, rotation)
+  data$rightFoot <- rotate_y(data$rightFoot, rotation)
+  data$hip <- rotate_y(data$hip, rotation)
+  return(data)
+}
+
+# one of the datasets has a wrong rotation in some of the trials, we correct that with this function.
+rotate_y <- function(data, theta) {
+  # Create the rotation matrix
+  rotation_matrix <- matrix(c(cos(theta), 0, sin(theta), 
+                              0, 1, 0, 
+                              -sin(theta), 0, cos(theta)), 
+                            nrow = 3, byrow = TRUE)
+  
+  # Apply the rotation to position columns
+  positions <- as.matrix(data[, c("pos_x", "pos_y", "pos_z")])
+  rotated_positions <- positions %*% t(rotation_matrix)
+  
+  # Update the dataframe with rotated positions
+  data$pos_x <- rotated_positions[, 1]
+  data$pos_y <- rotated_positions[, 2]
+  data$pos_z <- rotated_positions[, 3]
+  
+  # Optionally, if you need to rotate orientation vectors (rot_x, rot_y, rot_z)
+  rotations <- as.matrix(data[, c("rot_x", "rot_y", "rot_z")])
+  rotated_rotations <- rotations %*% t(rotation_matrix)
+  
+  data$rot_x <- rotated_rotations[, 1]
+  data$rot_y <- rotated_rotations[, 2]
+  data$rot_z <- rotated_rotations[, 3]
+  
+  return(data)
 }
 
 apply_padding_and_filter <- function(column, poly_order, frame_size, fs, cutoff_freq = 5) { 

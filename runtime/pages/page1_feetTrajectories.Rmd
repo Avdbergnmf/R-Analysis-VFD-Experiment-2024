@@ -21,6 +21,16 @@ numericInput("start", "start at step nr",
   min = 0, max = 500, value = 0, step = 1)
 numericInput("end", "end at step nr",
   min = 0, max = 500, value = 0, step = 1)
+
+# Add x and y limits inputs
+numericInput("xlim_min", "X-axis minimum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
+numericInput("xlim_max", "X-axis maximum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
+numericInput("ylim_min", "Y-axis minimum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
+numericInput("ylim_max", "Y-axis maximum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
 ```
 
 
@@ -33,10 +43,15 @@ plotOutput("FeetTraj")
 ```
 
 ```{r, context="server"}
-#reactive(), reactiveVal(), reactiveData()
 output$FeetTraj <- renderPlot(
   {
-    plot_steps(filteredParams(), input$participant, as.numeric(input$trialNum), input$start, input$end, input$xplot, input$yplot, input$filter, baseSize=input$baseSize)
+    plot_steps(
+      filteredParams(), input$participant, as.numeric(input$trialNum),
+      input$start, input$end, input$xplot, input$yplot, input$filter, 
+      baseSize=input$baseSize,
+      xlim=c(input$xlim_min, input$xlim_max),
+      ylim=c(input$ylim_min, input$ylim_max)
+    )
   },
   height = reactive(input$plotheight)
 )

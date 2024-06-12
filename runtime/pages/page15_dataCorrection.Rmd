@@ -1,0 +1,59 @@
+### Plot Options (New Page)
+```{r}
+
+numericInput("rotateDeg", "Rotate around y (degrees)",
+  min = -360, max = 360, value = 0, step = 0.1)
+
+checkboxInput("filter_15", "Show filtered data",
+  value = FALSE)
+selectizeInput("participant_15", "participant",
+  choices = participants, selected = participants[1], multiple = FALSE)
+selectizeInput("trialNum_15", "Trial Number",
+  choices = trialNumbers, selected = trialNumbers[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
+
+selectizeInput("xplot_15", "xplot",
+  choices = xOptions, selected = xOptions[2], multiple = FALSE)
+selectizeInput("yplot_15", "yplot",
+  choices = xOptions, selected = xOptions[3], multiple = FALSE)
+
+numericInput("start_15", "start at step nr",
+  min = 0, max = 500, value = 0, step = 1)
+numericInput("end_15", "end at step nr",
+  min = 0, max = 500, value = 0, step = 1)
+
+# Add x and y limits inputs
+numericInput("xlim_min_15", "X-axis minimum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
+numericInput("xlim_max_15", "X-axis maximum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
+numericInput("ylim_min_15", "Y-axis minimum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
+numericInput("ylim_max_15", "Y-axis maximum",
+  min = -Inf, max = Inf, value = NA, step = 0.1)
+```
+
+Column
+--------------------------------------------
+### Transformed Feet Trajectories {data-height=1500}
+
+```{r}
+plotOutput("FeetTraj_15")
+```
+
+```{r, context="server"}
+output$FeetTraj_15 <- renderPlot(
+  {
+    tnum <- as.numeric(input$trialNum_15)
+    preprocessedData <- preprocess_data(input$participant_15, tnum) 
+    preprocessedData <- rotate_preprocessed_data(preprocessedData, input$rotateDeg*pi/180)
+    plot_steps(
+      filteredParams(), preprocessedData, input$participant_15, tnum, 
+      input$start_15, input$end_15, input$xplot_15, input$yplot_15, input$filter_15, 
+      baseSize=input$baseSize,
+      xlim=c(input$xlim_min_15, input$xlim_max_15),
+      ylim=c(input$ylim_min_15, input$ylim_max_15)
+    )
+  },
+  height = reactive(input$plotheight)
+)
+```
