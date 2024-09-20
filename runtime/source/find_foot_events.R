@@ -45,7 +45,6 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   # Detect local extremes of relative foot pos - Based on https://c-motion.com/v3dwiki/index.php/Tutorial:_Gait_Events#Method_1._Coordinate_Based_Algorithm
   local_maxima <- which(diff(sign(diff(relFootPos_filtered))) == -2) + 1
   local_minima <- which(diff(sign(diff(relFootPos_filtered))) == 2) + 1
-  
   if (local_minima[1] > local_maxima[1]) {
     local_maxima <- local_maxima[-1]
   }
@@ -91,7 +90,7 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   # Extract positions and times - use UNFILTERED footData
   heelStrikes <- data.frame(footData[local_maxima, ])
   toeOffs <- data.frame(footData[local_minima, ])
-  print(paste("totalsteps: ",length(heelStrikes$time)))
+  print(paste("--- ---totalsteps: ",length(heelStrikes$time)))
   return(list(heelStrikes=heelStrikes,toeOffs=toeOffs))
 }
 
@@ -128,9 +127,8 @@ find_foot_events <- function(participant, trialNum) {
       #print(data1[c(incorrect_seq,incorrect_seq+1),])
       data1 <- data1[-(incorrect_seq + 1),] # remove the second (later) value
       data2 <- data2[-(incorrect_seq + 1),] # remove the second (later) value
-      print(paste("removed",length(incorrect_seq),"steps due to wrong alternation. At place(s):"))
-      print(incorrect_seq)
-      print("----------------------")
+      print(paste("--- ---removed",length(incorrect_seq),"steps total (wrong alternation). Removing at place:",incorrect_seq))
+      #print("----------------------")
     }
     return(list(data1 = data1, data2 = data2))
   }

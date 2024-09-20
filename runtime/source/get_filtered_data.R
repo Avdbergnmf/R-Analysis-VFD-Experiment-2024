@@ -18,6 +18,8 @@ filteredParams <- reactive({
   included <- included & data[["heelStrikes.targetIgnoreSteps"]] %in% input$filterTargets
   included <- included & data[["heelStrikes.outlierSteps"]] %in% input$filterOutliers
   
+  included <- included & data[["heelStrikes.foot"]] %in% input$filterSide
+  
   return(data[included, ])
 })
 
@@ -45,6 +47,8 @@ filteredTargetParams <- reactive({
   # participant group based
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
   included <- included & data[["noticed"]] %in% input$filterNoticed
+  
+  included <- included & data[["foot"]] %in% input$filterSide
   
   return(data[included, ])
 })

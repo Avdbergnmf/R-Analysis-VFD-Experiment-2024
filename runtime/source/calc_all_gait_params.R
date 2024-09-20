@@ -48,8 +48,11 @@ get_data_from_loop <- function(get_data_function){
   data <- data.frame()
   
   for (participant in participants) {
-    # Loop over all trials
+    print(paste("Participant:",participant))
+    
     for (trial in allTrials) {
+      print(paste("---Trial:",trial))
+      
       # Calculate gait data and parameters
       newData <- get_data_function(participant, trial)
       
