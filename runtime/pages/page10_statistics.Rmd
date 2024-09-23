@@ -11,7 +11,7 @@ selectizeInput("indepVars", "+ Independent variables", choices = muVars, selecte
 selectizeInput("correctionMethod", "Correction Method", choices = c("bonferroni", "tukey", "holm"), selected = "bonferroni", multiple = FALSE)
 
 # Add a text input for custom model formula
-textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "stepWidths.sd ~ VFD * (startedWithNoise + VEQ.total + IMI.total) + trialNumWithinCondition + (1 | participant)")
+textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "stepWidths.sd ~ VFD * (startedWithNoise + VEQ.total) + trialNumWithinCondition + (1 | participant)")
 
 # Add a checkbox to use the custom model formula
 checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
@@ -173,31 +173,44 @@ output$post_hoc_table <- renderTable({
   lmm <- get_lmer()
   results <- summary(lmm)
   
-  # Extract fixed effects excluding the intercept
+  # Extract significant fixed effects (excluding intercept)
   fixed_effects <- results$coefficients
-  effects_to_test <- rownames(fixed_effects)
-  effects_to_test <- effects_to_test[effects_to_test != "(Intercept)"]
-  #significant_effects <- rownames(results$coefficients)[results$coefficients[, "Pr(>|t|)"] < 0.05]
-  #significant_effects <- significant_effects[significant_effects != "(Intercept)"]
+  #effects_to_test <- rownames(fixed_effects)
+  #effects_to_test <- effects_to_test[effects_to_test != "(Intercept)"]
+  significant_effects <- rownames(results$coefficients)[results$coefficients[, "Pr(>|t|)"] < 0.05]
+  significant_effects <- significant_effects[significant_effects != "(Intercept)"]
+  effects_to_test <- significant_effects
   
-  if (length(effects_to_test) > 0) {
-    posthoc_results <- list()
-    
-    # Iterate through the independent variables selected
-    for (indep_var in input$indepVars) {
-      # Check each effect to see if it contains the independent variable (handle interactions)
-      for (effect in effects_to_test) {
-        # Perform post-hoc test for each level of the independent variable
-        posthoc_test <- emmeans::emmeans(lmm, specs = indep_var)
-        pairwise_comparisons <- emmeans::contrast(posthoc_test, method = "pairwise") # side = ">" --> check only one side
-        #posthoc_results[[effect]] <- summary(posthoc_test)
-        pairwise_results <- summary(pairwise_comparisons)
-        posthoc_results[[effect]] <- pairwise_results
-      }
+  # Function to clean variable names by removing trailing levels (e.g., TRUE, FALSE, numeric values)
+  clean_effect_name <- function(effect_name) {
+    # Remove trailing TRUE, FALSE, or numbers from variable names
+    cleaned_name <- gsub("(TRUE|FALSE|[0-9.]+)$", "", effect_name)
+    return(cleaned_name)
+  }
+  
+  # Initialize post-hoc results list
+  posthoc_results <- list()
+  
+  # Iterate through the independent variables selected (categorical variables for post-hoc tests)
+  for (indep_var in effects_to_test) {
+    if (grepl(":", indep_var)) {
+      # Interaction term detected, perform post-hoc test for interaction
+      interaction_vars <- clean_effect_name(unlist(strsplit(indep_var, ":")))
+      posthoc_test <- emmeans::emmeans(lmm, specs = interaction_vars)
+    } else {
+      # Perform post-hoc test for the main effect
+      posthoc_test <- emmeans::emmeans(lmm, specs = clean_effect_name(indep_var))
     }
+    pairwise_comparisons <- emmeans::contrast(posthoc_test, method = "pairwise")
     
-    # Combine posthoc results into a single data frame
-    posthoc_df <- do.call(rbind, lapply(posthoc_results, function(x) as.data.frame(x)))
+    # Store results for this independent variable
+    pairwise_results <- summary(pairwise_comparisons)
+    posthoc_results[[indep_var]] <- pairwise_results
+  }
+  
+  # Combine posthoc results into a single data frame
+  if (length(posthoc_results) > 0) {
+    posthoc_df <- do.call(rbind, lapply(posthoc_results, as.data.frame))
     posthoc_df <- cbind(Effect = rep(names(posthoc_results), sapply(posthoc_results, nrow)), posthoc_df)
     
     # Format the numbers to display more digits
@@ -208,6 +221,7 @@ output$post_hoc_table <- renderTable({
     return(data.frame(Message = "No significant main or interaction effects found."))
   }
 }, rownames = TRUE)
+
 
 output$qq <- renderPlot({
   lmm <- get_lmer()
