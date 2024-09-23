@@ -44,8 +44,8 @@ observe({
   data <- get_correlation_data()
   numeric_cols <- names(data)[sapply(data, is.numeric)]
   
-  updateSelectizeInput(session, "xVar", choices = numeric_cols, selected = "diff_VEQ.total")
-  updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = "diff_stepWidths.sd")
+  updateSelectizeInput(session, "xVar", choices = numeric_cols , selected = ifelse(input$processData, "diff_VEQ.total", "VEQ.total"))
+  updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = ifelse(input$processData, "diff_stepWidths.sd", "stepWidths.sd"))
 })
 
 output$correlation_plot <- renderPlot({
@@ -68,6 +68,7 @@ output$correlation_text <- renderPrint({
   dt <- get_correlation_data()
   
   # Check normality of the selected variables
+  cat("Number of datapoints: ", length(dt[[input$xVar]]))
   shapiro_x <- shapiro.test(dt[[input$xVar]])
   shapiro_y <- shapiro.test(dt[[input$yVar]])
   print(shapiro_x)
