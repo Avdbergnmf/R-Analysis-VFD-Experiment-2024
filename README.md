@@ -9,7 +9,7 @@ With the files in this repository, you are able to run the code from any device 
 2. Navigate to http://localhost:8787
 3. Within the R instance, navigate to `/home/rstudio/workspace/`, and open the `index.Rmd` file.
 3. Click `Run Document` and allow the popup window to appear.
-> Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `runtime/results/` and startup should be significantly faster.
+> Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `runtime/results/` and startup should be significantly faster. If you need to recalculate these tabled for any reason, just delete them and they will be recreated with the current contents of the data folder.
 4. Browse the tabs and interact with the data
 
 ### Without Docker
