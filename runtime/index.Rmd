@@ -51,6 +51,24 @@ source('source/get_filtered_data.R', local = TRUE)
 ```
 
 
+```{r, context="server", local=FALSE}
+#Custom function used to render SVG's instead of png's
+renderSVG <- function(expr) {
+  renderImage({
+    # Dynamically get width and height from input
+    dpi <- 96
+    width_value <- input$plotwidth / dpi
+    height_value <- input$plotheight / dpi
+
+    file <- htmltools::capturePlot(
+      expr(), tempfile(fileext = ".svg"),
+      grDevices::svg,
+      width = width_value, height = height_value
+    )
+    list(src = file, deleteFile = TRUE)
+  }, deleteFile = TRUE)
+}
+```
 
 Feet trajectories {data-orientation=columns}
 =====================================

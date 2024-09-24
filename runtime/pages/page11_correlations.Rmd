@@ -20,7 +20,7 @@ Column
 ```{r}
 # Add plot output for the correlation plot
 #plotOutput("correlation_plot")
-plotOutput("scatter")
+imageOutput("scatter")
 ```
 
 
@@ -48,7 +48,7 @@ observe({
   updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = ifelse(input$processData, "diff_stepWidths.sd", "stepWidths.sd"))
 })
 
-output$correlation_plot <- renderPlot({
+output$correlation_plot <- renderSVG({ reactive({
   dt <- get_correlation_data()
   
   ggplot(dt, aes_string(x = input$xVar, y = input$yVar)) +
@@ -60,6 +60,7 @@ output$correlation_plot <- renderPlot({
       x = input$xVar,
       y = input$yVar
     )
+  })
 })
 
 

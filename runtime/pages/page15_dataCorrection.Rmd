@@ -37,12 +37,11 @@ Column
 ### Transformed Feet Trajectories {data-height=1500}
 
 ```{r}
-plotOutput("FeetTraj_15")
+imageOutput("FeetTraj_15")
 ```
 
 ```{r, context="server"}
-output$FeetTraj_15 <- renderPlot(
-  {
+output$FeetTraj_15 <- renderSVG({ reactive({
     tnum <- as.numeric(input$trialNum_15)
     preprocessedData <- preprocess_data(input$participant_15, tnum) 
     preprocessedData <- rotate_preprocessed_data(preprocessedData, input$rotateDeg*pi/180)
@@ -53,7 +52,6 @@ output$FeetTraj_15 <- renderPlot(
       xlim=c(input$xlim_min_15, input$xlim_max_15),
       ylim=c(input$ylim_min_15, input$ylim_max_15)
     )
-  },
-  height = reactive(input$plotheight)
-)
+  })
+})
 ```

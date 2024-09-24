@@ -35,7 +35,7 @@ Column
 ### 2D plot {data-height=1500}
 
 ```{r}
-plotOutput("TwoD")
+imageOutput("TwoD")
 ```
 
 ```{r, context="server"}
@@ -45,11 +45,10 @@ observeEvent(input$xtracker, {
   updateSelectInput(session= getDefaultReactiveDomain(),"yplot2d", choices = choices, selected = choices[1])
 })
 
-output$TwoD <- renderPlot(
-  { # note, 2 times xtracker, not distinguishing between x and y for now.
+output$TwoD <- renderSVG({ reactive({
+  # note, 2 times xtracker, not distinguishing between x and y for now.
     plot_2d(input$xtracker, input$xtracker, input$participant2d, as.numeric(input$trialNum2d), input$startTime, input$endTime, input$xplot2d, input$yplot2d, input$plotlines, input$plotpoints, baseSize=input$baseSize)
-  },
-  height = reactive(input$plotheight)
+  })}
 )
 
 # Add a download handler for the plot

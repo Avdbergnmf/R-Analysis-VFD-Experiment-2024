@@ -11,13 +11,13 @@ Column
 
 ### Step Variability Plot  {data-height=1500}
 ```{r}
-plotOutput("var")
+imageOutput("var")
 ```
 
 ```{r, context="server"}
-output$var <- renderPlot({
+output$var <- renderSVG({ reactive({
   mu <- get_mu_dyn_long()
-  
   plot_boxplots(mu, participants, input$plotVar, input$varCategory, baseSize = input$baseSize)
-}, height = reactive(input$plotheight))
+  })
+})
 ```

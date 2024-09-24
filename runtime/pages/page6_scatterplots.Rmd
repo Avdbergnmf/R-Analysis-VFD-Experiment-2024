@@ -18,11 +18,12 @@ Column
 ### Scatterplot  {data-height=1500}
 
 ```{r}
-plotOutput("scatter_steps")
+imageOutput("scatter_steps")
 ```
 
 ```{r, context="server"}
-output$scatter_steps <- renderPlot({
+output$scatter_steps <- renderSVG({ reactive({
   make_scatter_plot_steps(filteredParams(), input$groupScatter, input$xscatter, input$yscatter, TRUE, baseSize = input$baseSize)
-}, height = reactive(input$plotheight))
+  })
+})
 ```

@@ -39,12 +39,11 @@ Column
 ### Feet trajectories {data-height=1500}
 
 ```{r}
-plotOutput("FeetTraj")
+imageOutput("FeetTraj")
 ```
 
 ```{r, context="server"}
-output$FeetTraj <- renderPlot(
-  {
+output$FeetTraj <- renderSVG({ reactive({
     plot_steps(
       filteredParams(), input$participant, as.numeric(input$trialNum),
       input$start, input$end, input$xplot, input$yplot, input$filter, 
@@ -52,7 +51,6 @@ output$FeetTraj <- renderPlot(
       xlim=c(input$xlim_min, input$xlim_max),
       ylim=c(input$ylim_min, input$ylim_max)
     )
-  },
-  height = reactive(input$plotheight)
-)
+  })
+})
 ```

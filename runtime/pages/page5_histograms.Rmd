@@ -27,7 +27,7 @@ Column
 
 ### Histograms  {data-height=1500}
 ```{r}
-plotOutput("hist")
+imageOutput("hist")
 ```
 
 ```{r, context="server"}
@@ -44,10 +44,8 @@ plotHeight <- reactive(
   }
 )
 
-output$hist <- renderPlot(
-  {
+output$hist <- renderSVG({ reactive({
     make_histogram(filteredParams(), get_mu_dyn_long(), FALSE, input$group, input$split, input$plot, input$bin, input$position, baseSize=input$baseSize)
-  },
-  height = reactive(plotHeight())
-)
+  })
+})
 ```

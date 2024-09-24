@@ -10,11 +10,12 @@ Column
 
 ### Questionnaire Boxplots  {data-height=1500}
 ```{r}
-plotOutput("q")
+imageOutput("q")
 ```
 
 ```{r, context="server"}
-output$q <- renderPlot({
+output$q <- renderSVG({ reactive({
   plot_questionnaire_data(filteredQResults_new(), input$plotQ, baseSize = input$baseSize)
-}, height = reactive(input$plotheight))
+  })
+})
 ```

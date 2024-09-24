@@ -24,21 +24,20 @@ Column
 
 ### Histograms  {data-height=1000}
 ```{r}
-plotOutput("histTargets")
+imageOutput("histTargets")
 ```
 
 ### Target Steps  {data-height=1000}
 ```{r}
-plotOutput("targets")
+imageOutput("targets")
 ```
 
 
 ```{r, context="server"}
-output$targets <- renderPlot({
-  p <- make_target_steps_plot(filteredTargetParams(), baseSize=input$baseSize)
-  
-  return(p)
-}, height = reactive(input$plotheight))
+output$targets <- renderSVG({ reactive({
+    make_target_steps_plot(filteredTargetParams(), baseSize=input$baseSize)
+  })
+})
 
 output$histTargets <- renderPlot(
   {

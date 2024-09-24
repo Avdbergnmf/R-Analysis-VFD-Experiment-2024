@@ -25,7 +25,7 @@ Column
 ### Scatterplot TrialData {data-height=1500}
 
 ```{r}
-plotOutput("scatter_mu")
+imageOutput("scatter_mu")
 ```
 
 ```{r, context="server"}
@@ -39,9 +39,10 @@ get_scatter_data <- reactive({
   return(data)
 })
 
-output$scatter_mu <- renderPlot({
+output$scatter_mu <- renderSVG({ reactive({
   make_scatter_plot_mu(get_scatter_data(), input$muxscatter, input$muyscatter, input$groupScatter, baseSize = input$baseSize)
-}, height = reactive(input$plotheight))
+  })
+})
 
 
 # Update the selectizeInput choices based on the filtered data

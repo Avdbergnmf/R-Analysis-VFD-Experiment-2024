@@ -26,16 +26,11 @@ selectizeInput("filterImpossible", "Impossible Steps", choices = c(TRUE, FALSE),
 
 #### Figure Options
 ```{r}
-numericInput("plotheight", "Plot Height",
+numericInput("plotheight", "Plot Height (pixels)",
+  min = 50, max = Inf, value = 500, step = 50)
+numericInput("plotwidth", "Plot Width (pixels)",
   min = 50, max = Inf, value = 500, step = 50)
 
 numericInput("baseSize", "Base Size",
   min = 1, max = Inf, value = 10, step = 1)
 ```
-
-
-```{r}
-#### Recalculate Tables
-#actionButton("recalc_tables", "Recalculate Tables", style = "margin-top: 20px;")
-```
-

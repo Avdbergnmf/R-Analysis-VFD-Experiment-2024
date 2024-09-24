@@ -15,7 +15,7 @@ Column
 
 
 ```{r}
-plotOutput("pie")
+imageOutput("pie")
 ```
 
 ### Step Statistics {data-height=500}
@@ -25,17 +25,15 @@ tableOutput("step_table")
 ```
 
 ```{r, context="server"}
-output$pie <- renderPlot(
-  {
+output$pie <- renderSVG({ reactive({
     if (input$useFiltered) {
       data <- filteredParams()
     } else {
       data <- allGaitParams
     }
     
-    return(make_pie_chart(data, baseSize = input$baseSize))
-  },
-  height = reactive(input$plotheight)
+    return(make_pie_chart(data, baseSize = input$baseSize)) })
+  }
 )
 
 output$step_table <- renderTable({
