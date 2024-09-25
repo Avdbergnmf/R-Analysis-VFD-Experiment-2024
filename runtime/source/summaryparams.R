@@ -114,7 +114,7 @@ summarize_across_conditions <- function(data) {
       trialNum %in% c(2, 3) ~ "condition_1",
       trialNum %in% c(5, 6) ~ "condition_2"
     )) %>%
-    group_by(participant, VFD, condition) %>%
+    group_by(participant, VFD, startedWithNoise, condition) %>%
     summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)), .groups = "drop")
 
   return(summarized_data)
