@@ -17,51 +17,67 @@ textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = 
 checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
 ```
 
+Use paired t-test instead (handy for questionnaires):
+```{r}
+# Add a checkbox for paired t-test
+checkboxInput("paired_ttest", "Perform Paired t-test", value = FALSE)
+```
+
+Further data processing:
+```{r}
+checkboxInput("averageData_stats", "Average data across condition", value = FALSE)
+checkboxInput("diffData_stats", "Calculate difference + means per participant", value = FALSE)
+```
+
 Column
 --------------------------------------------
 
 ### Statistics Results  {data-height=500}
 ```{r}
-verbatimTextOutput("lmm_text")
+#verbatimTextOutput("stats_results")
+uiOutput("stats_results_ui")
 ```
-### Tables
 
-#### Fixed effects {data-height=500}
+### LMM EXTRA
+
+#### Tables (for LMM)
+
+##### Fixed effects {data-height=500}
 ```{r}
 tableOutput("fixed_effects_table")
 ```
 
-#### Random effects {data-height=500}
+##### Random effects {data-height=500}
 ```{r}
 tableOutput("random_effects_table")
 ```
 
-#### Post-hoc tests {data-height=500}
+##### Post-hoc tests {data-height=500}
 ```{r}
 tableOutput("post_hoc_table")
 ```
 
-### Check Assumptions
-#### QQ Plot  {data-height=500}
+#### Check Assumptions
+##### QQ Plot  {data-height=500}
 - Interpret the Plot: The QQ plot compares the quantiles of the residuals from your model to the quantiles of a normal distribution. If the residuals are normally distributed, the points on the QQ plot will fall approximately along a straight line (the 45-degree reference line).
 - Look for Deviations: Significant deviations from the straight line suggest departures from normality. Small deviations are expected and acceptable, but large deviations or patterns (such as curves or S-shaped patterns) indicate that the residuals are not normally distributed.
 - Use QQ Line: The reference line (QQ line) helps in visualizing the deviation. The closer the points are to this line, the more normally distributed the residuals are.
 ```{r}
 plotOutput("qq")
 ```
-#### residuals_vs_fitted {data-height=1500}
+##### residuals_vs_fitted {data-height=1500}
 Check for homoscedasticity and non-linearity. Look for a random scatter of residuals around zero.
 
 ```{r}
 plotOutput("residuals_vs_fitted")
 ```
-#### scale_location {data-height=500}
+##### scale_location {data-height=500}
 Check for homoscedasticity. Look for a horizontal line with equally spread points.
 
 ```{r}
 plotOutput("scale_location")
 ```
-#### residuals_vs_leverage {data-height=500}
+##### residuals_vs_leverage {data-height=500}
 Check for influential cases. Look for any points outside the Cook's distance lines.
 
 ```{r}
@@ -69,8 +85,36 @@ plotOutput("residuals_vs_leverage")
 ```
 
 ```{r, context="server"}
+############ Getting and setting data
+get_stats_data <- reactive({
+  data <- get_mu_dyn_long()
+  if (input$averageData_stats) {
+    data <- summarize_across_conditions(data)
+  }
+  if (input$diffData_stats){
+    data <- calculate_vfd_difference(data)
+  }
+  return(data)
+})
+
+# Update the selectizeInput choices based on the filtered data for correlation plot
+observe({
+  data <- get_stats_data()
+  numeric_cols <- colnames(data)#[sapply(data, is.numeric)]
+  
+  updateSelectizeInput(session, "depVar", choices = numeric_cols , selected = ifelse(input$diffData_stats, "diff_stepWidths.sd", "stepWidths.sd"))
+  updateSelectizeInput(session, "indepInterVars", choices = numeric_cols, selected = ifelse(input$diffData_stats, "diff_VEQ.total", "VFD"))
+  updateSelectizeInput(session, "indepVars", choices = numeric_cols)
+})
+# Automatically enable "averageData_stats" if paired_ttest is selected
+observe({
+  if (input$paired_ttest) {
+    updateCheckboxInput(session, "averageData_stats", value = TRUE)
+  }
+})
+
 get_lmer <- reactive({
-  dt <- get_mu_dyn_long()
+  dt <- get_stats_data()#get_mu_dyn_long()
   
   # Construct the formula dynamically using inputs
   dep_var <- input$depVar
@@ -91,8 +135,18 @@ get_lmer <- reactive({
   # Fit the model
   return(lmerTest::lmer(formula, data = dt, REML = FALSE)) # put lmerTest:: in front to get p values.
 })
+############
 
-
+############ conditional output
+output$stats_results_ui <- renderUI({
+  if (input$paired_ttest) {
+    verbatimTextOutput("ttest_text")
+  } else {
+    verbatimTextOutput("lmm_text")
+  }
+})
+############
+############ LMM
 output$lmm_text <- renderPrint({
   lmm <- get_lmer()
   results <- summary(lmm)
@@ -118,13 +172,6 @@ output$lmm_text <- renderPrint({
   cat("Marginal R-squared:", r_squared[1], "\n")
   cat("Conditional R-squared:", r_squared[2], "\n")
 })
-
-set_digits <- function(df, digits = 4){
-    # Format the numbers to display more digits
-  df <- df %>%
-    mutate(across(where(is.numeric), ~ format(round(.x, digits = digits), nsmall = digits)))
-  return(df)
-}
 
 output$fixed_effects_table <- renderTable({
   lmm <- get_lmer()
@@ -222,6 +269,82 @@ output$post_hoc_table <- renderTable({
   }
 }, rownames = TRUE)
 
+############
+########## T-Test
+output$ttest_text <- renderPrint({
+  data <- get_stats_data()
+
+  dep_var <- input$depVar
+  if (length(input$indepInterVars) > 0) {
+    comparison_col <- input$indepInterVars[1] # Use the first variable in indepInterVars to define the comparison column
+
+    if (length(unique(data[[comparison_col]])) == 2) { # can only do t-test if 2 levels
+      levels <- unique(data[[comparison_col]])
+
+      before <- data[[dep_var]][data[[comparison_col]] == levels[1]]
+      after <- data[[dep_var]][data[[comparison_col]] == levels[2]]
+
+      # Parametric assumption checks for the paired t-test
+      # Check normality of differences
+      diff <- after - before
+      shapiro_test <- shapiro.test(diff)  # Shapiro-Wilk test for normality
+      variance_test <- var.test(before, after)  # Variance homogeneity test (F-test)
+
+      cat("\n--- PARAMETRIC ASSUMPTIONS CHECK:\n\n")
+      cat("Shapiro-Wilk Test for normality of differences:\n")
+      print(shapiro_test)
+      
+      # Interpretation of Shapiro-Wilk test (Normality)
+      if (shapiro_test$p.value > 0.05) {
+        cat("Interpretation: The p-value is", shapiro_test$p.value, 
+            "> 0.05, so we assume the differences are normally distributed.\n")
+      } else {
+        cat("Interpretation: The p-value is", shapiro_test$p.value, 
+            "< 0.05, indicating that the normality assumption is violated.\n")
+      }
+
+      cat("\nF-test for homogeneity of variances:\n")
+      print(variance_test)
+      
+      # Interpretation of F-test (Homogeneity of variances)
+      if (variance_test$p.value > 0.05) {
+        cat("Interpretation: The p-value is", variance_test$p.value, 
+            "> 0.05, so we assume the variances are equal (homogeneity of variances).\n")
+      } else {
+        cat("Interpretation: The p-value is", variance_test$p.value, 
+            "< 0.05, indicating a violation of the homogeneity of variances assumption.\n")
+      }
+
+      # Perform paired t-test
+      t_test_result <- t.test(before, after, paired = TRUE)
+
+      # Print t-test result
+      cat("\n--- T-TEST RESULTS:\n\n")
+      cat("Paired t-test comparing", levels[1], "and", levels[2], "for", dep_var, ":\n")
+      print(t_test_result)
+
+      # Interpretation of T-Test Result
+      if (t_test_result$p.value < 0.05) {
+        cat("Interpretation: The p-value is", t_test_result$p.value, 
+            "< 0.05, indicating a statistically significant difference between", levels[1], "and", levels[2], "for", dep_var, ".\n")
+      } else {
+        cat("Interpretation: The p-value is", t_test_result$p.value, 
+            "> 0.05, indicating no statistically significant difference between", levels[1], "and", levels[2], "for", dep_var, ".\n")
+      }
+    } else {
+      cat("Error: The selected independent variable must have exactly two levels for paired t-test.\n")
+    }
+  }
+})
+
+###############
+############## FIGURES
+set_digits <- function(df, digits = 4){
+    # Format the numbers to display more digits
+  df <- df %>%
+    mutate(across(where(is.numeric), ~ format(round(.x, digits = digits), nsmall = digits)))
+  return(df)
+}
 
 output$qq <- renderPlot({
   lmm <- get_lmer()
@@ -265,3 +388,4 @@ output$residuals_vs_leverage <- renderPlot({
 })
 
 ```
+
