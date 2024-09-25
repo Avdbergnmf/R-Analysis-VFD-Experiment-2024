@@ -14,9 +14,8 @@ selectizeInput("groupScatter", "Group by",
   choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
 )
 
-checkboxInput("summarizeCondition", "Average over condition",
-  value = TRUE
-)
+checkboxInput("averageData_trial", "Average data across condition", value = TRUE)
+checkboxInput("diffData_trial", "Calculate difference + means per participant", value = TRUE)
 ```
 
 Column
@@ -32,8 +31,10 @@ imageOutput("scatter_mu")
 # Function to get and possibly summarize the data
 get_scatter_data <- reactive({
   data <- get_mu_dyn_long()
-  if (input$summarizeCondition) {
+  if (input$averageData_trial) {
     data <- summarize_across_conditions(data)
+  }
+  if (input$diffData_trial){
     data <- calculate_vfd_difference(data)
   }
   return(data)
