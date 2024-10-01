@@ -233,7 +233,7 @@ calculate_gait_parameters <- function(participant, trialNum) {
   # and also add to the ignore list the outliers in the step speed
   alreadyIgnoredSteps <- targetSteps | heelStrikesData$incorrectDetection # we define those because we don't want to use them for calculating the IQRs for the outlier detection
   IQR_mlp <- 3.0
-  heelStrikesData$outlierSteps <- detect_outliers(speed, alreadyIgnoredSteps, FALSE, IQR_mlp) | detect_outliers(stepTimes, alreadyIgnoredSteps, FALSE, IQR_mlp)# | detect_outliers(stepWidths, alreadyIgnoredSteps, FALSE, IQR_mlp)
+  heelStrikesData$outlierSteps <- detect_outliers(speed, alreadyIgnoredSteps, IQR_mlp) | detect_outliers(stepTimes, alreadyIgnoredSteps, IQR_mlp)
 
   # Make a list of all the gait parameters
   gaitParams <- list(
