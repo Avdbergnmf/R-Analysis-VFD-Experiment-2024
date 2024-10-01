@@ -30,6 +30,14 @@ imageOutput("scatter")
 verbatimTextOutput("correlation_text")
 ```
 
+### Homoscedasticity check
+You should look for a consistent spread of residuals across the range of fitted values. If the data visually appear to have constant variance, a formal test like BP is often unnecessary.
+
+
+```{r}
+imageOutput("homoscedasticity_plot")
+```
+
 ```{r, context="server"}
 get_correlation_data <- reactive({
   data <- get_mu_dyn_long()
@@ -71,6 +79,7 @@ output$correlation_plot <- renderSVG({ reactive({
 output$correlation_text <- renderPrint({
   dt <- get_correlation_data()
   
+  cat("---CHECKING PARAMETRIC ASSUMPTIONS---\n")
   # Check normality of the selected variables
   cat("Number of datapoints: ", length(dt[[input$xVar]]))
   shapiro_x <- shapiro.test(dt[[input$xVar]])
@@ -78,7 +87,26 @@ output$correlation_text <- renderPrint({
   print(shapiro_x)
   print(shapiro_y)
   
+    # Check homoscedasticity: Breusch-Pagan test
+  model <- lm(dt[[input$yVar]] ~ dt[[input$xVar]])
+  bp_test <- bptest(model)
+  cat("Breusch-Pagan Test for Homoscedasticity:\n")
+  print(bp_test)
+
+  # Interpretation of homoscedasticity
+  if (bp_test$p.value > 0.05) {
+    cat("Interpretation: The p-value is", bp_test$p.value, 
+        "> 0.05, so we assume homoscedasticity.\n")
+  } else {
+    cat("Interpretation: The p-value is", bp_test$p.value, 
+        "< 0.05, indicating that the homoscedasticity assumption is violated.\n")
+  }
+  
+  cat("Also check plot:\n")
+  cat("  - The x-axis represents the fitted values, and the y-axis represents the residuals.\n  - Ideally, the residuals should be randomly scattered around the horizontal line at 0, without any clear pattern, indicating homoscedasticity.\n")
+  
   # Determine correlation method based on input
+  cat("---CORRELATION RESULTS---\n\n")
   method <- switch(input$par,
                    parametric = "pearson",
                    nonparametric = "spearman",
@@ -121,7 +149,32 @@ output$correlation_text <- renderPrint({
   }
 })
 
-output$scatter <- renderPlot({
+output$homoscedasticity_plot <- renderSVG({ reactive({
+  dt <- get_correlation_data()
+  
+  # Fit a linear model
+  model <- lm(dt[[input$yVar]] ~ dt[[input$xVar]])
+  
+  # Get fitted values and residuals
+  fitted_vals <- fitted(model)
+  residuals <- resid(model)
+  
+  # Plot residuals vs. fitted values
+  plot(fitted_vals, residuals,
+       main = "Residuals vs Fitted Values",
+       xlab = "Fitted Values",
+       ylab = "Residuals",
+       pch = 19, col = "darkgrey")
+  
+  # Add a horizontal line at 0
+  abline(h = 0, col = "red", lwd = 2)
+  
+  # Add Loess smoothing line to check for any pattern in residuals
+  lines(lowess(fitted_vals, residuals), col = "blue", lwd = 2)
+}) })
+
+
+output$scatter <- renderSVG({ reactive({
   dt <- get_correlation_data()
   
   # Ensure the selected variables exist in the dataset
@@ -136,5 +189,5 @@ output$scatter <- renderPlot({
     plot.new()
     text(0.5, 0.5, "Selected variables not found in the dataset", cex = 1.5, col = "red")
   }
-}, height = reactive(input$plotheight))
+}) })
 ```

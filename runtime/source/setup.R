@@ -48,3 +48,6 @@ library(ggstatsplot)
 library(ggside)
 # scatterplot with distribution on the sides
 library(ggExtra)
+
+# For checking parametric assumptions
+library(lmtest)

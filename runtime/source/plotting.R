@@ -265,9 +265,9 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
 plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
   
   if (grepl(".sd", datatype)) {
-    ylims = c(0,0.05)
+    ylims = c(0, 0.05)
   } else if (grepl(".cv", datatype)) {
-    ylims = c(0,0.3)
+    ylims = c(0, 0.3)
   } else {
     ylims = c()
   }
@@ -275,7 +275,7 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
   # Filter data for the specified columns and participants
   data_long <- mu %>%
     select(c("participant", "trialNum", all_of(xaxis), !!datatype))
-  data_long <- data_long[data_long$participant %in% participants,]  #filter(participant %in% participants)
+  data_long <- data_long[data_long$participant %in% participants, ]
   
   # Reshape data to long format for ggplot
   data_long <- data_long %>%
@@ -286,26 +286,32 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
     )
   
   # Set trialNum as factor so we can use it to color our datapoints
-  data_long$trialNum <- as.factor(data_long$trialNum)
+  data_long$trialNum <- factor(data_long$trialNum, levels = c(2, 3, 5, 6), labels = c(1, 2, 3, 4))
   
   # Create a combined x-axis variable
   data_long$xaxis_combined <- apply(data_long[, xaxis], 1, paste, collapse = "_")
   
+  # Define shapes and colors
+  shapes <- c(15, 15, 16, 16)  # Square for 1, 2 and Circle for 3, 4
+  colors <- c("darkred", "pink", "darkblue", "lightblue")  # Dark/light for 1, 2 and 3, 4
+  
   # Create the plot
   p <- ggplot(data_long, aes(x = xaxis_combined, y = value)) +
-    geom_boxplot() + # geom_violin(trim = FALSE, fill = "lightblue", color = "black") +
-    geom_jitter(aes(color = trialNum), width = 0.2, size = 2, alpha = 0.7) +
+    geom_boxplot() +
+    geom_jitter(aes(color = trialNum, shape = trialNum), width = 0.2, size = baseSize/4, alpha = 0.7) +
     labs(x = paste(xaxis, collapse = " + "), y = datatype) +
     ggtitle(datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    scale_color_discrete(name = "Trial Number") +
+    scale_color_manual(name = "Trial Number", values = colors) +
+    scale_shape_manual(name = "Trial Number", values = shapes) +
     get_sized_theme(baseSize)
   
-  if (length(ylims)==2) {
+  if (length(ylims) == 2) {
     p <- p + coord_cartesian(ylim = ylims)
   }
   return(p)
 }
+
 
 
 make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize = 10){
