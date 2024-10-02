@@ -43,29 +43,43 @@ add_category_columns <- function(data, participant, trial) {
   return(data)
 }
 
-# put this into a function because we are using it for targets as well as regular steps.
 get_data_from_loop <- function(get_data_function) {
   # Initialize an empty data frame
   data <- data.frame()
+
+  # Variables for progress bar
+  total_iterations <- length(participants) * length(allTrials)
+  current_iteration <- 0
 
   for (participant in participants) {
     print(paste("Participant:", participant))
 
     for (trial in allTrials) {
-      print(paste("---Trial:", trial))
+      # PRINT PROGRESS BAR
+      current_iteration <- current_iteration + 1 # Increment the iteration count
+      progress_percent <- (current_iteration / total_iterations) * 100 # Calculate the percentage of progress
+      progress_bar_length <- 50 # Length of the progress bar
+      num_hashes <- floor(progress_bar_length * progress_percent / 100)
+      num_dashes <- progress_bar_length - num_hashes
+      progress_bar <- paste0("[", paste(rep("#", num_hashes), collapse = ""), paste(rep("-", num_dashes), collapse = ""), "]")
+
+      # Print progress bar with the percentage
+      cat(sprintf("\rProgress: %s %.2f%% On Participant: %s, Trial: %s\n", progress_bar, progress_percent, participant, trial))
+      flush.console() # Ensure the console updates immediately
 
       # Calculate gait data and parameters
       newData <- get_data_function(participant, trial)
-
-      # convert to DF and add categories
-      newData <- add_category_columns(as.data.frame(newData), participant, trial)
-
-      # Bind this participant's gait parameters to the overall data frame
-      data <- rbind(data, newData)
+      newData <- add_category_columns(as.data.frame(newData), participant, trial) # Convert to DF and add categories
+      data <- rbind(data, newData) # Bind this participant's gait parameters to the overall data frame
     }
   }
+
+  # Print final progress bar to indicate completion
+  cat("\n")
+
   return(data)
 }
+
 
 calc_all_gait_params <- function() {
   return(get_data_from_loop(calculate_gait_parameters))
