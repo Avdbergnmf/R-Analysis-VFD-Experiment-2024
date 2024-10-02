@@ -134,13 +134,30 @@ calculate_vfd_difference <- function(data) {
   vfd_true <- vfd_true %>% dplyr::select(-VFD)
   vfd_false <- vfd_false %>% dplyr::select(-VFD)
 
+  # Check for numeric columns that exist in both data frames and are non-empty
+  valid_columns <- vfd_true %>%
+    select(where(is.numeric)) %>%
+    names() %>%
+    intersect(names(vfd_false))
+
+  # Filter out columns with missing data in vfd_false
+  valid_columns <- valid_columns[sapply(valid_columns, function(col) {
+    !all(is.na(vfd_false[[col]]))
+  })]
+
+  # Check if any valid columns are left
+  if (length(valid_columns) == 0) {
+    print("No valid numeric columns for calculating VFD differences.")
+    return(data.frame()) # Return an empty data frame if no valid columns are found
+  }
+
   # Calculate the difference between VFD==TRUE and VFD==FALSE for each numeric column
   difference_data <- vfd_true %>%
-    mutate(across(where(is.numeric), ~ . - vfd_false[[cur_column()]], .names = "diff_{.col}"))
+    mutate(across(all_of(valid_columns), ~ . - vfd_false[[cur_column()]], .names = "diff_{.col}"))
 
   # Calculate the mean of VFD==TRUE and VFD==FALSE for each numeric column
   mean_data <- vfd_true %>%
-    mutate(across(where(is.numeric), ~ (. + vfd_false[[cur_column()]]) / 2, .names = "mean_{.col}"))
+    mutate(across(all_of(valid_columns), ~ (. + vfd_false[[cur_column()]]) / 2, .names = "mean_{.col}"))
 
   # Combine the difference and mean data
   final_data <- difference_data %>%
