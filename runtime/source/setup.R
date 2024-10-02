@@ -22,9 +22,9 @@ library(ggpattern) # To differentiate when printing in black and white
 
 # LMER stuff
 library(lme4)
-library(DT) # for visual tables and stuff 
+library(DT) # for visual tables and stuff
 library(lmerTest) # to get p-values from lmer
-#library(sjstats)
+# library(sjstats)
 library(emmeans)
 library(MuMIn)
 
@@ -41,7 +41,7 @@ library(pwr)
 
 # Filtering of foot signal for event detection
 library(signal) # butterworth filter
-library(zoo)  # For rolling statistics
+library(zoo) # For rolling statistics
 
 # For correlation plots
 library(ggstatsplot)
@@ -51,3 +51,12 @@ library(ggExtra)
 
 # For checking parametric assumptions
 library(lmtest)
+
+# To identify local outliers
+library(Rlof)
+
+# Parallel processing
+# Load necessary packages
+library(foreach)
+library(doParallel)
+library(doSNOW) # progress bar

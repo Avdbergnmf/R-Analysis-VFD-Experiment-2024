@@ -43,6 +43,66 @@ add_category_columns <- function(data, participant, trial) {
   return(data)
 }
 
+get_data_from_loop_parallel <- function(get_data_function) {
+  # Load necessary packages
+  library(foreach)
+  library(doParallel)
+  library(doSNOW)
+
+  # Create a data frame of all participant and trial combinations
+  combinations <- expand.grid(participant = participants, trial = allTrials)
+
+  # Set up parallel backend to use multiple processors
+  numCores <- detectCores() - 1 # Leave one core free for system processes
+  cl <- makeCluster(numCores)
+  registerDoParallel(cl)
+
+  # Initialize progress bar
+  total_iterations <- nrow(combinations)
+  pb <- txtProgressBar(min = 0, max = total_iterations, style = 3)
+  progress <- function(n) setTxtProgressBar(pb, n)
+  opts <- list(progress = progress)
+
+  # Export necessary variables and functions to the cluster
+  clusterExport(cl, c("participants", "allTrials", "get_data_function", "add_category_columns"), envir = environment())
+
+  # Run the loop in parallel using foreach
+  data_list <- foreach(
+    i = 1:total_iterations,
+    .combine = rbind,
+    .packages = c("data.table", "readxl", "dplyr", "purrr", "jsonlite", "signal", "zoo", "Rlof"),
+    .options.snow = opts
+  ) %dopar% {
+    # Update progress bar
+    progress(i)
+
+    # Source the scripts containing your functions
+    source("source/data_loading.R", local = FALSE)
+    source("source/pre_processing.R", local = FALSE)
+    source("source/find_foot_events.R", local = FALSE)
+    source("source/calc_all_gait_params.R", local = FALSE)
+
+    # Extract participant and trial for this iteration
+    participant <- combinations$participant[i]
+    trial <- combinations$trial[i]
+
+    # Calculate gait data and parameters
+    newData <- get_data_function(participant, trial)
+    newData <- add_category_columns(as.data.frame(newData), participant, trial)
+    newData # Return the new data frame
+  }
+
+  # Close progress bar and stop cluster
+  close(pb)
+  stopCluster(cl)
+
+  # Combine the list of data frames into one data frame
+  data <- as.data.frame(data_list)
+
+  return(data)
+}
+
+
 get_data_from_loop <- function(get_data_function) {
   # Initialize an empty data frame
   data <- data.frame()
@@ -82,7 +142,7 @@ get_data_from_loop <- function(get_data_function) {
 
 
 calc_all_gait_params <- function() {
-  return(get_data_from_loop(calculate_gait_parameters))
+  return(get_data_from_loop_parallel(calculate_gait_parameters))
 }
 
 calc_all_target_params <- function() {
