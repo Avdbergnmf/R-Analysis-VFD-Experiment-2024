@@ -14,8 +14,8 @@ preprocess_data <- function(participant, trialNum) {
   targetData <- get_t_data(participant, "steptargets", trialNum)
   leftDisturbance <- get_t_data(participant, "leftdisturbance", trialNum)
   rightDisturbance <- get_t_data(participant, "rightdisturbance", trialNum)
-  # rightFoot <- calc_final_pos(rightFoot, rightDisturbance)
-  # leftFoot <- calc_final_pos(leftFoot, leftDisturbance)
+  rightFoot <- calc_final_pos(rightFoot, rightDisturbance)
+  leftFoot <- calc_final_pos(leftFoot, leftDisturbance)
   minTime <- leftFoot$time[1] # get_p_results(participant,"start_time",trialNum)
 
   moveSpeed <- get_move_speed(participant)
@@ -116,30 +116,24 @@ detect_outliers_modified_z_scores <- function(data, ignoreSteps = c(FALSE), thre
   return(outliers)
 }
 
-detect_outliers <- function(data, ignoreSteps, also_mark_ignoreSteps_if_outlier = FALSE, IQR_mlp = 1.5) {
+detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
   data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our interquartile ranges.
 
-  Q1 <- quantile(data_filtered, 0.25)
-  Q3 <- quantile(data_filtered, 0.75)
+  Q1 <- quantile(data_filtered, 0.25, na.rm = TRUE)
+  Q3 <- quantile(data_filtered, 0.75, na.rm = TRUE)
   IQR <- Q3 - Q1
 
   # Define the upper and lower bounds for outliers
   upper_bound <- Q3 + IQR_mlp * IQR
   lower_bound <- Q1 - IQR_mlp * IQR
 
-  if (also_mark_ignoreSteps_if_outlier) {
-    # Initialize outliers vector as FALSE for all data points
-    outliers <- rep(FALSE, length(data))
-    # Mark outliers in the data that are not ignored
-    outliers[!ignoreSteps] <- !(data[!ignoreSteps] >= lower_bound & data[!ignoreSteps] <= upper_bound)
-    return(outliers)
-  } else {
-    return(!(data >= lower_bound & data <= upper_bound))
-  }
+  return(!(data >= lower_bound & data <= upper_bound))
 }
 
 
 apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
+  column <- hampel_filter(column, k = 7, t0 = 3)
+
   # Calculate the number of points to pad (half the frame size generally works well)
   pad_width <- 20
 
@@ -158,6 +152,22 @@ apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
   filtered_column <- filtered_column[(pad_width + 1):(length(filtered_column) - pad_width)]
 
   return(filtered_column)
+}
+
+# Hampel filter function
+hampel_filter <- function(x, k, t0 = 3) {
+  n <- length(x)
+  y <- x
+  L <- 1.4826 # Scale factor for Gaussian distribution
+  for (i in (k + 1):(n - k)) {
+    window <- x[(i - k):(i + k)]
+    median_window <- median(window)
+    sigma_window <- L * median(abs(window - median_window))
+    if (abs(x[i] - median_window) > t0 * sigma_window) {
+      y[i] <- median_window
+    }
+  }
+  return(y)
 }
 
 calculate_step_statistics <- function(data, group_vars = c("participant")) {
