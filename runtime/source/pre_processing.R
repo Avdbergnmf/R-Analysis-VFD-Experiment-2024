@@ -116,21 +116,6 @@ detect_outliers_modified_z_scores <- function(data, ignoreSteps = c(FALSE), thre
   return(outliers)
 }
 
-# detect_outliers <- function(data, ignoreSteps = c(FALSE), IQR_mlp = 1.5) {
-#   data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our interquartile ranges.
-
-#   Q1 <- quantile(data_filtered, 0.25, na.rm = TRUE)
-#   Q3 <- quantile(data_filtered, 0.75, na.rm = TRUE)
-#   IQR <- Q3 - Q1
-
-#   # Define the upper and lower bounds for outliers
-#   upper_bound <- Q3 + IQR_mlp * IQR
-#   lower_bound <- Q1 - IQR_mlp * IQR
-
-#   outliers <- !(data >= lower_bound & data <= upper_bound)
-#   return(outliers)
-# }
-
 detect_outliers <- function(data, ignoreSteps, also_mark_ignoreSteps_if_outlier = FALSE, IQR_mlp = 1.5) {
   data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our interquartile ranges.
 
@@ -155,11 +140,6 @@ detect_outliers <- function(data, ignoreSteps, also_mark_ignoreSteps_if_outlier 
 
 
 apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
-  # Detect outliers
-  # outliers <- detect_outliers_z_scores(column)
-  # column[outliers] <- NA # Replace outliers with NA
-  # column <- na.approx(column, rule = 2) # Interpolate the missing values (linear interpolation)
-
   # Calculate the number of points to pad (half the frame size generally works well)
   pad_width <- 20
 
