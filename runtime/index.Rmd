@@ -8,6 +8,10 @@ runtime: shinyrmd
 ---
 
 ```{r setup, include=FALSE}
+options(shiny.maxRequestSize = 30 * 1024^2)  # Set to 30 MB, adjust as needed
+options(shiny.sanitize.errors = TRUE)  # Sanitize errors to prevent server crashes
+
+
 source('source/setup.R')
 source('source/data_loading.R', local = FALSE)
 source('source/pre_processing.R', local = FALSE)
@@ -52,6 +56,8 @@ source('source/get_filtered_data.R', local = TRUE)
 
 
 ```{r, context="server", local=FALSE}
+session$allowReconnect(TRUE)
+
 #Custom function used to render SVG's instead of png's
 renderSVG <- function(expr) {
   renderImage({
@@ -68,6 +74,17 @@ renderSVG <- function(expr) {
     list(src = file, deleteFile = TRUE)
   }, deleteFile = TRUE)
 }
+```
+
+```{r, results='asis', echo=FALSE}
+# Custom script to switch pages
+cat("
+<script>
+Shiny.addCustomMessageHandler('navigateToPage', function(message) {
+  window.location.hash = message.hash;
+});
+</script>
+")
 ```
 
 Feet trajectories {data-orientation=columns}
@@ -145,3 +162,10 @@ Data Table {data-icon="fa-table"}
 =====================================
 ```{r, child='pages/page13_table.Rmd'}
 ```
+
+
+Outlier Filtering
+=====================================
+```{r, child='pages/page14_dataFiltering.Rmd'}
+```
+
