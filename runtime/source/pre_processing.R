@@ -120,19 +120,19 @@ detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
   return(!(data >= lower_bound & data <= upper_bound))
 }
 
-lof_outliers <- function(data, ignoreSteps, threshold = 2.5) {
-  k <- 3 # LOF parameter, number of neighbors
+# lof_outliers <- function(data, ignoreSteps, threshold = 2.5) {
+#   k <- 3 # LOF parameter, number of neighbors
 
-  # Apply LOF only to non-ignored steps
-  lof_scores <- rep(NA, nrow(data)) # Initialize lof_scores for all data
-  lof_scores[!ignoreSteps] <- lof(data[!ignoreSteps, ], k)
+#   # Apply LOF only to non-ignored steps
+#   lof_scores <- rep(NA, nrow(data)) # Initialize lof_scores for all data
+#   lof_scores[!ignoreSteps] <- lof(data[!ignoreSteps, ], k)
 
-  # Identify outliers based on the threshold, only for non-ignored steps
-  outliers <- rep(FALSE, nrow(data)) # Initialize outliers for all data
-  outliers[!ignoreSteps] <- lof_scores[!ignoreSteps] > threshold
+#   # Identify outliers based on the threshold, only for non-ignored steps
+#   outliers <- rep(FALSE, nrow(data)) # Initialize outliers for all data
+#   outliers[!ignoreSteps] <- lof_scores[!ignoreSteps] > threshold
 
-  return(outliers)
-}
+#   return(outliers)
+# }
 
 
 
