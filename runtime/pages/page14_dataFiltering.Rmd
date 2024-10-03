@@ -8,10 +8,10 @@ selectizeInput("lof_features", "Select Features for LOF Calculation",
 )
 
 # Input box for k value in LOF algorithm
-numericInput("lof_k", "Number of Neighbors (k) for LOF", value = 15, min = 1)
+numericInput("lof_k", "Number of Neighbors (k) for LOF", value = 2, min = 2)
 
 # Input box for k value in LOF algorithm
-numericInput("lof_k", "Max points (prevent crashing)", value = 1000, min = 1,step=100)
+numericInput("max_points", "Max points (prevent crashing)", value = 500, min = 1,step=100)
 
 # Button to run LOF calculation
 actionButton("run_lof", "Calculate LOF Scores")
@@ -76,14 +76,15 @@ lof_results <- eventReactive(input$run_lof, {
   
   # Calculate LOF scores for all participants and trials
   lof_data <- params[, selected_features, drop = FALSE]
+  print("Start calculating LOF scores.")
   lof_results <- get_data_from_loop_parallel(get_lof_scores, lof_data, k_value) # parallel processinggggg
+  print("Done calculating LOF scores.")
   names(lof_results)[names(lof_results) == "newData"] <- "lofScore" # rename
   
   lof_results$heelStrikes.time <- params$heelStrikes.time
   return(lof_results) # Return the updated params with LOF scores
 })
 
-# Render the LOF score cumulative distribution plot with interactive points
 output$lof_score_distribution_plotly <- renderPlotly({
   # Get the LOF results
   params <- lof_results()
@@ -93,33 +94,59 @@ output$lof_score_distribution_plotly <- renderPlotly({
     return(NULL)
   }
   
-  # Reduce plot_data size
+  # Prepare data for plotting
   plot_data <- params[!is.na(params$lofScore), ]
   plot_data <- plot_data[order(plot_data$lofScore), ]
   plot_data$cumfreq <- seq_along(plot_data$lofScore) / nrow(plot_data)
+  
+  # Set a threshold for the top interactive points
+  top_interactive_n <- 500  # Set a limit for interactive points
 
-  # Sample the data for faster rendering
-  max_points <- 1000  # Limit to 1000 points for example
-  if (nrow(plot_data) > max_points) {
-    plot_data <- plot_data[seq(1, nrow(plot_data), length.out = max_points), ]
+  # Split data into static and interactive parts
+  if (nrow(plot_data) > top_interactive_n) {
+    interactive_data <- plot_data[(nrow(plot_data) - top_interactive_n + 1):nrow(plot_data), ]
+    static_data <- plot_data[1:(nrow(plot_data) - top_interactive_n), ]
+  } else {
+    # If the number of points is less than top_interactive_n, all will be interactive
+    interactive_data <- plot_data
+    static_data <- data.frame()
   }
   
-  # Render the plot
-  p <- plot_ly(
-    data = plot_data,
-    x = ~lofScore,
-    y = ~cumfreq,
-    type = 'scatter',
-    mode = 'markers',
-    marker = list(size = 5),
-    hoverinfo = 'text',
-    text = ~paste(
-      "Participant:", participant,
-      "<br>TrialNum:", trialNum,
-      "<br>Timestamp:", heelStrikes.time,
-      "<br>LOF Score:", round(lofScore, 3)
-    )
-  ) %>%
+  # Create the plot
+  p <- plot_ly()
+  
+  # Add static line layer for cumulative sum (non-interactive)
+  if (nrow(static_data) > 0) {
+    p <- p %>%
+      add_trace(
+        x = static_data$lofScore,
+        y = static_data$cumfreq,
+        type = 'scatter',
+        mode = 'lines',
+        line = list(color = 'rgba(150, 150, 150, 0.5)', width = 1),
+        hoverinfo = 'none',
+        showlegend = FALSE
+      )
+  }
+  
+  # Add interactive points
+  p <- p %>%
+    add_trace(
+      data = interactive_data,
+      x = ~lofScore,
+      y = ~cumfreq,
+      type = 'scatter',
+      mode = 'markers',
+      marker = list(size = 5, color = 'rgba(255, 0, 0, 0.7)'),
+      hoverinfo = 'text',
+      text = ~paste(
+        "Participant:", participant,
+        "<br>TrialNum:", trialNum,
+        "<br>Timestamp:", heelStrikes.time,
+        "<br>LOF Score:", round(lofScore, 3)
+      ),
+      showlegend = FALSE
+    ) %>%
     layout(
       title = "Cumulative Distribution of LOF Scores",
       xaxis = list(title = "LOF Score"),
@@ -133,9 +160,10 @@ output$lof_score_distribution_plotly <- renderPlotly({
         )
       )
     )
-  p <- event_register(p, 'plotly_click')
+  
   return(p)
 })
+
 
 
 # Observe click events on the plot
@@ -147,7 +175,7 @@ observeEvent(event_data("plotly_click"), {
   point_number <- click_data$pointNumber + 1  # Adjust for R indexing
   
   # Get the lof_results data
-  params <- NULL#lof_results()
+  params <- lof_results()
   if (is.null(params)) return()
   
   # Get the data point corresponding to the click
@@ -174,7 +202,7 @@ observeEvent(event_data("plotly_click"), {
 # Observe the overwrite button to update outliers based on LOF threshold
 observeEvent(input$overwrite_outliers, {
   # Get the LOF results
-  params <- NULL# lof_results()
+  params <- lof_results()
   
   # Check if LOF results are available
   if (is.null(params)) {
