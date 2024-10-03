@@ -241,13 +241,16 @@ calculate_gait_parameters <- function(participant, trialNum) {
 
   # Detect outliers
   # First, we throw out some incorrect steps that are just physically impossible
-  heelStrikesData$incorrectDetection <- stepLengths > 2.0 | stepLengths <= 0.0 | stepWidths > 0.5 | stepWidths < -0.0
+  heelStrikesData$incorrectDetection <- stepLengths > 2.0 | stepLengths <= 0.0 | stepWidths > 0.75 | stepWidths < -0.5 | stepTimes > 1.5
   heelStrikesData$incorrectDetection[heelStrikesData$targetIgnoreSteps] <- FALSE # prevent overlap
 
   # and also add to the ignore list the outliers in the step speed
-  alreadyIgnoredSteps <- targetSteps | heelStrikesData$incorrectDetection # we define those because we don't want to use them for calculating the IQRs for the outlier detection
-  IQR_mlp <- 3.0
-  heelStrikesData$outlierSteps <- detect_outliers(speed, alreadyIgnoredSteps, IQR_mlp) | detect_outliers(stepTimes, alreadyIgnoredSteps, IQR_mlp)
+  alreadyIgnoredSteps <- heelStrikesData$targetIgnoreSteps | heelStrikesData$incorrectDetection # we define those because we don't want to use them for calculating the IQRs for the outlier detection
+  heelStrikesData$outlierSteps <- detect_outliers_modified_z_scores(stepTimes, alreadyIgnoredSteps, 8) # filters out obvious wrong detections, but only based on stepTime (wrong detections, basically)
+  currentlyIgnoredSteps <- alreadyIgnoredSteps | heelStrikesData$outlierSteps
+  heelStrikesData$outlierSteps <- heelStrikesData$outlierSteps | detect_outliers_modified_z_scores(stepWidths, currentlyIgnoredSteps, 10)
+
+  heelStrikesData$outlierSteps[alreadyIgnoredSteps] <- FALSE # prevent overlap
 
   # Make a list of all the gait parameters
   gaitParams <- list(
