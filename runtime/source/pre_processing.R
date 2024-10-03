@@ -120,9 +120,24 @@ detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
   return(!(data >= lower_bound & data <= upper_bound))
 }
 
+lof_outliers <- function(data, ignoreSteps, threshold = 2.5) {
+  k <- 3 # LOF parameter, number of neighbors
+
+  # Apply LOF only to non-ignored steps
+  lof_scores <- rep(NA, nrow(data)) # Initialize lof_scores for all data
+  lof_scores[!ignoreSteps] <- lof(data[!ignoreSteps, ], k)
+
+  # Identify outliers based on the threshold, only for non-ignored steps
+  outliers <- rep(FALSE, nrow(data)) # Initialize outliers for all data
+  outliers[!ignoreSteps] <- lof_scores[!ignoreSteps] > threshold
+
+  return(outliers)
+}
+
+
 
 apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
-  column <- hampel_filter(column, k = 7, t0 = 3)
+  column <- hampel_filter(column, k = 7, t0 = 3) # this is kinda slow but makes step detection more consistent.
 
   # Calculate the number of points to pad (half the frame size generally works well)
   pad_width <- 20
@@ -143,6 +158,7 @@ apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
 
   return(filtered_column)
 }
+
 # Hampel filter function
 hampel_filter <- function(x, k, t0 = 3) {
   n <- length(x)
