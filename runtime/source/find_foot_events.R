@@ -235,7 +235,7 @@ calculate_gait_parameters <- function(participant, trialNum) {
 
   # We ignore the steps onto and away from a target
   targetSteps <- heelStrikesData$target
-  targetSteps <- targetSteps | lead(heelStrikesData$target, default = FALSE) # add step before
+  targetSteps <- targetSteps | lead(heelStrikesData$target, default = FALSE) | lead(heelStrikesData$target, 2, default = FALSE) # add step before
   targetSteps <- targetSteps | lag(heelStrikesData$target, default = FALSE) | lag(heelStrikesData$target, 2, default = FALSE) | lag(heelStrikesData$target, 3, default = FALSE) # add 3 steps after (until foot is placed back onto new position)
   heelStrikesData$targetIgnoreSteps <- targetSteps
 
