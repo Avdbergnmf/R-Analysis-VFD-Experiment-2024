@@ -44,11 +44,6 @@ add_category_columns <- function(data, participant, trial) {
 }
 
 get_data_from_loop_parallel <- function(get_data_function) {
-  # Load necessary packages
-  library(foreach)
-  library(doParallel)
-  library(doSNOW)
-
   # Create a data frame of all participant and trial combinations
   combinations <- expand.grid(participant = participants, trial = allTrials)
 
@@ -57,25 +52,15 @@ get_data_from_loop_parallel <- function(get_data_function) {
   cl <- makeCluster(numCores)
   registerDoParallel(cl)
 
-  # Initialize progress bar
-  total_iterations <- nrow(combinations)
-  pb <- txtProgressBar(min = 0, max = total_iterations, style = 3)
-  progress <- function(n) setTxtProgressBar(pb, n)
-  opts <- list(progress = progress)
-
   # Export necessary variables and functions to the cluster
   clusterExport(cl, c("participants", "allTrials", "get_data_function", "add_category_columns"), envir = environment())
 
   # Run the loop in parallel using foreach
   data_list <- foreach(
-    i = 1:total_iterations,
+    i = 1:nrow(combinations),
     .combine = rbind,
-    .packages = c("data.table", "readxl", "dplyr", "purrr", "jsonlite", "signal", "zoo", "Rlof"),
-    .options.snow = opts
+    .packages = c("data.table", "readxl", "dplyr", "purrr", "jsonlite", "signal", "zoo", "Rlof","isotree")
   ) %dopar% {
-    # Update progress bar
-    progress(i)
-
     # Source the scripts containing your functions
     source("source/data_loading.R", local = FALSE)
     source("source/pre_processing.R", local = FALSE)
@@ -92,8 +77,7 @@ get_data_from_loop_parallel <- function(get_data_function) {
     newData # Return the new data frame
   }
 
-  # Close progress bar and stop cluster
-  close(pb)
+  # Stop the cluster
   stopCluster(cl)
 
   # Combine the list of data frames into one data frame
@@ -101,6 +85,7 @@ get_data_from_loop_parallel <- function(get_data_function) {
 
   return(data)
 }
+
 
 
 get_data_from_loop <- function(get_data_function) {

@@ -87,16 +87,6 @@ rotate_y <- function(data, theta) {
   return(data)
 }
 
-# Detect and remove outliers using a z-score method
-detect_outliers_z_scores <- function(data, ignoreSteps = c(FALSE), threshold = 3) {
-  data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our mean etc
-  # Calculate the z-scores
-  z_scores <- (data - mean(data_filtered, na.rm = TRUE)) / sd(data_filtered, na.rm = TRUE)
-  # Identify outliers
-  outliers <- abs(z_scores) > threshold
-  return(outliers)
-}
-
 # Detect and remove outliers using a Modified z-score method
 detect_outliers_modified_z_scores <- function(data, ignoreSteps = c(FALSE), threshold = 3.5) {
   data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our med etc
@@ -153,7 +143,6 @@ apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
 
   return(filtered_column)
 }
-
 # Hampel filter function
 hampel_filter <- function(x, k, t0 = 3) {
   n <- length(x)

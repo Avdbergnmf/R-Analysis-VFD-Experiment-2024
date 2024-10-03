@@ -59,4 +59,3 @@ library(Rlof)
 # Load necessary packages
 library(foreach)
 library(doParallel)
-library(doSNOW) # progress bar
