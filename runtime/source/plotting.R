@@ -36,20 +36,10 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
     filteredGaitParams <- filteredGaitParams[filteredGaitParams$heelStrikes.step %in% steps,]
   }
   
-  #timeMin <- min(filteredGaitParams$heelStrikes.time)
-  #timeMax <- max(filteredGaitParams$heelStrikes.time)
-  
-  #rightData <- rightData %>% dplyr::filter(time > timeMin & time < timeMax)
-  #leftData <- leftData %>% dplyr::filter(time > timeMin & time < timeMax)
-  
   if (doFilter) {
     numeric_columns <- sapply(rightData, is.numeric)  # Identify numeric columns
-    
-    # Apply the filter to all numeric columns
-    poly_order <- 4  # Order of the polynomial (savgoy=3,butter=4)
-    frame_size <- 5  # (for savgoy Must be odd)
-    rightData[numeric_columns] <- lapply(rightData[numeric_columns], function(column) { apply_padding_and_filter(column, poly_order, frame_size, 90) } ) 
-    leftData[numeric_columns] <- lapply(leftData[numeric_columns], function(column) { apply_padding_and_filter(column, poly_order, frame_size, 90) } )
+    rightData[numeric_columns] <- lapply(rightData[numeric_columns], function(column) { apply_padding_and_filter(column, 4, 90) } ) 
+    leftData[numeric_columns] <- lapply(leftData[numeric_columns], function(column) { apply_padding_and_filter(column, 4, 90) } )
   }
   
   # Add a new column to both dataframes to identify the foot
@@ -59,15 +49,22 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
   both <- rbind(rightData, leftData)
   both <- both[order(both$time), ] # Order by time
   
-  
   rParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Right", ]
   lParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Left", ]
   rTargets <- rParams[rParams$heelStrikes.target, ]
   lTargets <- lParams[lParams$heelStrikes.target, ]
   
+  # Separate outliers from non-outliers
+  rOutliers <- rParams[rParams$heelStrikes.outlierSteps, ]
+  lOutliers <- lParams[lParams$heelStrikes.outlierSteps, ]
+  rParams <- rParams[!rParams$heelStrikes.outlierSteps, ]
+  lParams <- lParams[!lParams$heelStrikes.outlierSteps, ]
+  
   # Create the plot
   targetSize <- round(baseSize/2)
   footEventSize <- round(baseSize/4)
+  outlierSize <- round(baseSize/2) # Use a larger size for outliers
+  
   p <- ggplot(both, aes(x = .data[[x_axis]], y = .data[[y_axis]], color = .data$foot)) +
     geom_path() +
     # toeOffs
@@ -79,6 +76,11 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, start=1, end=5
     # targets
     geom_point(data = rTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "red", size = targetSize) +
     geom_point(data = lTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "blue", size = targetSize) + # 10=target
+    # outlier steps (with filled icons and larger size)
+    geom_point(data = rOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 21, fill = "red", color = "red", size = outlierSize) +
+    geom_point(data = lOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 21, fill = "blue", color = "blue", size = outlierSize) + # 21 = filled circle
+    geom_point(data = rOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "red", size = outlierSize) +
+    geom_point(data = lOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "blue", size = outlierSize) +
     scale_color_manual(values = c("Right" = "black", "Left" = "grey")) + 
     ggtitle(extraTitle) + 
     theme_minimal(base_size = baseSize) # get_sized_theme(baseSize)
