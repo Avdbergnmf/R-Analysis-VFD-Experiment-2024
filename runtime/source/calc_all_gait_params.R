@@ -43,7 +43,7 @@ add_category_columns <- function(data, participant, trial) {
   return(data)
 }
 
-get_data_from_loop_parallel <- function(get_data_function) {
+get_data_from_loop_parallel <- function(get_data_function, ...) {
   # Create a data frame of all participant and trial combinations
   combinations <- expand.grid(participant = participants, trial = allTrials)
 
@@ -59,9 +59,10 @@ get_data_from_loop_parallel <- function(get_data_function) {
   data_list <- foreach(
     i = 1:nrow(combinations),
     .combine = rbind,
-    .packages = c("data.table", "readxl", "dplyr", "purrr", "jsonlite", "signal", "zoo", "Rlof","isotree")
+    .packages = c() # "data.table", "readxl", "dplyr", "purrr", "jsonlite", "signal", "zoo", "" ... just did whole setup.R for now
   ) %dopar% {
     # Source the scripts containing your functions
+    source("source/setup.R", local = FALSE)
     source("source/data_loading.R", local = FALSE)
     source("source/pre_processing.R", local = FALSE)
     source("source/find_foot_events.R", local = FALSE)
@@ -71,8 +72,8 @@ get_data_from_loop_parallel <- function(get_data_function) {
     participant <- combinations$participant[i]
     trial <- combinations$trial[i]
 
-    # Calculate gait data and parameters
-    newData <- get_data_function(participant, trial)
+    # Calculate gait data and parameters with optional arguments
+    newData <- get_data_function(participant, trial, ...)
     newData <- add_category_columns(as.data.frame(newData), participant, trial)
     newData # Return the new data frame
   }
@@ -86,9 +87,7 @@ get_data_from_loop_parallel <- function(get_data_function) {
   return(data)
 }
 
-
-
-get_data_from_loop <- function(get_data_function) {
+get_data_from_loop <- function(get_data_function, ...) {
   # Initialize an empty data frame
   data <- data.frame()
 
@@ -113,7 +112,7 @@ get_data_from_loop <- function(get_data_function) {
       flush.console() # Ensure the console updates immediately
 
       # Calculate gait data and parameters
-      newData <- get_data_function(participant, trial)
+      newData <- get_data_function(participant, trial, ...)
       newData <- add_category_columns(as.data.frame(newData), participant, trial) # Convert to DF and add categories
       data <- rbind(data, newData) # Bind this participant's gait parameters to the overall data frame
     }
