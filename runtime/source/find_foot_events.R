@@ -41,8 +41,8 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   time_vector <- footData$time
   pos_vector <- relFootPos_filtered
   i <- 1 # Initialize indice
-  min_time_diff <- 0.05
-  min_pos_diff <- 0.0
+  min_time_diff <- 0.1
+  min_pos_diff <- 0.0 # --> Removed pos threshold, because I'm not sure which extremes to remove.
   N_removed_time <- 0
   N_removed_pos <- 0
   while (i < length(local_maxima) && i < length(local_minima)) {
@@ -75,8 +75,10 @@ detect_foot_events_coordinates <- function(footData, hipData) {
     }
   }
   
-  #local_maxima <- local_maxima[relFootPos_filtered[local_maxima] > 0]
-  #local_minima <- local_minima[relFootPos_filtered[local_minima] < 0]
+  # Heelstrike only in front of hip, toe-off only behind hip
+  count_wrong_side_of_hip <- length(relFootPos[local_maxima] > 0) + length(relFootPos[local_maxima] > 0)
+  local_maxima <- local_maxima[relFootPos[local_maxima] > 0]
+  local_minima <- local_minima[relFootPos[local_minima] < 0]
   
   # alternation checking
   N_removed_min <- 0
@@ -111,10 +113,22 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   }
 
   # Some logging
-  print(paste("removed", N_removed_time, "max+min due to time constraint, and", N_removed_pos, "max+min due to pos difference constraint."))
+  if (N_removed_time > 0) {
+    print(paste("removed", N_removed_time, "max+min due to time constraint."))
+  }
+  if (N_removed_pos > 0) {
+    print(paste("removed", N_removed_pos, "max+min due to pos difference constraint."))
+  }
+  if (count_wrong_side_of_hip > 0) {
+    print(paste("removed", count_wrong_side_of_hip, " extrema due to wrong side of hip"))
+  }
+  if (N_removed_max + N_removed_min > 0) {
   print(paste("removed", N_removed_max, "maxima, and", N_removed_min, "minima due to wrong alternation."))
+  }
+
+
   if (length(local_maxima) != length(local_minima)) {
-    print(paste("Length maxima:", length(local_maxima), "Length minima:", length(local_minima)))
+    print(paste("WARNING: Length maxima:", length(local_maxima), "Length minima:", length(local_minima)))
   }
 
   # Extract positions and times - use UNFILTERED footData
