@@ -24,7 +24,6 @@ library(ggpattern) # To differentiate when printing in black and white
 library(lme4)
 library(DT) # for visual tables and stuff
 library(lmerTest) # to get p-values from lmer
-# library(sjstats)
 library(emmeans)
 library(MuMIn)
 
@@ -52,10 +51,12 @@ library(ggExtra)
 # For checking parametric assumptions
 library(lmtest)
 
-# To identify local outliers
-library(Rlof)
-
 # Parallel processing
 # Load necessary packages
 library(foreach)
 library(doParallel)
+
+# To identify local outliers
+# library(Rlof) # for lof filtering
+library(dbscan) # also for lof filtering ?
+library(plotly) # interactive plots
