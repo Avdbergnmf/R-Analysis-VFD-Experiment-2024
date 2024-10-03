@@ -1,0 +1,200 @@
+### LOF Outlier Detection Page
+
+#### Options
+```{r, echo=FALSE}
+# Multiple selection input for features to include in LOF calculation
+selectizeInput("lof_features", "Select Features for LOF Calculation",
+  choices = dataTypes, selected = dataTypes[1:2], multiple = TRUE
+)
+
+# Input box for k value in LOF algorithm
+numericInput("lof_k", "Number of Neighbors (k) for LOF", value = 15, min = 1)
+
+# Input box for k value in LOF algorithm
+numericInput("lof_k", "Max points (prevent crashing)", value = 1000, min = 1,step=100)
+
+# Button to run LOF calculation
+actionButton("run_lof", "Calculate LOF Scores")
+
+# Slider input for threshold selection
+sliderInput("lof_threshold", "LOF Threshold",
+  min = 1, max = 5, value = 1.5, step = 0.1
+)
+
+# Button to overwrite outliers based on LOF scores
+actionButton("overwrite_outliers", "Overwrite Outliers with LOF Scores")
+```
+
+Column
+--------------------------------------------
+
+### LOF Score Distribution
+
+```{r}
+# Output cumulative distribution plot for LOF scores
+plotlyOutput("lof_score_distribution_plotly")
+```
+
+---
+
+```{r, context="server"}
+get_lof_scores <- function(participant, trial, lof_data, k_value){
+  # Scale the features
+  lof_data_scaled <- scale(lof_data)
+  
+  # Check that k is appropriate
+  if (k_value < 1 || k_value >= nrow(lof_data_scaled)) {
+    return(NULL)
+  }
+  
+  # Calculate LOF scores
+  lof_scores <- lof(lof_data_scaled, minPts = k_value)
+  
+  return(lof_scores)
+}
+
+# Reactive expression to perform LOF calculation when the button is clicked
+lof_results <- eventReactive(input$run_lof, {
+  # Get the filtered parameters
+  params <- filteredParams()
+  
+  # Ensure that there are steps to process
+  if (is.null(params) || nrow(params) == 0) {
+    showNotification("No steps to process after filtering.", type = "warning")
+    return(NULL)
+  }
+  
+  # Select the features specified by the user
+  selected_features <- input$lof_features
+  if (length(selected_features) < 1) {
+    showNotification("Please select at least one feature for LOF calculation.", type = "error")
+    return(NULL)
+  }
+  
+  # Get the k value from the user input
+  k_value <- input$lof_k
+  
+  # Calculate LOF scores for all participants and trials
+  lof_data <- params[, selected_features, drop = FALSE]
+  lof_results <- get_data_from_loop_parallel(get_lof_scores, lof_data, k_value) # parallel processinggggg
+  names(lof_results)[names(lof_results) == "newData"] <- "lofScore" # rename
+  
+  lof_results$heelStrikes.time <- params$heelStrikes.time
+  return(lof_results) # Return the updated params with LOF scores
+})
+
+# Render the LOF score cumulative distribution plot with interactive points
+output$lof_score_distribution_plotly <- renderPlotly({
+  # Get the LOF results
+  params <- lof_results()
+  
+  # Check if LOF results are available
+  if (is.null(params)) {
+    return(NULL)
+  }
+  
+  # Reduce plot_data size
+  plot_data <- params[!is.na(params$lofScore), ]
+  plot_data <- plot_data[order(plot_data$lofScore), ]
+  plot_data$cumfreq <- seq_along(plot_data$lofScore) / nrow(plot_data)
+
+  # Sample the data for faster rendering
+  max_points <- 1000  # Limit to 1000 points for example
+  if (nrow(plot_data) > max_points) {
+    plot_data <- plot_data[seq(1, nrow(plot_data), length.out = max_points), ]
+  }
+  
+  # Render the plot
+  p <- plot_ly(
+    data = plot_data,
+    x = ~lofScore,
+    y = ~cumfreq,
+    type = 'scatter',
+    mode = 'markers',
+    marker = list(size = 5),
+    hoverinfo = 'text',
+    text = ~paste(
+      "Participant:", participant,
+      "<br>TrialNum:", trialNum,
+      "<br>Timestamp:", heelStrikes.time,
+      "<br>LOF Score:", round(lofScore, 3)
+    )
+  ) %>%
+    layout(
+      title = "Cumulative Distribution of LOF Scores",
+      xaxis = list(title = "LOF Score"),
+      yaxis = list(title = "Cumulative Frequency"),
+      shapes = list(
+        list(
+          type = "line",
+          x0 = input$lof_threshold, x1 = input$lof_threshold,
+          y0 = 0, y1 = 1,
+          line = list(color = "red", dash = "dash")
+        )
+      )
+    )
+  p <- event_register(p, 'plotly_click')
+  return(p)
+})
+
+
+# Observe click events on the plot
+observeEvent(event_data("plotly_click"), {
+  click_data <- event_data("plotly_click")
+  if (is.null(click_data)) return()
+  
+  # Get the point index
+  point_number <- click_data$pointNumber + 1  # Adjust for R indexing
+  
+  # Get the lof_results data
+  params <- NULL#lof_results()
+  if (is.null(params)) return()
+  
+  # Get the data point corresponding to the click
+  plot_data <- params[!is.na(params$lofScore), ]
+  plot_data <- plot_data[order(plot_data$lofScore), ]
+  clicked_point <- plot_data[point_number, ]
+  
+  # Update participant and trialNum selections
+  updateSelectizeInput(session, "participant", selected = clicked_point$participant)
+  updateSelectizeInput(session, "trialNum", selected = clicked_point$trialNum)
+  
+  # Update time range to center on the clicked timestamp
+  time_range <- c(clicked_point$heelStrikes.time - 10, clicked_point$heelStrikes.time + 10)
+  updateNumericInput(session, "xlim_min", value = time_range[1])
+  updateNumericInput(session, "xlim_max", value = time_range[2])
+
+  # Send a custom message to change the page
+  session$sendCustomMessage("navigateToPage", list(hash = "#feet-trajectories"))
+  
+  # Provide feedback
+  showNotification("Switched to Foot Data Page with selected timestamp.", type = "message")
+})
+
+# Observe the overwrite button to update outliers based on LOF threshold
+observeEvent(input$overwrite_outliers, {
+  # Get the LOF results
+  params <- NULL# lof_results()
+  
+  # Check if LOF results are available
+  if (is.null(params)) {
+    showNotification("LOF scores are not calculated yet.", type = "error")
+    return(NULL)
+  }
+  
+  # Apply the threshold to determine outliers
+  lof_threshold <- input$lof_threshold
+  params$outlierFlag <- params$lofScore > lof_threshold
+  
+  # Update allGaitParams$heelStrikes.outliers accordingly
+  key_params <- paste(params$participant, params$trialNum, params$heelStrikes.time, sep = "_")
+  key_allGait <- paste(allGaitParams$participant, allGaitParams$trialNum, allGaitParams$heelStrikes.time, sep = "_")
+  
+  match_indices <- match(key_params, key_allGait)
+  allGaitParams$heelStrikes.outliers[match_indices] <- params$outlierFlag
+  
+  # Provide feedback to the user
+  showNotification("Outliers updated based on LOF scores.", type = "message")
+})
+
+```
