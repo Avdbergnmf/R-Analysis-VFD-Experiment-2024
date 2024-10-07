@@ -10,17 +10,28 @@ selectizeInput("lof_features", "Select Features for LOF Calculation",
 # Input box for k value in LOF algorithm
 numericInput("lof_k", "Number of Neighbors (k) for LOF", value = 2, min = 2)
 
-# Input box for k value in LOF algorithm
-numericInput("max_points", "Max points (prevent crashing)", value = 500, min = 1,step=100)
-
-# Button to run LOF calculation
-actionButton("run_lof", "Calculate LOF Scores")
-
 # Slider input for threshold selection
 sliderInput("lof_threshold", "LOF Threshold",
   min = 1, max = 5, value = 1.5, step = 0.1
 )
+```
 
+```{r}
+# Output the number of points above the threshold
+textOutput("num_above_threshold")
+```
+
+```{r, echo=FALSE}
+# Button to run LOF calculation
+actionButton("run_lof", "Calculate LOF Scores")
+```
+
+```{r, echo=FALSE}
+# Button to show LOF scores above the threshold
+actionButton("show_above_threshold", "Show datapoints above threshold")
+```
+
+```{r, echo=FALSE}
 # Button to overwrite outliers based on LOF scores
 actionButton("overwrite_outliers", "Overwrite Outliers with LOF Scores")
 ```
@@ -32,171 +43,174 @@ Column
 
 ```{r}
 # Output cumulative distribution plot for LOF scores
-plotlyOutput("lof_score_distribution_plotly")
+plotOutput("lof_score_distribution")
+```
+
+
+### Points above threshold
+
+```{r}
+# Output cumulative distribution plot for LOF scores
+tableOutput("above_threshold_table")
 ```
 
 ---
 
 ```{r, context="server"}
 get_lof_scores <- function(participant, trial, lof_data, k_value){
-  # Scale the features
-  lof_data_scaled <- scale(lof_data)
+  # take subset of lof_data based on participant and trial
+  subset_lof_data <- lof_data[lof_data$participant == participant & lof_data$trialNum == trial, ]
+  
+  # Check if there are any steps left for this participant and trial
+  if (nrow(subset_lof_data) == 0) {
+    print(paste("No data available for participant", participant, "and trial", trial))
+    return(NULL)
+  }
+  
+  # Select only the features for LOF calculation
+  selected_features <- setdiff(names(subset_lof_data), c("participant", "trialNum", "heelStrikes.time"))
+  lof_data_scaled <- scale(subset_lof_data[, selected_features])
   
   # Check that k is appropriate
   if (k_value < 1 || k_value >= nrow(lof_data_scaled)) {
+    print(paste("k value", k_value, "is not appropriate for the number of rows in the data."))
     return(NULL)
   }
   
   # Calculate LOF scores
   lof_scores <- lof(lof_data_scaled, minPts = k_value)
   
-  return(lof_scores)
+  # Add participant and trialNum columns back to the results for reference
+  result <- subset_lof_data[ , c("participant", "trialNum", "heelStrikes.time")]
+  result$lofScore <- lof_scores
+  
+  return(result)
 }
 
 # Reactive expression to perform LOF calculation when the button is clicked
 lof_results <- eventReactive(input$run_lof, {
   # Get the filtered parameters
   params <- filteredParams()
-  
+
   # Ensure that there are steps to process
   if (is.null(params) || nrow(params) == 0) {
     showNotification("No steps to process after filtering.", type = "warning")
     return(NULL)
   }
-  
+
   # Select the features specified by the user
   selected_features <- input$lof_features
   if (length(selected_features) < 1) {
     showNotification("Please select at least one feature for LOF calculation.", type = "error")
     return(NULL)
   }
-  
+
   # Get the k value from the user input
   k_value <- input$lof_k
-  
+
   # Calculate LOF scores for all participants and trials
-  lof_data <- params[, selected_features, drop = FALSE]
+  lof_data <- params[, c("participant", "trialNum", "heelStrikes.time", selected_features), drop = FALSE]
   print("Start calculating LOF scores.")
-  lof_results <- get_data_from_loop_parallel(get_lof_scores, lof_data, k_value) # parallel processinggggg
-  print("Done calculating LOF scores.")
-  names(lof_results)[names(lof_results) == "newData"] <- "lofScore" # rename
+
+  # Create an empty data frame to store results
+  lof_results_list <- list()
+
+  # Loop through each participant and trial
+  unique_participants <- unique(lof_data$participant)
+  for (participant in unique_participants) {
+    unique_trials <- unique(lof_data$trialNum[lof_data$participant == participant])
+    for (trial in unique_trials) {
+      # Calculate LOF scores for each participant and trial
+      lof_result <- get_lof_scores(participant, trial, lof_data, k_value)
+      if (!is.null(lof_result)) {
+        lof_results_list <- append(lof_results_list, list(lof_result))
+      }
+    }
+  }
+
+  # Combine all the individual results into a single data frame
+  lof_results <- do.call(rbind, lof_results_list)
+
+  if (is.null(lof_results) || nrow(lof_results) == 0) {
+    print("Returned NULL scores.")
+    return(NULL)
+  }
   
-  lof_results$heelStrikes.time <- params$heelStrikes.time
+  print("Done calculating LOF scores.")
+
   return(lof_results) # Return the updated params with LOF scores
 })
 
-output$lof_score_distribution_plotly <- renderPlotly({
+# Output the number of points above the threshold
+output$num_above_threshold <- renderText({
   # Get the LOF results
   params <- lof_results()
-  
+
+  # Check if LOF results are available
+  if (is.null(params)) {
+    return("Number of points above threshold: 0")
+  }
+
+  # Calculate the number of points above the threshold
+  lof_threshold <- input$lof_threshold
+  num_above <- sum(params$lofScore > lof_threshold, na.rm = TRUE)
+
+  paste("Number of points above threshold:", num_above)
+})
+
+# Render the LOF cumulative plot
+output$lof_score_distribution <- renderPlot({
+  # Get the LOF results
+  params <- lof_results()
+
   # Check if LOF results are available
   if (is.null(params)) {
     return(NULL)
   }
-  
+
   # Prepare data for plotting
   plot_data <- params[!is.na(params$lofScore), ]
   plot_data <- plot_data[order(plot_data$lofScore), ]
   plot_data$cumfreq <- seq_along(plot_data$lofScore) / nrow(plot_data)
-  
-  # Set a threshold for the top interactive points
-  top_interactive_n <- 500  # Set a limit for interactive points
 
-  # Split data into static and interactive parts
-  if (nrow(plot_data) > top_interactive_n) {
-    interactive_data <- plot_data[(nrow(plot_data) - top_interactive_n + 1):nrow(plot_data), ]
-    static_data <- plot_data[1:(nrow(plot_data) - top_interactive_n), ]
-  } else {
-    # If the number of points is less than top_interactive_n, all will be interactive
-    interactive_data <- plot_data
-    static_data <- data.frame()
-  }
-  
-  # Create the plot
-  p <- plot_ly()
-  
-  # Add static line layer for cumulative sum (non-interactive)
-  if (nrow(static_data) > 0) {
-    p <- p %>%
-      add_trace(
-        x = static_data$lofScore,
-        y = static_data$cumfreq,
-        type = 'scatter',
-        mode = 'lines',
-        line = list(color = 'rgba(150, 150, 150, 0.5)', width = 1),
-        hoverinfo = 'none',
-        showlegend = FALSE
-      )
-  }
-  
-  # Add interactive points
-  p <- p %>%
-    add_trace(
-      data = interactive_data,
-      x = ~lofScore,
-      y = ~cumfreq,
-      type = 'scatter',
-      mode = 'markers',
-      marker = list(size = 5, color = 'rgba(255, 0, 0, 0.7)'),
-      hoverinfo = 'text',
-      text = ~paste(
-        "Participant:", participant,
-        "<br>TrialNum:", trialNum,
-        "<br>Timestamp:", heelStrikes.time,
-        "<br>LOF Score:", round(lofScore, 3)
-      ),
-      showlegend = FALSE
-    ) %>%
-    layout(
-      title = "Cumulative Distribution of LOF Scores",
-      xaxis = list(title = "LOF Score"),
-      yaxis = list(title = "Cumulative Frequency"),
-      shapes = list(
-        list(
-          type = "line",
-          x0 = input$lof_threshold, x1 = input$lof_threshold,
-          y0 = 0, y1 = 1,
-          line = list(color = "red", dash = "dash")
-        )
-      )
-    )
-  
-  return(p)
+  # Limit the LOF scores to a maximum of 10
+  plot_data <- plot_data[plot_data$lofScore <= 10, ]
+
+  # Create the cumulative LOF plot with individual data points
+  plot(plot_data$lofScore, plot_data$cumfreq, type = "l", col = "blue",
+       xlab = "LOF Score", ylab = "Cumulative Frequency",
+       main = "Cumulative Distribution of LOF Scores",
+       xlim = c(0, 10))
+
+  # Add individual data points to the plot
+  points(plot_data$lofScore, plot_data$cumfreq, col = "red", pch = 20)
+
+  # Add threshold line
+  abline(v = input$lof_threshold, col = "red", lty = 2)
 })
 
 
-
-# Observe click events on the plot
-observeEvent(event_data("plotly_click"), {
-  click_data <- event_data("plotly_click")
-  if (is.null(click_data)) return()
-  
-  # Get the point index
-  point_number <- click_data$pointNumber + 1  # Adjust for R indexing
-  
-  # Get the lof_results data
+# Button to show LOF scores above the threshold
+observeEvent(input$show_above_threshold, {
+  # Get the LOF results
   params <- lof_results()
-  if (is.null(params)) return()
-  
-  # Get the data point corresponding to the click
-  plot_data <- params[!is.na(params$lofScore), ]
-  plot_data <- plot_data[order(plot_data$lofScore), ]
-  clicked_point <- plot_data[point_number, ]
-  
-  # Update participant and trialNum selections
-  updateSelectizeInput(session, "participant", selected = clicked_point$participant)
-  updateSelectizeInput(session, "trialNum", selected = clicked_point$trialNum)
-  
-  # Update time range to center on the clicked timestamp
-  time_range <- c(clicked_point$heelStrikes.time - 10, clicked_point$heelStrikes.time + 10)
-  updateNumericInput(session, "xlim_min", value = time_range[1])
-  updateNumericInput(session, "xlim_max", value = time_range[2])
 
-  # Send a custom message to change the page
-  session$sendCustomMessage("navigateToPage", list(hash = "#feet-trajectories"))
-  
-  # Provide feedback
-  showNotification("Switched to Foot Data Page with selected timestamp.", type = "message")
+  # Check if LOF results are available
+  if (is.null(params)) {
+    showNotification("LOF scores are not calculated yet.", type = "error")
+    return(NULL)
+  }
+
+  # Filter data points above the threshold
+  lof_threshold <- input$lof_threshold
+  points_above_threshold <- params[params$lofScore > lof_threshold, ]
+
+  # Display the filtered data
+  output$above_threshold_table <- renderTable({
+    points_above_threshold
+  })
+
+  showNotification("Displaying points above the LOF threshold.", type = "message")
 })
 
 # Observe the overwrite button to update outliers based on LOF threshold
@@ -214,15 +228,24 @@ observeEvent(input$overwrite_outliers, {
   lof_threshold <- input$lof_threshold
   params$outlierFlag <- params$lofScore > lof_threshold
   
-  # Update allGaitParams$heelStrikes.outliers accordingly
-  key_params <- paste(params$participant, params$trialNum, params$heelStrikes.time, sep = "_")
-  key_allGait <- paste(allGaitParams$participant, allGaitParams$trialNum, allGaitParams$heelStrikes.time, sep = "_")
+  # Prepare key columns for merging
+  key_columns <- c("participant", "trialNum", "heelStrikes.time")
   
-  match_indices <- match(key_params, key_allGait)
-  allGaitParams$heelStrikes.outliers[match_indices] <- params$outlierFlag
+  # Merge LOF results with allGaitParams to update outliers
+  merged_data <- merge(allGaitParams, params, 
+                       by = key_columns, all.x = TRUE, suffixes = c("", ".lof"))
+  
+  # Update the outlier column
+  merged_data$heelStrikes.outlierSteps <- merged_data$outlierFlag.lof
+  merged_data$heelStrikes.outlierSteps[is.na(allGaitParams$heelStrikes.outlierSteps)] <- FALSE  # Set NA to FALSE
+  
+  # Re-assign the updated data frame to `allGaitParams`
+  allGaitParams <<- merged_data  # Make sure to use the global assignment
   
   # Provide feedback to the user
   showNotification("Outliers updated based on LOF scores.", type = "message")
 })
+
+
 
 ```
