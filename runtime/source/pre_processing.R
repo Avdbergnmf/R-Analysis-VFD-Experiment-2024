@@ -11,6 +11,24 @@ preprocess_data <- function(participant, trialNum) {
   rightFoot <- get_t_data(participant, "rightfoot", trialNum)
   hip <- get_t_data(participant, "hip", trialNum)
 
+  # Rotate the data if needed (rotate data around y axis to align with treadmill direction)
+  rotations_file <- "./data_modifications/rotations_kinematic_data.csv" # manually created file with participant, trial, and rotation (in degrees)
+  if (file.exists(rotations_file)) {
+    rotations_data <- read.csv(rotations_file)
+    # Look for rotation for this specific trial
+    rotation <- rotations_data[rotations_data$participant == participant & rotations_data$trial == trialNum, "rotation"]
+    if (length(rotation) == 0) { # If not found, look for any rotation for this participant
+      rotation <- rotations_data[rotations_data$participant == participant, "rotation"]
+    }
+
+    if (length(rotation) > 0) { # If rotation is found, apply it
+      rotation <- rotation[1] # Take the first rotation if multiple are found
+      leftFoot <- rotate_y(leftFoot, rotation)
+      rightFoot <- rotate_y(rightFoot, rotation)
+      hip <- rotate_y(hip, rotation)
+    }
+  }
+
   targetData <- get_t_data(participant, "steptargets", trialNum)
   leftDisturbance <- get_t_data(participant, "leftdisturbance", trialNum)
   rightDisturbance <- get_t_data(participant, "rightdisturbance", trialNum)
@@ -34,17 +52,7 @@ preprocess_data <- function(participant, trialNum) {
     targetData = adjust_times(targetData, minTime, maxTime)
   )
 
-  data <- hardcoded_rotation_fix(data, participant, trialNum)
   return(data)
-}
-
-######## Added this later as a hardcode fix to get my data rotated properly, because with one of the participants, this was necessary
-hardcoded_rotation_fix <- function(data, participant, trialNum) {
-  if (participant == "15" && trialNum %in% c(5, 6)) { # saw these trials needed a 4 deg rotation
-    return(rotate_preprocessed_data(data, -4 * pi / 180))
-  } else {
-    return(data)
-  }
 }
 
 rotate_preprocessed_data <- function(data, rotation) {
@@ -56,7 +64,8 @@ rotate_preprocessed_data <- function(data, rotation) {
 }
 
 # one of the datasets has a wrong rotation in some of the trials, we correct that with this function.
-rotate_y <- function(data, theta) {
+rotate_y <- function(data, theta_deg) { # THETA IN DEGREES!
+  theta <- theta_deg * pi / 180 # convert to radians
   # Create the rotation matrix
   rotation_matrix <- matrix(
     c(
@@ -119,22 +128,6 @@ detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
 
   return(!(data >= lower_bound & data <= upper_bound))
 }
-
-# lof_outliers <- function(data, ignoreSteps, threshold = 2.5) {
-#   k <- 3 # LOF parameter, number of neighbors
-
-#   # Apply LOF only to non-ignored steps
-#   lof_scores <- rep(NA, nrow(data)) # Initialize lof_scores for all data
-#   lof_scores[!ignoreSteps] <- lof(data[!ignoreSteps, ], k)
-
-#   # Identify outliers based on the threshold, only for non-ignored steps
-#   outliers <- rep(FALSE, nrow(data)) # Initialize outliers for all data
-#   outliers[!ignoreSteps] <- lof_scores[!ignoreSteps] > threshold
-
-#   return(outliers)
-# }
-
-
 
 apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
   column <- hampel_filter(column, k = 7, t0 = 3) # this is kinda slow but makes step detection more consistent.

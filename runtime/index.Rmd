@@ -17,6 +17,7 @@ source('source/find_foot_events.R', local = FALSE)
 ## Get Results
 source('source/calc_all_gait_params.R', local = FALSE)
 source('source/get_questionnaire_results.R', local = FALSE)
+
 # File paths
 resultsFolder <- "results"
 agpFile <- file.path(resultsFolder, "allGaitParams.rds")
@@ -174,6 +175,5 @@ Outlier Filtering
 Manual Outlier Filtering
 =====================================
 ```{r, child='pages/page16_manualOutlierFiltering.Rmd'}
-#source("runtime/pages/page15_manualOutlierSelection.Rmd", local = knitr::knit_global())
 ```
 

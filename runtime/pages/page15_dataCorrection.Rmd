@@ -39,7 +39,7 @@ numericInput("ylim_max_15", "Y-axis maximum",
 Column
 --------------------------------------------
 ### Transformed Feet Trajectories {data-height=1500}
-
+Save rotations dataset under "./data_modifications/rotations_kinematic_data.csv". If there already is a dataset here, remove it and restart the code before making any adjustments here (otherwise you are adjusting a already adjusted dataset).
 ```{r}
 plotlyOutput("FeetTraj_15", width = "100%", height = "100%")
 ```
@@ -132,7 +132,7 @@ output$FeetTraj_15 <- renderPlotly({
   tnum <- as.numeric(input$trialNum_15)
   preprocessedData <- preprocess_data(input$participant_15, tnum) 
   rotation <- getRotation(input$participant_15, tnum)
-  preprocessedData <- rotate_preprocessed_data(preprocessedData, rotation*pi/180)
+  preprocessedData <- rotate_preprocessed_data(preprocessedData, rotation)
 
   # Create the base ggplot
   p <- plot_steps(

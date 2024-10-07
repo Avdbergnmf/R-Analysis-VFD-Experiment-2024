@@ -25,7 +25,7 @@ get_proper_legend <- function(show_legend, position = "inside") {
 plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time", y_axis = "pos_z", doFilter = FALSE, show_legend = TRUE, extraTitle = "", baseSize = 5, xlim = NULL, ylim = NULL, preprocessedData = NULL) { # start=first step to plot, end=last step to plot
   filteredGaitParams <- filteredGaitParams[filteredGaitParams$participant == participant & filteredGaitParams$trialNum == trialNum, ]
 
-  if (preprocessedData == NULL) {
+  if (is.null(preprocessedData)) {
     preprocessedData <- preprocess_data(participant, trialNum)
   }
 
