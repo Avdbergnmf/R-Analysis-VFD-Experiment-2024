@@ -1,7 +1,7 @@
 # Analysis Code - Rocker
 The code used for the analysis of kinematic data to investigate the effect of visual feedback distortions (VFD) on gait variability while walking on a treadmill.
 
-With the files in this repository, you are able to run the code from any device that is able to install and run Docker.
+With the files in this repository, you are able to run the code from any device that is able to install and run [Docker](https://docs.docker.com/desktop/install/windows-install/#install-interactively).
 
 ## How to use
 ### Use with Docker

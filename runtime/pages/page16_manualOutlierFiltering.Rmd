@@ -1,0 +1,169 @@
+### Actions
+
+```{r}
+selectizeInput("participant", "participant",
+  choices = participants, selected = participants[1], multiple = FALSE)
+selectizeInput("trialNum", "Trial Number",
+  choices = trialNumbers, selected = trialNumbers[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
+selectizeInput("xplot", "xplot",
+  choices = xOptions, selected = "time", multiple = FALSE)#xOptions[2]
+selectizeInput("yplot", "yplot",
+  choices = xOptions, selected = "pos_z", multiple = FALSE) #xOptions[3]
+
+actionButton("export_outliers", "Export Selected Outliers")
+actionButton("overwrite_outliers", "Overwrite Outliers")
+```
+
+Column {data-width=650}
+-------------------------------------
+
+### Foot Trajectories
+
+```{r}
+plotlyOutput("manualOutlierPlot", height = "600px")
+```
+
+Column {data-width=350}
+-------------------------------------
+
+### Selected Outliers
+
+```{r}
+DT::dataTableOutput("selectedOutliersTable")
+```
+
+```{r, context="server"}
+# Reactive value to store selected outliers
+selected_outliers <- reactiveVal(data.frame(
+  participant = character(),
+  trialNum = numeric(),
+  heelStrikes.time = numeric(),
+  stringsAsFactors = FALSE
+))
+
+# Render the interactive plot
+output$manualOutlierPlot <- renderPlotly({
+  req(filteredParams())
+  
+  # Get the current participant and trial from the sidebar inputs
+  current_participant <- input$participant
+  current_trial <- as.numeric(input$trialNum)
+  
+  # Create the base ggplot
+  p <- plot_steps(
+    filteredParams(), current_participant, current_trial,
+    input$start, input$end, input$xplot, input$yplot, input$filter, 
+    baseSize = input$baseSize,
+    xlim = c(input$xlim_min, input$xlim_max),
+    ylim = c(input$ylim_min, input$ylim_max)
+  )
+
+  # Convert to plotly, ensuring only `geom_point` layers are selectable
+  p <- ggplotly(p) %>%
+    style(
+      hoverinfo = "none", # Disable hover info on paths if not needed
+      traces = which(sapply(.$x$data, function(d) d$type) == "scatter" & sapply(.$x$data, function(d) d$mode) == "lines")
+    ) %>%
+    layout(dragmode = "select") %>%
+    event_register("plotly_click")
+  return(p)
+})
+
+# Update selected outliers based on plot clicks
+observeEvent(event_data("plotly_click"), {
+  click_data <- event_data("plotly_click")
+  
+  if (!is.null(click_data)) {
+    current_participant <- input$participant
+    current_trial <- as.numeric(input$trialNum)
+    clicked_time <- click_data$x
+    
+    # Find the closest heel strike in filteredParams()
+    params <- filteredParams()
+    closest_step <- params[params$participant == current_participant &
+                           params$trialNum == current_trial, ] %>%
+      mutate(time_diff = abs(heelStrikes.time - clicked_time)) %>%
+      arrange(time_diff) %>%
+      slice(1)
+    
+    if (nrow(closest_step) > 0 && closest_step$time_diff <= 0.25) {
+      new_outlier <- data.frame(
+        participant = closest_step$participant,
+        trialNum = closest_step$trialNum,
+        heelStrikes.time = closest_step$heelStrikes.time,
+        stringsAsFactors = FALSE
+      )
+      
+      current_outliers <- selected_outliers()
+      updated_outliers <- rbind(current_outliers, new_outlier)
+      updated_outliers <- unique(updated_outliers)
+      selected_outliers(updated_outliers)
+
+      showNotification("Outlier added", type = "message")
+    }
+  }
+})
+
+# Render the selected outliers table
+output$selectedOutliersTable <- DT::renderDataTable({
+  DT::datatable(
+    selected_outliers(),
+    options = list(pageLength = 10),
+    selection = 'single'
+  )
+})
+
+# Remove selected outlier when clicked in the table
+observeEvent(input$selectedOutliersTable_rows_selected, {
+  selected_row <- input$selectedOutliersTable_rows_selected
+  if (!is.null(selected_row)) {
+    current_outliers <- selected_outliers()
+    updated_outliers <- current_outliers[-selected_row, ]
+    selected_outliers(updated_outliers)
+    showNotification("Outlier removed", type = "message")
+  }
+})
+
+# Trigger download when export button is clicked
+observeEvent(input$export_outliers, {
+  outliers_data <- selected_outliers()
+  
+  if (nrow(outliers_data) > 0) {
+    # Programmatically trigger download
+    session$sendCustomMessage(type = 'download_outliers', message = list(data = outliers_data))
+  } else {
+    showNotification("No outliers selected to export", type = "warning")
+  }
+})
+
+# Download handler for the CSV file
+output$download_outliers <- downloadHandler(
+  filename = function() {
+    paste("manual_outliers_", Sys.Date(), ".csv", sep = "")
+  },
+  content = function(file) {
+    outliers_data <- selected_outliers()
+    write.csv(outliers_data, file, row.names = FALSE)
+  }
+)
+
+# Observer to overwrite outliers in allGaitParams
+observeEvent(input$overwrite_outliers, {
+  outliers_data <- selected_outliers()
+  
+  # Reset all outlier steps to FALSE
+  allGaitParams$heelStrikes.outlierSteps <<- FALSE
+  
+  # Mark steps as outliers if they match the selected outliers
+  for (i in seq_len(nrow(outliers_data))) {
+    match_indices <- which(
+      allGaitParams$participant == outliers_data$participant[i] &
+      allGaitParams$trialNum == outliers_data$trialNum[i] &
+      allGaitParams$heelStrikes.time == outliers_data$heelStrikes.time[i]
+    )
+    allGaitParams$heelStrikes.outlierSteps[match_indices] <<- TRUE
+  }
+  
+  showNotification("Outliers overwritten", type = "message")
+})
+```

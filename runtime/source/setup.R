@@ -59,3 +59,5 @@ library(doParallel)
 # To identify local outliers
 # library(Rlof) # for lof filtering
 library(dbscan) # also for lof filtering ?
+library(DT)
+library(plotly)

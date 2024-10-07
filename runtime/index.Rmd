@@ -165,3 +165,9 @@ Outlier Filtering
 ```{r, child='pages/page14_dataFiltering.Rmd'}
 ```
 
+Manual Outlier Filtering
+=====================================
+```{r, child='pages/page16_manualOutlierFiltering.Rmd'}
+#source("runtime/pages/page15_manualOutlierSelection.Rmd", local = knitr::knit_global())
+```
+
