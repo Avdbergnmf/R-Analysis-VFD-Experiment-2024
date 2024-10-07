@@ -14,19 +14,17 @@ actionButton("export_outliers", "Export Selected Outliers")
 actionButton("overwrite_outliers", "Overwrite Outliers")
 ```
 
-Column {data-width=650}
--------------------------------------
-
-### Foot Trajectories
+Column
+--------------------------------------------
+### Foot Trajectories {data-width=650 data-height=1500}
 
 ```{r}
-plotlyOutput("manualOutlierPlot", height = "600px")
+plotlyOutput("manualOutlierPlot")
 ```
 
-Column {data-width=350}
--------------------------------------
-
-### Selected Outliers
+Column
+--------------------------------------------
+### Selected Outliers  {data-width=350 data-height=1500}
 
 ```{r}
 DT::dataTableOutput("selectedOutliersTable")
@@ -52,14 +50,14 @@ output$manualOutlierPlot <- renderPlotly({
   # Create the base ggplot
   p <- plot_steps(
     filteredParams(), current_participant, current_trial,
-    input$start, input$end, input$xplot, input$yplot, input$filter, 
+    input$xplot, input$yplot, input$filter, 
     baseSize = input$baseSize,
     xlim = c(input$xlim_min, input$xlim_max),
     ylim = c(input$ylim_min, input$ylim_max)
   )
 
   # Convert to plotly, ensuring only `geom_point` layers are selectable
-  p <- ggplotly(p) %>%
+  p <- ggplotly(p,width = input$plotwidth, height = input$plotheight) %>%
     style(
       hoverinfo = "none", # Disable hover info on paths if not needed
       traces = which(sapply(.$x$data, function(d) d$type) == "scatter" & sapply(.$x$data, function(d) d$mode) == "lines")
@@ -107,9 +105,9 @@ observeEvent(event_data("plotly_click"), {
 # Render the selected outliers table
 output$selectedOutliersTable <- DT::renderDataTable({
   DT::datatable(
-    selected_outliers(),
-    options = list(pageLength = 10),
-    selection = 'single'
+    selected_outliers()
+    #options = list(pageLength = 10),
+    #selection = 'single'
   )
 })
 

@@ -160,6 +160,12 @@ Data Table {data-icon="fa-table"}
 ```
 
 
+Data Correction
+=====================================
+```{r, child='pages/page15_dataCorrection.Rmd'}
+```
+
+
 Outlier Filtering
 =====================================
 ```{r, child='pages/page14_dataFiltering.Rmd'}

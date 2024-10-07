@@ -1,8 +1,17 @@
-### Plot Options (New Page)
+### Plot Options
 ```{r}
-
-numericInput("rotateDeg", "Rotate around y (degrees)",
+numericInput("rotationCorrection", "Rotation Correction (degrees)",
   min = -360, max = 360, value = 0, step = 0.1)
+
+# Add save rotation button
+actionButton("saveRotation", "Save Rotation")
+
+# Add export to CSV button
+downloadButton("exportRotations", "Export Rotations to CSV")
+
+# Add import from CSV button
+fileInput("importRotations", "Import Rotations from CSV",
+  accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
 
 checkboxInput("filter_15", "Show filtered data",
   value = FALSE)
@@ -12,14 +21,9 @@ selectizeInput("trialNum_15", "Trial Number",
   choices = trialNumbers, selected = trialNumbers[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
 
 selectizeInput("xplot_15", "xplot",
-  choices = xOptions, selected = xOptions[2], multiple = FALSE)
+  choices = xOptions, selected = "time", multiple = FALSE)
 selectizeInput("yplot_15", "yplot",
-  choices = xOptions, selected = xOptions[3], multiple = FALSE)
-
-numericInput("start_15", "start at step nr",
-  min = 0, max = 500, value = 0, step = 1)
-numericInput("end_15", "end at step nr",
-  min = 0, max = 500, value = 0, step = 1)
+  choices = xOptions, selected = "pos_x", multiple = FALSE)
 
 # Add x and y limits inputs
 numericInput("xlim_min_15", "X-axis minimum",
@@ -37,21 +41,110 @@ Column
 ### Transformed Feet Trajectories {data-height=1500}
 
 ```{r}
-imageOutput("FeetTraj_15")
+plotlyOutput("FeetTraj_15", width = "100%", height = "100%")
+```
+
+### Rotation Corrections Table
+```{r}
+tableOutput("rotationTable")
 ```
 
 ```{r, context="server"}
-output$FeetTraj_15 <- renderSVG({ reactive({
-    tnum <- as.numeric(input$trialNum_15)
-    preprocessedData <- preprocess_data(input$participant_15, tnum) 
-    preprocessedData <- rotate_preprocessed_data(preprocessedData, input$rotateDeg*pi/180)
-    plot_steps(
-      filteredParams(), preprocessedData, input$participant_15, tnum, 
-      input$start_15, input$end_15, input$xplot_15, input$yplot_15, input$filter_15, 
-      baseSize=input$baseSize,
-      xlim=c(input$xlim_min_15, input$xlim_max_15),
-      ylim=c(input$ylim_min_15, input$ylim_max_15)
-    )
-  })
+# Initialize rotation dataframe
+rotationDF <- reactiveVal(data.frame(participant = character(),
+                                     trial = numeric(),
+                                     rotation = numeric(),
+                                     stringsAsFactors = FALSE))
+
+# Function to get or set rotation
+getRotation <- function(participant, trial) {
+  df <- rotationDF()
+  row <- df[df$participant == participant & df$trial == trial, ]
+  if (nrow(row) > 0) {
+    return(row$rotation)
+  }
+  # If not found, look for any rotation for the same participant
+  participantRow <- df[df$participant == participant, ]
+  if (nrow(participantRow) > 0) {
+    return(participantRow$rotation[1])
+  }
+  return(0)  # Default to 0 if no rotation found
+}
+
+# Update rotation input when participant or trial changes
+observe({
+  rotation <- getRotation(input$participant_15, as.numeric(input$trialNum_15))
+  updateNumericInput(session, "rotationCorrection", value = rotation)
+})
+
+# Save rotation when button is clicked
+observeEvent(input$saveRotation, {
+  df <- rotationDF()
+  participant <- input$participant_15
+  trial <- as.numeric(input$trialNum_15)
+  rotation <- input$rotationCorrection
+  
+  # Update or add new row
+  if (nrow(df[df$participant == participant & df$trial == trial, ]) > 0) {
+    df[df$participant == participant & df$trial == trial, "rotation"] <- rotation
+  } else {
+    df <- rbind(df, data.frame(participant = participant, trial = trial, rotation = rotation))
+  }
+  
+  rotationDF(df)
+})
+
+# Export rotations to CSV
+output$exportRotations <- downloadHandler(
+  filename = function() {
+    paste("rotations-", Sys.Date(), ".csv", sep="")
+  },
+  content = function(file) {
+    write.csv(rotationDF(), file, row.names = FALSE)
+  }
+)
+
+# Import rotations from CSV
+observeEvent(input$importRotations, {
+  req(input$importRotations)
+  tryCatch(
+    {
+      df <- read.csv(input$importRotations$datapath, stringsAsFactors = FALSE)
+      if (all(c("participant", "trial", "rotation") %in% colnames(df))) {
+        rotationDF(df)
+        showNotification("Rotations imported successfully", type = "message")
+      } else {
+        showNotification("Invalid CSV format. Please ensure the file has 'participant', 'trial', and 'rotation' columns.", type = "error")
+      }
+    },
+    error = function(e) {
+      showNotification(paste("Error importing rotations:", e$message), type = "error")
+    }
+  )
+})
+
+# Render rotation table
+output$rotationTable <- renderTable({
+  rotationDF()
+})
+
+output$FeetTraj_15 <- renderPlotly({
+  tnum <- as.numeric(input$trialNum_15)
+  preprocessedData <- preprocess_data(input$participant_15, tnum) 
+  rotation <- getRotation(input$participant_15, tnum)
+  preprocessedData <- rotate_preprocessed_data(preprocessedData, rotation*pi/180)
+
+  # Create the base ggplot
+  p <- plot_steps(
+    filteredParams(), input$participant_15, tnum,
+    input$xplot_15, input$yplot_15, input$filter_15, 
+    baseSize = input$baseSize,
+    xlim = c(input$xlim_min_15, input$xlim_max_15),
+    ylim = c(input$ylim_min_15, input$ylim_max_15),
+    preprocessedData = preprocessedData
+  )
+  # Convert to ggplotly
+  ggplotly(p, width = input$plotwidth, height = input$plotheight) %>%
+    layout(autosize = F)
 })
 ```

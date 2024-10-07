@@ -17,11 +17,6 @@ selectizeInput("xplot", "xplot",
 selectizeInput("yplot", "yplot",
   choices = xOptions, selected = "pos_z", multiple = FALSE) #xOptions[3]
 
-numericInput("start", "start at step nr",
-  min = 0, max = 500, value = 0, step = 1)
-numericInput("end", "end at step nr",
-  min = 0, max = 500, value = 0, step = 1)
-
 # Add x and y limits inputs
 numericInput("xlim_min", "X-axis minimum",
   min = -Inf, max = Inf, value = NA, step = 0.1)
@@ -46,7 +41,7 @@ imageOutput("FeetTraj")
 output$FeetTraj <- renderSVG({ reactive({
     plot_steps(
       filteredParams(), input$participant, as.numeric(input$trialNum),
-      input$start, input$end, input$xplot, input$yplot, input$filter, 
+      input$xplot, input$yplot, input$filter, 
       baseSize=input$baseSize,
       xlim=c(input$xlim_min, input$xlim_max),
       ylim=c(input$ylim_min, input$ylim_max)
