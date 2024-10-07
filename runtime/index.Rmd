@@ -8,10 +8,6 @@ runtime: shinyrmd
 ---
 
 ```{r setup, include=FALSE}
-options(shiny.maxRequestSize = 30 * 1024^2)  # Set to 30 MB, adjust as needed
-options(shiny.sanitize.errors = TRUE)  # Sanitize errors to prevent server crashes
-
-
 source('source/setup.R')
 source('source/data_loading.R', local = FALSE)
 source('source/pre_processing.R', local = FALSE)
