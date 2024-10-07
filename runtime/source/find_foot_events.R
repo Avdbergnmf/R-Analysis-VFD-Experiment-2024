@@ -99,6 +99,8 @@ detect_foot_events_coordinates <- function(footData, hipData) {
     }
   }
 
+  local_maxima <- refine_heelstrike(footData, local_maxima, local_minima)
+
   # Make sure lengths match
   lMax <- length(local_maxima)
   lMin <- length(local_minima)
@@ -248,8 +250,9 @@ calculate_gait_parameters <- function(participant, trialNum) {
   alreadyIgnoredSteps <- heelStrikesData$targetIgnoreSteps | heelStrikesData$incorrectDetection # we define those because we don't want to use them for calculating the IQRs for the outlier detection
   heelStrikesData$outlierSteps <- detect_outliers_modified_z_scores(stepTimes, alreadyIgnoredSteps, 8) # filters out obvious wrong detections, but only based on stepTime (wrong detections, basically)
   currentlyIgnoredSteps <- alreadyIgnoredSteps | heelStrikesData$outlierSteps
-  heelStrikesData$outlierSteps <- heelStrikesData$outlierSteps | detect_outliers_modified_z_scores(stepWidths, currentlyIgnoredSteps, 10)
-
+  heelStrikesData$outlierSteps <- heelStrikesData$outlierSteps | detect_outliers_modified_z_scores(stepWidths, currentlyIgnoredSteps, 8)
+  currentlyIgnoredSteps <- alreadyIgnoredSteps | heelStrikesData$outlierSteps
+  heelStrikesData$outlierSteps <- heelStrikesData$outlierSteps | detect_outliers_modified_z_scores(stepLengths, currentlyIgnoredSteps, 8)
   heelStrikesData$outlierSteps[alreadyIgnoredSteps] <- FALSE # prevent overlap
 
   # Make a list of all the gait parameters
@@ -295,4 +298,40 @@ calculate_target_data <- function(participant, trial) {
   targetData$targetDist <- sqrt(targetData$rel_x^2 + targetData$rel_z^2)
 
   return(targetData)
+}
+
+refine_heelstrike <- function(footData, local_maxima, local_minima, smoothing_window = 5, change_threshold = 0.02) {
+  #print("Refining heelstrikes...")
+  # Refine heelstrike times
+  refined_local_maxima <- c()
+  for (i in seq_along(local_maxima)) {
+    heelstrike_time <- footData$time[local_maxima[i]]
+    toeoff_time <- footData$time[local_minima[i+1]]
+    
+    # Extract the segment from heelstrike to the next toe-off
+    segment <- footData %>%
+      filter(time >= heelstrike_time & time <= toeoff_time)
+    
+    # Smooth the x and y positions
+    segment$smoothed_x <- zoo::rollmean(segment$pos_x, smoothing_window, fill = NA)
+    segment$smoothed_y <- zoo::rollmean(segment$pos_y, smoothing_window, fill = NA)
+    
+    # Calculate the rate of change
+    dx <- diff(segment$smoothed_x)/diff(segment$time)
+    dy <- diff(segment$smoothed_y)/diff(segment$time)
+    
+    # Find the point where the change is below the threshold
+    stable_point <- which(abs(dx) < change_threshold & abs(dy) < change_threshold)[1]
+    
+    if (!is.na(stable_point)) {
+      # Update the heelstrike time to the stable point
+      refined_local_maxima <- c(refined_local_maxima, local_maxima[i]+stable_point-1)
+      #print(paste("Stable point found for heelstrike at time:", heelstrike_time,". Shifted by:", segment$time[stable_point] - heelstrike_time,"s"))
+    } else {
+      # If no stable point is found, keep the original detection
+      refined_local_maxima <- c(refined_local_maxima, local_maxima[i])
+      #print(paste("No stable point found for heelstrike at time:", heelstrike_time, ". Minimum change x:", min(dx), ". Minimum change y:", min(dy)))
+    }
+  }
+  return(refined_local_maxima)
 }
