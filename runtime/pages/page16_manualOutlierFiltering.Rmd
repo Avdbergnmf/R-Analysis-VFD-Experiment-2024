@@ -29,7 +29,7 @@ actionButton("overwrite_outliers", "Overwrite Outliers")
 Column
 --------------------------------------------
 ### Foot Trajectories {data-width=650 data-height=1500}
-Mostly look at the heelstrikes. These are used for step calculation.
+Click heelstrike to add it to outlier list.   !!SAVE OFTEN TO CSV!!
 ```{r}
 plotlyOutput("manualOutlierPlot")
 ```
