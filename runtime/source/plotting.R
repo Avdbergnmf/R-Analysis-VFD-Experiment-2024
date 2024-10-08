@@ -265,12 +265,11 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
 }
 
 plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
+  ylims <- c()
   if (grepl(".sd", datatype)) {
-    ylims <- c(0, 0.05)
+    # ylims <- c(0, 0.05)
   } else if (grepl(".cv", datatype)) {
-    ylims <- c(0, 0.3)
-  } else {
-    ylims <- c()
+    # ylims <- c(0, 0.3)
   }
 
   # Filter data for the specified columns and participants
