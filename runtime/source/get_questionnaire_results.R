@@ -74,42 +74,41 @@ compute_scores <- function(pnum, qType) {
 
 
 calculate_all_scores <- function(qType) {
-  # Initialize empty data frames to hold the results
-  dfBase <- data.frame()
-  dfNoise <- data.frame()
+  # Initialize an empty dataframe to hold all results
+  allScores <- data.frame()
   
   # Iterate over the participants
   for (participant in participants) {
     # Compute the scores
     scores <- compute_scores(participant, qType)
     
-    # Transform the scores into a data frame with a single row and bind it with the participant ID
-    baseRow <- cbind(participant = participant, as.data.frame(t(scores$base)))
-    noiseRow <- cbind(participant = participant, as.data.frame(t(scores$noise)))
-    
-    # Add the scores to the data frames
-    dfBase <- rbind(dfBase, baseRow)
-    dfNoise <- rbind(dfNoise, noiseRow)
+    # Assuming scores is a list with 10 elements, one for each trial
+    for (trialNum in 1:10) {
+      # Transform the scores into a data frame with a single row
+      scoreRow <- cbind(
+        participant = participant,
+        trialNum = trialNum,
+        as.data.frame(t(scores[[trialNum]]))
+      )
+      
+      # Add the scores to the main dataframe
+      allScores <- rbind(allScores, scoreRow)
+    }
   }
   
-  allScores <- list(base = dfBase, noise = dfNoise)
+  # Ensure column names are appropriate
+  colnames(allScores) <- make.names(colnames(allScores))
   
-  # Reshape the data somewhat
-  allScores$base$VFD <- FALSE
-  allScores$noise$VFD <- TRUE
+  # Add row names
+  rownames(allScores) <- NULL
   
-  combinedData <- rbind(allScores$noise, allScores$base)
-  
-  return(combinedData)
+  return(allScores)
 }
 
 get_all_questionnaire_results <- function() {
-  # List of all questionnaires
-  allQs <- c("IMI", "VEQ", "SSQ")
-  
   # Function to rename columns with the questionnaire prefix
   rename_columns <- function(data, prefix) {
-    colnames(data) <- ifelse(colnames(data) %in% c("participant", "VFD"), colnames(data), paste0(prefix, ".", colnames(data)))
+    colnames(data) <- ifelse(colnames(data) %in% matchByIdentifiers, colnames(data), paste0(prefix, ".", colnames(data)))
     return(data)
   }
   
@@ -124,8 +123,8 @@ get_all_questionnaire_results <- function() {
     qData <- calculate_all_scores(currQ)
     qData <- rename_columns(qData, currQ)
     
-    # Merge with allQResults based on 'participant' and 'VFD'
-    allQResults <- merge(allQResults, qData, by = c("participant", "VFD"), all = TRUE)
+    # Merge with allQResults based on matchByIdentifiers
+    allQResults <- merge(allQResults, qData, by = matchByIdentifiers, all = TRUE)
   }
   
   # Add a column indicating if the participant started with noise
@@ -138,7 +137,7 @@ get_all_questionnaire_results <- function() {
 filter_questionnaire_results <- function(allQResults, qType) { # qType= "IMI", "VEQ", "SSQ"
   # Get the columns that belong to the specified questionnaire
   columns_to_keep <- grep(paste0("^", qType, "\\."), colnames(allQResults), value = TRUE)
-  columns_to_keep <- c("participant", "VFD", columns_to_keep)
+  columns_to_keep <- c(matchByIdentifiers, columns_to_keep)
   
   # Filter the data frame to keep only the relevant columns
   filtered_results <- allQResults[, columns_to_keep, drop = FALSE]

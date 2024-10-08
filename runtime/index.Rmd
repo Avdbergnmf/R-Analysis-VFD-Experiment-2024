@@ -75,17 +75,6 @@ renderSVG <- function(expr) {
 }
 ```
 
-```{r, results='asis', echo=FALSE}
-# Custom script to switch pages
-cat("
-<script>
-Shiny.addCustomMessageHandler('navigateToPage', function(message) {
-  window.location.hash = message.hash;
-});
-</script>
-")
-```
-
 Feet trajectories {data-orientation=columns}
 =====================================
 ```{r, child='pages/page1_feetTrajectories.Rmd'}

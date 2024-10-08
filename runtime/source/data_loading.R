@@ -1,28 +1,18 @@
 ################ PATH DEFINITIONS ################
-dataFolder <- file.path(".", "data")
-participants <- list.dirs(path = dataFolder, full.names = FALSE, recursive = FALSE)
+dataFolder <- "data"
+dataExtraFolder <- "data_extra"
+questionnaireInfoFolder <- "questionnaires"
 
-# Path definitions
-questionnaireInfoFolder <- file.path(".", "questionnaires")
+participants <- list.dirs(path = dataFolder, full.names = FALSE, recursive = FALSE)
 trackerPath <- file.path(file.path(dataFolder, participants[1]), "trackers")
-# trackers <- list.files(path = trackerPath, full.names = FALSE)
-filenameDict <- list(
-  "camera" = "camera_movement_T",
-  "hip" = "hiptracker_movement_T",
-  "leftfoot" = "leftfoottracker_movement_T",
-  "lefthand" = "lefthandtracker_movement_T",
-  "rightfoot" = "rightfoottracker_movement_T",
-  "righthand" = "righthandtracker_movement_T",
-  "steptargets" = "steptargetsmanager_targetsteps_T",
-  "treadmillleft" = "treadmillleft_movement_T",
-  "treadmillright" = "treadmillright_movement_T",
-  "treadmillback" = "treadmillrightback_movement_T",
-  "eye" = "eyetracking_EyeGaze_T",
-  "leftdisturbance" = "leftfoot_disturbance_noise_T",
-  "rightdisturbance" = "rightfoot_disturbance_noise_T"
-)
+filenameDict <- read.csv(file.path(dataExtraFolder,"filenameDict.csv"))
+filenameDict <- setNames(filenameDict[[2]], filenameDict[[1]])
 
 trackers <- names(filenameDict)
+
+# List of all questionnaires
+allQs <- "UserExperience" #c("IMI", "VEQ", "SSQ")
+matchByIdentifiers <- "participant" #c("participant", "VFD") # used in questionnaire result calculation
 
 ################ Data retrieval / helper methods ################
 
@@ -67,82 +57,67 @@ get_p_detail <- function(pnum, detail) {
 calculate_participant_details <- function(participants) {
   details <- data.frame(participant = participants)
   
-  # Retrieve details for each participant
-  details$age <- sapply(participants, get_p_detail, detail = "age")
-  details$gender <- sapply(participants, get_p_detail, detail = "gender")
-  details$startedWithNoise <- sapply(participants, started_with_noise)
-  details$education <- sapply(participants, get_p_detail, detail = "education")
-  details$vr_experience <- sapply(participants, get_p_detail, detail = "vr_experience")
-  details$motion <- sapply(participants, get_p_detail, detail = "motion")
-  details$noticed <- sapply(participants, get_p_detail, detail = "noticed")
-  details$move_speed <- sapply(participants, get_move_speed)
+  # List of possible details
+  possible_details <- c("age", "gender", "height", "weight", "education", "vr_experience", "motion", "noticed")
   
-  # Calculate statistics for age
-  age_mean <- mean(details$age)
-  age_sd <- sd(details$age)
-  age_median <- median(details$age)
-  age_min <- min(details$age)
-  age_max <- max(details$age)
-  age_iqr <- IQR(details$age)
+  # Retrieve details for each participant if available
+  for (detail in possible_details) {
+    tryCatch({
+      details[[detail]] <- sapply(participants, get_p_detail, detail = detail)
+    }, error = function(e) {
+      message(paste("Detail", detail, "not available for all participants. Skipping."))
+    })
+  }
   
-  # Format the age results
-  age_mean_sd <- sprintf("%.2f, SD: %.2f", age_mean, age_sd)
-  age_median_min_max_iqr <- sprintf("%d [%.0f, %.0f], IQR=%.2f", age_median, age_min, age_max, age_iqr)
+  # Add startedWithNoise and move_speed separately as they use different functions
+  tryCatch({
+    details$startedWithNoise <- sapply(participants, started_with_noise)
+  }, error = function(e) {
+    message("startedWithNoise not available for all participants. Skipping.")
+  })
+
+  tryCatch({
+    details$move_speed <- sapply(participants, get_move_speed)
+  }, error = function(e) {
+    message("move_speed not available for all participants. Skipping.")
+  })
   
-  # Calculate statistics for move speed
-  move_speed_mean <- mean(details$move_speed)
-  move_speed_sd <- sd(details$move_speed)
-  move_speed_median <- median(details$move_speed)
-  move_speed_min <- min(details$move_speed)
-  move_speed_max <- max(details$move_speed)
-  move_speed_iqr <- IQR(details$move_speed)
+  # Calculate statistics for available numeric columns
+  numeric_cols <- sapply(details, is.numeric)
+  result <- data.frame(Detail = character(), Value = character(), Category = character())
   
-  # Format the move speed results
-  move_speed_mean_sd <- sprintf("%.2f, SD: %.2f", move_speed_mean, move_speed_sd)
-  move_speed_median_min_max_iqr <- sprintf("%.2f [%.2f, %.2f], IQR=%.2f", move_speed_median, move_speed_min, move_speed_max, move_speed_iqr)
+  for (col in names(details)[numeric_cols]) {
+    if (col != "participant") {
+      col_mean <- mean(details[[col]], na.rm = TRUE)
+      col_sd <- sd(details[[col]], na.rm = TRUE)
+      col_median <- median(details[[col]], na.rm = TRUE)
+      col_min <- min(details[[col]], na.rm = TRUE)
+      col_max <- max(details[[col]], na.rm = TRUE)
+      col_iqr <- IQR(details[[col]], na.rm = TRUE)
+      
+      mean_sd <- sprintf("%.2f, SD: %.2f", col_mean, col_sd)
+      median_min_max_iqr <- sprintf("%.2f [%.2f, %.2f], IQR=%.2f", col_median, col_min, col_max, col_iqr)
+      
+      result <- rbind(result, data.frame(
+        Detail = c(paste(col, "(Mean, SD)"), paste(col, "(Median [Min, Max], IQR)")),
+        Value = c(mean_sd, median_min_max_iqr),
+        Category = ""
+      ))
+    }
+  }
   
-  # Count the occurrences of each unique value in other columns
-  gender_counts <- table(details$gender)
-  started_counts <- table(details$startedWithNoise)
-  education_counts <- table(details$education)
-  vr_experience_counts <- table(details$vr_experience)
-  motion_counts <- table(details$motion)
-  noticed_counts <- table(details$noticed)
+  # Count the occurrences of each unique value in categorical columns
+  categorical_cols <- sapply(details, is.character)
+  categorical_cols["participant"] <- FALSE  # Exclude the participant column
   
-  # Create a result data frame
-  result <- data.frame(
-    Detail = c(
-      "Age (Mean, SD)", "Age (Median [Min, Max], IQR)",
-      "Move Speed (Mean, SD)", "Move Speed (Median [Min, Max], IQR)",
-      rep("Gender", length(gender_counts)),
-      rep("Started With Noise", length(started_counts)),
-      rep("Education", length(education_counts)),
-      rep("VR Experience", length(vr_experience_counts)),
-      rep("Motion", length(motion_counts)),
-      rep("Noticed", length(noticed_counts))
-    ),
-    Value = c(
-      age_mean_sd, age_median_min_max_iqr,
-      move_speed_mean_sd, move_speed_median_min_max_iqr,
-      as.vector(gender_counts),
-      as.vector(started_counts),
-      as.vector(education_counts),
-      as.vector(vr_experience_counts),
-      as.vector(motion_counts),
-      as.vector(noticed_counts)
-    )
-  )
-  
-  # Add the names of the counted categories to the details
-  result$Category <- c(
-    "", "", "", "",
-    names(gender_counts),
-    names(started_counts),
-    names(education_counts),
-    names(vr_experience_counts),
-    names(motion_counts),
-    names(noticed_counts)
-  )
+  for (col in names(details)[categorical_cols]) {
+    counts <- table(details[[col]])
+    result <- rbind(result, data.frame(
+      Detail = rep(col, length(counts)),
+      Value = as.vector(counts),
+      Category = names(counts)
+    ))
+  }
   
   return(result)
 }
@@ -165,7 +140,7 @@ get_t_data <- function(pnum, trackerType, trialNum) {
     stop("Invalid tracker type specified.")
   }
 
-  filename <- paste0(filenameDict[[trackerType]], sprintf("%03d", trialNum), ".csv")
+  filename <- paste0(filenameDict[[trackerType]],"_T", sprintf("%03d", trialNum), ".csv")
   filePath <- file.path(get_p_dir(pnum), "trackers", filename)
 
   # Use tryCatch for more robust error handling
@@ -209,14 +184,14 @@ get_q_data <- function(pnum, qType) {
   return(result)
 }
 
-get_question_info <- function(qType) { # qType = IMI / SSQ / VEQ
+get_question_info <- function(qType) { # qType = e.g. IMI / SSQ / VEQ
   qInfopath <- file.path(questionnaireInfoFolder, paste0(qType, ".csv"))
   # Read the CSV file into a data frame
   questionnaire <- read.csv(qInfopath)
   return(questionnaire)
 }
 
-get_question_weights <- function(qType) { # qType = IMI / SSQ / VEQ
+get_question_weights <- function(qType) { # qType = e.g. IMI / SSQ / VEQ
   qpath <- file.path(questionnaireInfoFolder, paste0(qType, "_weights.csv"))
   # Read the CSV file into a data frame
   questionnaire <- read.csv(qpath)

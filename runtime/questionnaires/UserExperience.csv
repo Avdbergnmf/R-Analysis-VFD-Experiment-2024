@@ -1,0 +1,7 @@
+QuestionID,Question,mirror,category
+q1,How comfortable were the movements when the exoskeleton was applying disturbances.,false,comfort
+q2,How much resistance was the exoskeleton giving to your movements when applying disturbances.,false,transparency
+q3,How natural could you walk when the exoskeleton was applying disturbances.,false,naturalness
+q4,It seemed like I was in control of the exoskeleton.,false,agency
+q5,It seemed as if the exoskeleton was controlling me.,false,agency
+q5,It seemed like I was causing the movements of the exoskeleton.,false,agency

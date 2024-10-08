@@ -1,0 +1,5 @@
+tracker_name,datafile_prefix
+"leftfoot","leftfoot_tracker_movement"
+"rightfoot","rightfoot_tracker_movement"
+"treadmillleft","tmleft_tracker_movement"
+"treadmillright","tmright_tracker_movement"
