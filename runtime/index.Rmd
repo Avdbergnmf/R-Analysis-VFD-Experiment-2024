@@ -55,6 +55,8 @@ source('source/get_filtered_data.R', local = TRUE)
 ```{r, context="server", local=FALSE}
 session$allowReconnect(TRUE)
 
+refresh_trigger <- reactiveVal(0) # used for refreshing filteredGaitParams after outlier update
+
 #Custom function used to render SVG's instead of png's
 renderSVG <- function(expr) {
   renderImage({

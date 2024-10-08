@@ -5,19 +5,31 @@ selectizeInput("participant", "participant",
   choices = participants, selected = participants[1], multiple = FALSE)
 selectizeInput("trialNum", "Trial Number",
   choices = trialNumbers, selected = trialNumbers[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
-selectizeInput("xplot", "xplot",
+selectizeInput("xplot_15", "xplot",
   choices = xOptions, selected = "time", multiple = FALSE)#xOptions[2]
-selectizeInput("yplot", "yplot",
-  choices = xOptions, selected = "pos_z", multiple = FALSE) #xOptions[3]
+selectizeInput("yplot_15", "yplot",
+  choices = xOptions, selected = "pos_x", multiple = FALSE) #xOptions[3]
 
-actionButton("export_outliers", "Export Selected Outliers")
+# Add x and y limits inputs
+numericInput("xlim_min_15", "X-axis minimum",
+  min = -Inf, max = Inf, value = 0, step = 0.1)
+numericInput("xlim_max_15", "X-axis maximum",
+  min = -Inf, max = Inf, value = 20, step = 0.1)
+numericInput("ylim_min_15", "Y-axis minimum",
+  min = -Inf, max = Inf, value = -.5, step = 0.1)
+numericInput("ylim_max_15", "Y-axis maximum",
+  min = -Inf, max = Inf, value = .5, step = 0.1)
+
+fileInput("importOutliers", "Import Outliers from CSV",
+  accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
+downloadButton("export_outliers", "Export Outliers to CSV")
 actionButton("overwrite_outliers", "Overwrite Outliers")
 ```
 
 Column
 --------------------------------------------
 ### Foot Trajectories {data-width=650 data-height=1500}
-
+Mostly look at the heelstrikes. These are used for step calculation.
 ```{r}
 plotlyOutput("manualOutlierPlot")
 ```
@@ -31,6 +43,27 @@ DT::dataTableOutput("selectedOutliersTable")
 ```
 
 ```{r, context="server"}
+observeEvent(input$importOutliers, {
+  req(input$importOutliers)
+  tryCatch(
+    {
+      df <- read.csv(input$importOutliers$datapath, stringsAsFactors = FALSE)
+      if (all(c("participant", "trialNum", "heelStrikes.time") %in% colnames(df))) {
+        # Convert trialNum to numeric if it's not already
+        df$trialNum <- as.numeric(df$trialNum)
+        # Update the selected_outliers reactive value
+        selected_outliers(df)
+        showNotification("Outliers imported successfully", type = "message")
+      } else {
+        showNotification("Invalid CSV format. Please ensure the file has 'participant', 'trialNum', and 'heelStrikes.time' columns.", type = "error")
+      }
+    },
+    error = function(e) {
+      showNotification(paste("Error importing outliers:", e$message), type = "error")
+    }
+  )
+})
+
 # Reactive value to store selected outliers
 selected_outliers <- reactiveVal(data.frame(
   participant = character(),
@@ -50,19 +83,20 @@ output$manualOutlierPlot <- renderPlotly({
   # Create the base ggplot
   p <- plot_steps(
     filteredParams(), current_participant, current_trial,
-    input$xplot, input$yplot, input$filter, 
-    baseSize = input$baseSize,
-    xlim = c(input$xlim_min, input$xlim_max),
-    ylim = c(input$ylim_min, input$ylim_max)
+    input$xplot_15, input$yplot_15, input$filter, 
+    baseSize = input$baseSize
   )
-
+  # 
   # Convert to plotly, ensuring only `geom_point` layers are selectable
   p <- ggplotly(p,width = input$plotwidth, height = input$plotheight) %>%
     style(
       hoverinfo = "none", # Disable hover info on paths if not needed
       traces = which(sapply(.$x$data, function(d) d$type) == "scatter" & sapply(.$x$data, function(d) d$mode) == "lines")
     ) %>%
-    layout(dragmode = "select") %>%
+    layout(dragmode = "pan",
+      xaxis = list(range = c(input$xlim_min_15, input$xlim_max_15)),
+      yaxis = list(range = c(input$ylim_min_15, input$ylim_max_15))
+    ) %>%
     event_register("plotly_click")
   return(p)
 })
@@ -122,26 +156,13 @@ observeEvent(input$selectedOutliersTable_rows_selected, {
   }
 })
 
-# Trigger download when export button is clicked
-observeEvent(input$export_outliers, {
-  outliers_data <- selected_outliers()
-  
-  if (nrow(outliers_data) > 0) {
-    # Programmatically trigger download
-    session$sendCustomMessage(type = 'download_outliers', message = list(data = outliers_data))
-  } else {
-    showNotification("No outliers selected to export", type = "warning")
-  }
-})
-
-# Download handler for the CSV file
-output$download_outliers <- downloadHandler(
+# Export rotations to CSV
+output$export_outliers <- downloadHandler(
   filename = function() {
-    paste("manual_outliers_", Sys.Date(), ".csv", sep = "")
+    paste("outliers-", Sys.Date(), ".csv", sep="")
   },
   content = function(file) {
-    outliers_data <- selected_outliers()
-    write.csv(outliers_data, file, row.names = FALSE)
+    write.csv(selected_outliers(), file, row.names = FALSE)
   }
 )
 
@@ -157,10 +178,19 @@ observeEvent(input$overwrite_outliers, {
     match_indices <- which(
       allGaitParams$participant == outliers_data$participant[i] &
       allGaitParams$trialNum == outliers_data$trialNum[i] &
-      allGaitParams$heelStrikes.time == outliers_data$heelStrikes.time[i]
+      abs(allGaitParams$heelStrikes.time - outliers_data$heelStrikes.time[i]) <= 0.01
     )
-    allGaitParams$heelStrikes.outlierSteps[match_indices] <<- TRUE
+    
+    if (length(match_indices) > 0) {
+      # Take the first match if multiple are found within the time range
+      allGaitParams$heelStrikes.outlierSteps[match_indices[1]] <<- TRUE
+      # Take all matches
+      #allGaitParams$heelStrikes.outlierSteps[match_indices] <<- TRUE
+    }
   }
+  
+  # Increment the trigger to force an update of filteredGaitParams
+  refresh_trigger(refresh_trigger() + 1)
   
   showNotification("Outliers overwritten", type = "message")
 })

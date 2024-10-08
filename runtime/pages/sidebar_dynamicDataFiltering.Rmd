@@ -27,9 +27,9 @@ selectizeInput("filterImpossible", "Impossible Steps", choices = c(TRUE, FALSE),
 #### Figure Options
 ```{r}
 numericInput("plotheight", "Plot Height (pixels)",
-  min = 50, max = Inf, value = 500, step = 50)
+  min = 50, max = Inf, value = 1000, step = 50)
 numericInput("plotwidth", "Plot Width (pixels)",
-  min = 50, max = Inf, value = 500, step = 50)
+  min = 50, max = Inf, value = 1500, step = 50)
 
 numericInput("baseSize", "Base Size",
   min = 1, max = Inf, value = 10, step = 1)

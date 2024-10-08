@@ -1,6 +1,9 @@
 # Filter data based on inputs
 
 filteredParams <- reactive({
+  # Force dependency on `refresh_trigger()`
+  refresh_trigger()
+
   data <- allGaitParams
   included <- data[["participant"]] %in% input$filterParticipants
   # Trial based
@@ -17,9 +20,9 @@ filteredParams <- reactive({
   included <- included & data[["heelStrikes.incorrectDetection"]] %in% input$filterImpossible
   included <- included & data[["heelStrikes.targetIgnoreSteps"]] %in% input$filterTargets
   included <- included & data[["heelStrikes.outlierSteps"]] %in% input$filterOutliers
-  
+
   included <- included & data[["heelStrikes.foot"]] %in% input$filterSide
-  
+
   return(data[included, ])
 })
 
@@ -30,7 +33,7 @@ filteredQResults_new <- reactive({
   # participant group based
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
   included <- included & data[["noticed"]] %in% input$filterNoticed
-  
+
   return(data[included, ])
 })
 
@@ -47,9 +50,9 @@ filteredTargetParams <- reactive({
   # participant group based
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
   included <- included & data[["noticed"]] %in% input$filterNoticed
-  
+
   included <- included & data[["foot"]] %in% input$filterSide
-  
+
   return(data[included, ])
 })
 
