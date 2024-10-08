@@ -139,9 +139,12 @@ observeEvent(event_data("plotly_click"), {
 # Render the selected outliers table
 output$selectedOutliersTable <- DT::renderDataTable({
   DT::datatable(
-    selected_outliers()
-    #options = list(pageLength = 10),
-    #selection = 'single'
+    selected_outliers() %>% 
+      dplyr::mutate(row_num = dplyr::row_number()) %>% 
+      dplyr::arrange(desc(row_num)) %>% 
+      dplyr::select(-row_num),
+    options = list(pageLength = 100),
+    selection = 'single'
   )
 })
 
