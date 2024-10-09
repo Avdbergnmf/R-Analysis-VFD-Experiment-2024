@@ -77,10 +77,10 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
     geom_point(data = rTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "red", size = targetSize) +
     geom_point(data = lTargets, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 10, color = "blue", size = targetSize) + # 10=target
     # outlier steps (with filled icons and larger size)
-    geom_point(data = rOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 21, fill = "red", color = "red", size = outlierSize) +
-    geom_point(data = lOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 21, fill = "blue", color = "blue", size = outlierSize) + # 21 = filled circle
-    geom_point(data = rOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "red", size = outlierSize) +
-    geom_point(data = lOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "blue", size = outlierSize) +
+    geom_point(data = rOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 25, fill = "red", alpha = 0.5, color = "red", size = outlierSize) +
+    geom_point(data = lOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 25, fill = "blue", alpha = 0.5, color = "blue", size = outlierSize) + # 21 = filled circle
+    geom_point(data = rOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 10, fill = "red", alpha = 0.5, color = "red", size = outlierSize) +
+    geom_point(data = lOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 10, fill = "blue", alpha = 0.5, color = "blue", size = outlierSize) +
     scale_color_manual(values = c("Right" = "black", "Left" = "grey")) +
     ggtitle(extraTitle) +
     theme_minimal(base_size = baseSize) # get_sized_theme(baseSize)
