@@ -20,17 +20,17 @@ selectizeInput("filterTrialsWithoutPractice", "Trials (without practice)", choic
 ```{r}
 selectizeInput("filterSide", "Side", choices = c("Left", "Right"), selected = c("Left", "Right"), multiple = TRUE)
 selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
-selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
+selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE, TRUE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
 selectizeInput("filterImpossible", "Impossible Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 ```
 
 #### Figure Options
 ```{r}
 numericInput("plotheight", "Plot Height (pixels)",
-  min = 50, max = Inf, value = 1000, step = 50)
+  min = 50, max = Inf, value = 700, step = 50)
 numericInput("plotwidth", "Plot Width (pixels)",
-  min = 50, max = Inf, value = 1500, step = 50)
+  min = 50, max = Inf, value = 1000, step = 50)
 
 numericInput("baseSize", "Base Size",
-  min = 1, max = Inf, value = 10, step = 1)
+  min = 1, max = Inf, value = 15, step = 1)
 ```
