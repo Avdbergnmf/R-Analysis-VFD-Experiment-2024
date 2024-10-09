@@ -15,6 +15,8 @@ fileInput("importRotations", "Import Rotations from CSV",
 
 checkboxInput("filter_15", "Show filtered data",
   value = FALSE)
+checkboxInput("d_correction_15", "Show data correction",
+  value = FALSE)
 selectizeInput("participant_15", "participant",
   choices = participants, selected = participants[1], multiple = FALSE)
 selectizeInput("trialNum_15", "Trial Number",
@@ -132,15 +134,17 @@ output$FeetTraj_15 <- renderPlotly({
   tnum <- as.numeric(input$trialNum_15)
   preprocessedData <- preprocess_data(input$participant_15, tnum) 
   rotation <- getRotation(input$participant_15, tnum)
-  preprocessedData <- rotate_preprocessed_data(preprocessedData, rotation)
+  if (input$d_correction_15) {
+    preprocessedData <- rotate_preprocessed_data(preprocessedData, rotation)
+  }
 
   # Create the base ggplot
   p <- plot_steps(
     filteredParams(), input$participant_15, tnum,
     input$xplot_15, input$yplot_15, input$filter_15, 
     baseSize = input$baseSize,
-    xlim = c(input$xlim_min_15, input$xlim_max_15),
-    ylim = c(input$ylim_min_15, input$ylim_max_15),
+    #xlim = c(input$xlim_min_15, input$xlim_max_15),
+    #ylim = c(input$ylim_min_15, input$ylim_max_15),
     preprocessedData = preprocessedData
   )
   # Convert to ggplotly
