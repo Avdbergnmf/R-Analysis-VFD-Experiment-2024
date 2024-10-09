@@ -243,7 +243,9 @@ calculate_gait_parameters <- function(participant, trialNum) {
 
   # Detect outliers
   # First, we throw out some incorrect steps that are just physically impossible
-  heelStrikesData$incorrectDetection <- stepLengths > 2.0 | stepLengths <= 0.0 | stepWidths > 0.75 | stepWidths < -0.5 | stepTimes > 1.5
+  heelStrikesData$incorrectDetection <- abs(heelStrikesData$pos_x) > 0.25 | heelStrikesData$pos_y < 0.4 | heelStrikesData$pos_y > 0.6 | abs(heelStrikesData$pos_z) > 0.5 # | stepWidths > 0.75 | stepWidths < -0.5 | stepTimes > 1.5
+  heelStrikesData$incorrectDetection <- heelStrikesData$incorrectDetection | lag(heelStrikesData$incorrectDetection, default = FALSE) # also remove the heelstrike after an incorrect one
+  heelStrikesData$incorrectDetection <- heelStrikesData$incorrectDetection | stepLengths > 1.5 | stepLengths < 0.0 | stepWidths > 0.75 | stepWidths < -0.5 | stepTimes > 1.5
   heelStrikesData$incorrectDetection[heelStrikesData$targetIgnoreSteps] <- FALSE # prevent overlap
   alreadyIgnoredSteps <- heelStrikesData$targetIgnoreSteps | heelStrikesData$incorrectDetection # we define those because we don't want to use them for calculating the IQRs for the outlier detection
 
@@ -301,8 +303,7 @@ calculate_target_data <- function(participant, trial) {
   return(targetData)
 }
 
-refine_heelstrike <- function(footData, local_maxima, local_minima, smoothing_window = 5, change_threshold = 0.02) {
-  # print("Refining heelstrikes...")
+refine_heelstrike <- function(footData, local_maxima, local_minima, smoothing_window = 5, change_threshold = 0.05) {
   # Refine heelstrike times
   refined_local_maxima <- c()
   for (i in seq_along(local_maxima)) {
@@ -321,17 +322,22 @@ refine_heelstrike <- function(footData, local_maxima, local_minima, smoothing_wi
     dx <- diff(segment$smoothed_x) / diff(segment$time)
     dy <- diff(segment$smoothed_y) / diff(segment$time)
 
-    # Find the point where the change is below the threshold
-    stable_point <- which(abs(dx) < change_threshold & abs(dy) < change_threshold)[1]
+    # Find stable points
+    stable_points <- which(abs(dx) < change_threshold & abs(dy) < change_threshold)
 
-    if (!is.na(stable_point)) {
+    if (length(stable_points) > 0) {
+      # Take the first stable point
+      stable_point <- stable_points[1]
+
       # Update the heelstrike time to the stable point
-      refined_local_maxima <- c(refined_local_maxima, local_maxima[i] + stable_point - 1)
+      refined_local_maxima <- c(refined_local_maxima, local_maxima[i] + stable_point)
       # print(paste("Stable point found for heelstrike at time:", heelstrike_time,". Shifted by:", segment$time[stable_point] - heelstrike_time,"s"))
     } else {
-      # If no stable point is found, keep the original detection
-      refined_local_maxima <- c(refined_local_maxima, local_maxima[i])
-      # print(paste("No stable point found for heelstrike at time:", heelstrike_time, ". Minimum change x:", min(dx), ". Minimum change y:", min(dy)))
+      if (!is.na(min(dx))) { # this happens if there is no more data after the heelstrike, this almost always results in a wrong step, so we remove it
+        refined_local_maxima <- c(refined_local_maxima, local_maxima[i])
+      }
+
+      print(paste("No stable point found for heelstrike at time:", heelstrike_time, ". Minimum change x:", min(dx), ". Minimum change y:", min(dy)))
     }
   }
   return(refined_local_maxima)
