@@ -12,7 +12,7 @@ preprocess_data <- function(participant, trialNum) {
   hip <- get_t_data(participant, "hip", trialNum)
 
   # Rotate the data if needed (rotate data around y axis to align with treadmill direction)
-  rotations_file <- "./data_modifications/rotations_kinematic_data.csv" # manually created file with participant, trial, and rotation (in degrees)
+  rotations_file <- "./data_extra/rotations_kinematic_data.csv" # manually created file with participant, trial, and rotation (in degrees)
   if (file.exists(rotations_file)) {
     rotations_data <- read.csv(rotations_file)
     # Look for rotation for this specific trial
