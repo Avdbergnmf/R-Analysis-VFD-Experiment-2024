@@ -41,7 +41,7 @@ numericInput("ylim_max_15", "Y-axis maximum",
 Column
 --------------------------------------------
 ### Transformed Feet Trajectories {data-height=1500}
-Save rotations dataset under "./data_modifications/rotations_kinematic_data.csv". If there already is a dataset here, remove it and restart the code before making any adjustments here (otherwise you are adjusting a already adjusted dataset).
+Save rotations dataset under "./data_extra/rotations_kinematic_data.csv". If there already is a dataset here, remove it and restart the code before making any adjustments here (otherwise you are adjusting a already adjusted dataset).
 ```{r}
 plotlyOutput("FeetTraj_15", width = "100%", height = "100%")
 ```

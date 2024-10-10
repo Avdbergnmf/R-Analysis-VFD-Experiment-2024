@@ -144,7 +144,6 @@ noticed_vfd <- function(participant) {
 
 # get any type of data
 get_t_data <- function(pnum, trackerType, trialNum) {
-  print(filenameDict)
   # Validate trackerType
   if (!trackerType %in% names(filenameDict)) {
     stop("Invalid tracker type specified.")
