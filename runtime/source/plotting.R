@@ -51,8 +51,8 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
 
   rParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Right", ]
   lParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Left", ]
-  rTargets <- rParams[rParams$heelStrikes.target, ]
-  lTargets <- lParams[lParams$heelStrikes.target, ]
+  rTargets <- rParams[rParams$heelStrikes.targetIgnoreSteps, ]
+  lTargets <- lParams[lParams$heelStrikes.targetIgnoreSteps, ]
 
   # Separate outliers from non-outliers
   rOutliers <- rParams[rParams$heelStrikes.outlierSteps, ]
