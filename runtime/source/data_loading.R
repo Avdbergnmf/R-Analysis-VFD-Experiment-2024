@@ -7,7 +7,7 @@ participants <- list.dirs(path = dataFolder, full.names = FALSE, recursive = FAL
 trackerPath <- file.path(file.path(dataFolder, participants[1]), "trackers")
 filenameDict <- read.csv(file.path(dataExtraFolder, "filenameDict.csv"), stringsAsFactors = FALSE)
 filenameDict <- setNames(as.list(filenameDict[[2]]), filenameDict[[1]])
-
+trackers <- names(filenameDict)
 ################ Data retrieval / helper methods ################
 
 # Data retrieval functions
@@ -151,7 +151,7 @@ get_t_data <- function(pnum, trackerType, trialNum) {
 
   filename <- paste0(filenameDict[[trackerType]],"_T", sprintf("%03d", trialNum), ".csv")
   filePath <- file.path(get_p_dir(pnum), "trackers", filename)
-  print(filePath)
+  
   # Use tryCatch for more robust error handling
   tryCatch(
     {
