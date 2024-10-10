@@ -1,25 +1,14 @@
 ### Questionnaire results calculation
-compute_scores <- function(pnum, qType) {
-  qdata <- get_q_data(pnum, qType)
-  
-  qinfo <- get_question_info(qType)
-  combined <- merge(qdata, qinfo, by = "QuestionID")
-  
-  # Retrieve the weights and score info
-  qweights <- get_question_weights(qType)
-  
+compute_scores <- function(participant, combined, qWeights, trialNum) {
   # Get max and min score for mirroring
-  max_score <- qweights[qweights$category == "max_score", "weight"]
-  min_score <- qweights[qweights$category == "min_score", "weight"]
-  do_average <- qweights[qweights$category == "do_average", "weight"]
+  max_score <- qWeights[qWeights$category == "max_score", "weight"]
+  min_score <- qWeights[qWeights$category == "min_score", "weight"]
+  do_average <- qWeights[qWeights$category == "do_average", "weight"]
   
   # Mirror the scores if needed
-  combined$Answer_Participant__condition_Base <- ifelse(combined$mirror, 
-                                                        max_score + min_score - combined$Answer_Participant__condition_Base, 
-                                                        combined$Answer_Participant__condition_Base)
-  combined$Answer_Participant__condition_Noise <- ifelse(combined$mirror, 
-                                                         max_score + min_score - combined$Answer_Participant__condition_Noise, 
-                                                         combined$Answer_Participant__condition_Noise)
+  combined$Answer <- ifelse(combined$mirror, 
+                            max_score + min_score - combined$Answer, 
+                            combined$Answer)
   
   # Find all columns that contain the word 'category'
   category_columns <- grep("category", colnames(combined), value = TRUE)
@@ -27,117 +16,127 @@ compute_scores <- function(pnum, qType) {
   # Create a long format dataframe to handle multiple categories
   combined_long <- combined %>%
     tidyr::pivot_longer(cols = all_of(category_columns), names_to = "category_type", values_to = "category") %>%
-    dplyr::filter(!is.na(category))
-  combined_long <- combined_long[combined_long$category!="",]
-  #print(head(combined_long, 10), width = Inf) # to check if this worked
+    dplyr::filter(!is.na(category) & category != "")
   
   # Compute the scores for each category
-  if (do_average==0) {
+  if (do_average == 0) {
     # Compute the weighted scores for each category
     combined_long <- combined_long %>%
       dplyr::mutate(
         weight = dplyr::case_when(
-          category %in% qweights$category ~ qweights$weight[match(category, qweights$category)],
+          category %in% qWeights$category ~ qWeights$weight[match(category, qWeights$category)],
           TRUE ~ 1
         ),
-        weighted_Answer_Participant__condition_Base = Answer_Participant__condition_Base * weight,
-        weighted_Answer_Participant__condition_Noise = Answer_Participant__condition_Noise * weight
+        weighted_Answer = Answer * weight
       )
     
-    scoresBase <- tapply(combined_long$weighted_Answer_Participant__condition_Base, combined_long$category, sum, na.rm = TRUE)
-    scoresNoise <- tapply(combined_long$weighted_Answer_Participant__condition_Noise, combined_long$category, sum, na.rm = TRUE)
-    # Compute the total score for each condition (sum of unweighted scores, multiplied by total weight)
-    totalBase <- tapply(combined_long$Answer_Participant__condition_Base, combined_long$category, sum, na.rm = TRUE)
-    totalNoise <- tapply(combined_long$Answer_Participant__condition_Noise, combined_long$category, sum, na.rm = TRUE)
+    scores <- tapply(combined_long$weighted_Answer, combined_long$category, sum, na.rm = TRUE)
+    # Compute the total score (sum of unweighted scores, multiplied by total weight)
+    total <- tapply(combined_long$Answer, combined_long$category, sum, na.rm = TRUE)
     
-    # Compute the total weighted score for each condition
+    # Compute the total weighted score
     # Check if total weight is found, if not assign a value of 1
-    if ("total" %in% qweights$category) {
-      total_weight <- qweights[qweights$category == "total", "weight"]
+    if ("total" %in% qWeights$category) {
+      total_weight <- qWeights[qWeights$category == "total", "weight"]
     } else {
       total_weight <- 1
     }
     
-    scoresBase["total"] <- sum(totalBase, na.rm = TRUE) * total_weight
-    scoresNoise["total"] <- sum(totalNoise, na.rm = TRUE) * total_weight
+    scores["total"] <- sum(total, na.rm = TRUE) * total_weight
   } else {
-    scoresBase <- tapply(combined_long$Answer_Participant__condition_Base, combined_long$category, mean, na.rm = TRUE)
-    scoresNoise <- tapply(combined_long$Answer_Participant__condition_Noise, combined_long$category, mean, na.rm = TRUE)
+    scores <- tapply(combined_long$Answer, combined_long$category, mean, na.rm = TRUE)
     
-    # Compute the total score for each condition
-    scoresBase["total"] <- mean(scoresBase, na.rm = TRUE)
-    scoresNoise["total"] <- mean(scoresNoise, na.rm = TRUE)
+    # Compute the total score
+    scores["total"] <- mean(scores, na.rm = TRUE)
   }
   
-  return(list(base = scoresBase, noise = scoresNoise))
+  return(scores)
 }
 
 
 calculate_all_scores <- function(qType) {
-  # Initialize an empty dataframe to hold all results
-  allScores <- data.frame()
+  # Initialize an empty data frame to hold the results
+  dfScores <- data.frame()
   
   # Iterate over the participants
   for (participant in participants) {
-    # Compute the scores
-    scores <- compute_scores(participant, qType)
-    
-    # Assuming scores is a list with 10 elements, one for each trial
-    for (trialNum in 1:10) {
+    # Get the questionnaire data for this participant
+    qData <- get_q_data(participant, qType)
+    qInfo <-get_question_info(qType)
+    combined <- merge(qData, qInfo, by = "QuestionID")
+    qWeights <- get_question_weights(qType)
+    # Get the trial numbers from the questionnaire data
+    trialNums <- unique(qData$trialNum)
+      
+    # Iterate over each trial
+    for (trialNum in trialNums) {
+      # Compute the scores for this trial
+      scores <- compute_scores(participant, combined, qWeights, trialNum)
+      
       # Transform the scores into a data frame with a single row
-      scoreRow <- cbind(
+      scoresRow <- cbind(
         participant = participant,
         trialNum = trialNum,
-        as.data.frame(t(scores[[trialNum]]))
+        as.data.frame(t(scores))
       )
       
-      # Add the scores to the main dataframe
-      allScores <- rbind(allScores, scoreRow)
+      # Add additional trial information if needed
+      scoresRow$Frequency <- paste(
+        get_p_results(participant, "freqHigh", trialNum),
+        get_p_results(participant, "freqLow", trialNum),
+        sep = "-"
+      )
+      scoresRow$Gain <- get_p_results(participant, "gain", trialNum)
+      scoresRow$trialNum <- trialNum
+      
+      # Add the scores to the data frame
+      dfScores <- rbind(dfScores, scoresRow)
     }
   }
   
-  # Ensure column names are appropriate
-  colnames(allScores) <- make.names(colnames(allScores))
-  
-  # Add row names
-  rownames(allScores) <- NULL
-  
-  return(allScores)
+  return(dfScores)
 }
 
 get_all_questionnaire_results <- function() {
-  # Function to rename columns with the questionnaire prefix
-  rename_columns <- function(data, prefix) {
-    colnames(data) <- ifelse(colnames(data) %in% matchByIdentifiers, colnames(data), paste0(prefix, ".", colnames(data)))
-    return(data)
-  }
+  # Initialize an empty list to store results for each questionnaire
+  all_q_results <- list()
   
-  # Initialize allQResults with the first questionnaire to establish a base for merging
-  initialData <- calculate_all_scores(allQs[1])
-  initialData <- rename_columns(initialData, allQs[1])
-  allQResults <- initialData
-  
-  # Loop through the remaining questionnaires
-  for (currQ in allQs[-1]) {
+  # Process each questionnaire
+  for (q_type in allQs) {
     # Calculate scores for current questionnaire
-    qData <- calculate_all_scores(currQ)
-    qData <- rename_columns(qData, currQ)
+    q_data <- calculate_all_scores(q_type)
     
-    # Merge with allQResults based on matchByIdentifiers
-    allQResults <- merge(allQResults, qData, by = matchByIdentifiers, all = TRUE)
+    # Ensure all required columns for merging are present
+    for (col in matchByList) {
+      if (!(col %in% colnames(q_data))) {
+        q_data[[col]] <- NA  # Add missing column with NA values
+      }
+    }
+    
+    # Rename columns with the questionnaire prefix
+    colnames(q_data) <- ifelse(
+      colnames(q_data) %in% c(matchByList, "unique_id"),
+      colnames(q_data),
+      paste0(q_type, ".", colnames(q_data))
+    )
+    
+    # Add to the list
+    all_q_results[[q_type]] <- q_data
   }
   
-  # Add a column indicating if the participant started with noise
-  allQResults$startedWithNoise <- sapply(allQResults$participant, started_with_noise)
-  allQResults$noticed <- sapply(allQResults$participant, noticed_vfd)
+  # Merge all questionnaire results
+  merged_results <- Reduce(function(x, y) merge(x, y, by = matchByList, all = TRUE), all_q_results)
+
+  # Remove the temporary unique_id column
+  merged_results$unique_id <- NULL
   
-  return(allQResults)
+  return(merged_results)
 }
 
 filter_questionnaire_results <- function(allQResults, qType) { # qType= "IMI", "VEQ", "SSQ"
   # Get the columns that belong to the specified questionnaire
   columns_to_keep <- grep(paste0("^", qType, "\\."), colnames(allQResults), value = TRUE)
-  columns_to_keep <- c(matchByIdentifiers, columns_to_keep)
+  columns_to_keep <- c(matchByList, columns_to_keep)
   
   # Filter the data frame to keep only the relevant columns
   filtered_results <- allQResults[, columns_to_keep, drop = FALSE]

@@ -88,7 +88,6 @@ get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories)
   matched_columns <- unlist(lapply(targetColumnsToAdd, function(x) grep(x, names(muTarget), value = TRUE)))
 
   # Select only the columns we are interested in
-  matchByList <- c("participant", "trialNum")
   muTarget <- muTarget %>% select(all_of(matchByList), all_of(matched_columns))
 
   # Rename matched columns with the prefix "target."

@@ -27,16 +27,14 @@ aqrFile <- file.path(resultsFolder, "allQResults.rds")
 # Load or calculate the data
 allQResults <- load_or_calculate(aqrFile, get_all_questionnaire_results)
 allGaitParams <- load_or_calculate(agpFile, calc_all_gait_params)
-allTargetParams <- load_or_calculate(atpFile, calc_all_target_params)
 
 dataTypes         <- setdiff(getTypes(allGaitParams), categories)
-dataTypesTargets  <- setdiff(getTypes(allTargetParams), categories)
 
 ## Summary tables
 source('source/summaryparams.R', local = FALSE)
-mu <- get_full_mu(allGaitParams, allTargetParams, allQResults, categories)
-muDataTypes <- setdiff(getTypes(mu), categories)
-muVars <- colnames(mu)
+#mu <- get_full_mu(allGaitParams, allQResults, categories)
+#muDataTypes <- setdiff(getTypes(mu), categories)
+#muVars <- colnames(mu)
 ## Plotting code
 source('source/plotting.R', local = FALSE)
 ```
@@ -73,6 +71,17 @@ renderSVG <- function(expr) {
     list(src = file, deleteFile = TRUE)
   }, deleteFile = TRUE)
 }
+```
+
+```{r, results='asis', echo=FALSE}
+# Custom script to switch pages
+cat("
+<script>
+Shiny.addCustomMessageHandler('navigateToPage', function(message) {
+  window.location.hash = message.hash;
+});
+</script>
+")
 ```
 
 Feet trajectories {data-orientation=columns}

@@ -2,17 +2,14 @@
 dataFolder <- "data"
 dataExtraFolder <- "data_extra"
 questionnaireInfoFolder <- "questionnaires"
+allQs <- c("UserExperience","FinalQ") # List of all questionnaires
+matchByList <- c("participant", "trialNum") # list to match questionnaires with (parameters in which questionnaires are separated)
 
 participants <- list.dirs(path = dataFolder, full.names = FALSE, recursive = FALSE)
 trackerPath <- file.path(file.path(dataFolder, participants[1]), "trackers")
-filenameDict <- read.csv(file.path(dataExtraFolder,"filenameDict.csv"))
-filenameDict <- setNames(filenameDict[[2]], filenameDict[[1]])
-
+filenameDict <- read.csv(file.path(dataExtraFolder, "filenameDict.csv"), stringsAsFactors = FALSE)
+filenameDict <- setNames(as.list(filenameDict[[2]]), filenameDict[[1]])
 trackers <- names(filenameDict)
-
-# List of all questionnaires
-allQs <- "UserExperience" #c("IMI", "VEQ", "SSQ")
-matchByIdentifiers <- "participant" #c("participant", "VFD") # used in questionnaire result calculation
 
 ################ Data retrieval / helper methods ################
 
@@ -38,7 +35,7 @@ get_p_results <- function(pnum, settingName, trialNumber) {
 
 get_move_speed <- function(pnum) { # return move speed in m/s
   trialNum <- 1 # should be the same for all trials
-  return(get_p_results(pnum, "move_speed", trialNum) / 3.6)
+  return(get_p_results(pnum, "treadmillSpeed", trialNum))
 }
 
 get_p_detail <- function(pnum, detail) {
@@ -58,7 +55,7 @@ calculate_participant_details <- function(participants) {
   details <- data.frame(participant = participants)
   
   # List of possible details
-  possible_details <- c("age", "gender", "height", "weight", "education", "vr_experience", "motion", "noticed")
+  possible_details <- c("age", "gender", "height", "weight", "education")
   
   # Retrieve details for each participant if available
   for (detail in possible_details) {
@@ -68,13 +65,6 @@ calculate_participant_details <- function(participants) {
       message(paste("Detail", detail, "not available for all participants. Skipping."))
     })
   }
-  
-  # Add startedWithNoise and move_speed separately as they use different functions
-  tryCatch({
-    details$startedWithNoise <- sapply(participants, started_with_noise)
-  }, error = function(e) {
-    message("startedWithNoise not available for all participants. Skipping.")
-  })
 
   tryCatch({
     details$move_speed <- sapply(participants, get_move_speed)
@@ -120,17 +110,6 @@ calculate_participant_details <- function(participants) {
   }
   
   return(result)
-}
-
-# If true, the participant started with noise VFD enabled, otherwise without it enabled
-started_with_noise <- function(pnum) {
-  secondTrialHasNoise <- get_p_results(pnum, "noise_enabled", 2) == "True"
-  return(secondTrialHasNoise)
-}
-
-# did participant notice the VFD?
-noticed_vfd <- function(participant) {
-  return(get_p_detail(participant, "noticed") == "True")
 }
 
 # get any type of data
@@ -179,19 +158,41 @@ get_q_data <- function(pnum, qType) {
   questionnaire <- read.csv(questionnaireFile)
 
   # Extract the QuestionID and the two answer columns
-  result <- questionnaire[, c("QuestionID", "Answer_Participant__condition_Base", "Answer_Participant__condition_Noise")]
+  answerColumns <- grep("Answer_", names(questionnaire), value = TRUE)
+  
+  # Initialize an empty data frame for the results
+  result <- data.frame()
+  sequence <- seq_along(answerColumns)
+  for (i in sequence) {
+    # Get gain and max frequency for each trial
+    gain <- get_p_results(pnum, "gain", i+1)
+    freqHigh <- get_p_results(pnum, "freqHigh", i+1)
+    
+    # Extract and label the data for each trial
+    trialData <- data.frame(
+      participant = pnum,
+      trialNum = i,
+      Gain = gain,
+      MaxFrequency = freqHigh,
+      QuestionID = questionnaire$QuestionID,
+      Answer = questionnaire[[answerColumns[i]]]
+    )
 
+    # Combine trial data into the result dataframe
+    result <- rbind(result, trialData)
+  }
+  
   return(result)
 }
 
-get_question_info <- function(qType) { # qType = e.g. IMI / SSQ / VEQ
+get_question_info <- function(qType) {
   qInfopath <- file.path(questionnaireInfoFolder, paste0(qType, ".csv"))
   # Read the CSV file into a data frame
   questionnaire <- read.csv(qInfopath)
   return(questionnaire)
 }
 
-get_question_weights <- function(qType) { # qType = e.g. IMI / SSQ / VEQ
+get_question_weights <- function(qType) {
   qpath <- file.path(questionnaireInfoFolder, paste0(qType, "_weights.csv"))
   # Read the CSV file into a data frame
   questionnaire <- read.csv(qpath)

@@ -1,3 +1,3 @@
 QuestionID,Question,mirror,category
-d1,Strength of the disturbance,false,""
-d2,Frequencies of the disturbance,false,""
+d1,Strength of the disturbance,false,gain
+d2,Frequencies of the disturbance,false,freq

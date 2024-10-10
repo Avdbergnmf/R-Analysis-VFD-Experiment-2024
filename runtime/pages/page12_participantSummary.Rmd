@@ -143,7 +143,7 @@ observeEvent(input$generateReports, {
     
     pie_charts <- generate_pie_charts(allGaitParams, participant, trials, baseSize)
     
-    questionnaireList <- c("VEQ", "SSQ", "IMI")
+    questionnaireList <- c("UserExperience")
     questionnaire_plots <- generate_questionnaire_plots(questionnaireList, participant, baseSize)
     varList <- c("stepWidths.sd","stepWidths.cv", "stepLengths.cv")
     variability_plots <- generate_variability_plots(get_mu_dyn_long(), c(participant), varList, baseSize)

@@ -1,3 +1,6 @@
-QuestionID,Question,mirror,category
-d1,Strength of the disturbance,false,""
-d2,Frequencies of the disturbance,false,""
+category,weight
+max_score,7
+min_score,1
+max_plot,7
+min_plot,1
+do_average,0
