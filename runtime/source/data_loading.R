@@ -1,28 +1,12 @@
 ################ PATH DEFINITIONS ################
-dataFolder <- file.path(".", "data")
+dataFolder <- "data"
+dataExtraFolder <- "data_extra"
+questionnaireInfoFolder <- "questionnaires"
+
 participants <- list.dirs(path = dataFolder, full.names = FALSE, recursive = FALSE)
-
-# Path definitions
-questionnaireInfoFolder <- file.path(".", "questionnaires")
 trackerPath <- file.path(file.path(dataFolder, participants[1]), "trackers")
-# trackers <- list.files(path = trackerPath, full.names = FALSE)
-filenameDict <- list(
-  "camera" = "camera_movement_T",
-  "hip" = "hiptracker_movement_T",
-  "leftfoot" = "leftfoottracker_movement_T",
-  "lefthand" = "lefthandtracker_movement_T",
-  "rightfoot" = "rightfoottracker_movement_T",
-  "righthand" = "righthandtracker_movement_T",
-  "steptargets" = "steptargetsmanager_targetsteps_T",
-  "treadmillleft" = "treadmillleft_movement_T",
-  "treadmillright" = "treadmillright_movement_T",
-  "treadmillback" = "treadmillrightback_movement_T",
-  "eye" = "eyetracking_EyeGaze_T",
-  "leftdisturbance" = "leftfoot_disturbance_noise_T",
-  "rightdisturbance" = "rightfoot_disturbance_noise_T"
-)
-
-trackers <- names(filenameDict)
+filenameDict <- read.csv(file.path(dataExtraFolder, "filenameDict.csv"), stringsAsFactors = FALSE)
+filenameDict <- setNames(as.list(filenameDict[[2]]), filenameDict[[1]])
 
 ################ Data retrieval / helper methods ################
 
@@ -160,14 +144,15 @@ noticed_vfd <- function(participant) {
 
 # get any type of data
 get_t_data <- function(pnum, trackerType, trialNum) {
+  print(filenameDict)
   # Validate trackerType
   if (!trackerType %in% names(filenameDict)) {
     stop("Invalid tracker type specified.")
   }
 
-  filename <- paste0(filenameDict[[trackerType]], sprintf("%03d", trialNum), ".csv")
+  filename <- paste0(filenameDict[[trackerType]],"_T", sprintf("%03d", trialNum), ".csv")
   filePath <- file.path(get_p_dir(pnum), "trackers", filename)
-
+  print(filePath)
   # Use tryCatch for more robust error handling
   tryCatch(
     {
