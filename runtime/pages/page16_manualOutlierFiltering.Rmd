@@ -8,7 +8,7 @@ selectizeInput("trialNum", "Trial Number",
 selectizeInput("xplot_16", "xplot",
   choices = xOptions, selected = "time", multiple = FALSE)#xOptions[2]
 selectizeInput("yplot_16", "yplot",
-  choices = xOptions, selected = "pos_x", multiple = FALSE) #xOptions[3]
+  choices = xOptions, selected = "pos_x", multiple = FALSE)#xOptions[3]
 
 # Add x and y limits inputs
 numericInput("xlim_min_16", "X-axis minimum",
@@ -39,6 +39,13 @@ actionButton("refresh_plot", "Refresh Plot")
 actionButton("confirm_selection", "Confirm Selected Points")
 ```
 
+```{r}
+# Add these new inputs for autosave configuration
+numericInput("autosave_interval", "Autosave interval (minutes)",
+             value = 5, min = 1, max = 60, step = 1)
+checkboxInput("do_autosave", "Enable autosave", value = FALSE)
+```
+
 Column
 --------------------------------------------
 ### Foot Trajectories {data-width=650 data-height=1500}
@@ -50,6 +57,11 @@ plotlyOutput("manualOutlierPlot")
 Column
 --------------------------------------------
 ### Selected Outliers  {data-width=350 data-height=1500}
+
+```{r}
+# Add this new checkbox input above the DataTable
+checkboxInput("filter_outliers_table", "Filter table by current participant and trial", value = TRUE)
+```
 
 ```{r}
 DT::dataTableOutput("selectedOutliersTable")
@@ -318,11 +330,16 @@ observeEvent(input$selectedOutliersTable_rows_selected, {
 
 # Render the selected outliers table
 output$selectedOutliersTable <- DT::renderDataTable({
+  # Apply filtering only if the checkbox is checked
   current_participant <- input$participant
   current_trial <- as.numeric(input$trialNum)
+  if (input$filter_outliers_table) {
+    filtered_outliers <- current_outliers()
+  } else {
+    filtered_outliers <- selected_outliers()
+  }
   
-  filtered_outliers <- selected_outliers() %>% 
-    dplyr::filter(participant == current_participant & trialNum == current_trial) %>%
+  filtered_outliers <- filtered_outliers %>%
     dplyr::mutate(row_num = dplyr::row_number()) %>% 
     dplyr::arrange(desc(row_num)) %>% 
     dplyr::select(-row_num)
@@ -331,7 +348,7 @@ output$selectedOutliersTable <- DT::renderDataTable({
     filtered_outliers,
     options = list(
       pageLength = 100,
-      search = list(regex = TRUE, caseInsensitive = TRUE)
+      search = NULL #list(regex = TRUE, caseInsensitive = TRUE)
     ),
     selection = 'single'
   ) %>%
@@ -425,5 +442,42 @@ observeEvent(input$confirm_selection, {
       refresh_trigger(refresh_trigger() + 1)
     }
   }
+})
+
+# Modify the reactive timer to use the user-defined interval
+autoSaveTimer <- reactiveTimer(1000 * 60 * 5)  # Default to 5 minutes
+
+# Observe changes to the autosave interval
+observeEvent(input$autosave_interval, {
+  invalidateLater(1000 * 60 * input$autosave_interval)
+})
+
+# Modify the autosave observer
+observe({
+  # Only proceed if autosave is enabled
+  req(input$do_autosave)
+  
+  # Trigger the timer
+  autoSaveTimer()
+  
+  isolate({
+    # Get the current outliers data
+    outliers_data <- selected_outliers()
+  })
+  
+  # Generate a filename with timestamp
+  filename <- paste0("outliers_autosave_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
+  
+  # Define the full path for the file
+  filepath <- file.path("data_extra", filename)
+  
+  # Write the CSV file
+  write.csv(outliers_data, filepath, row.names = FALSE)
+  
+  # Show a notification
+  showNotification(paste("Outliers auto-saved to", filename), type = "message", duration = 5)
+  
+  # Schedule the next autosave
+  invalidateLater(1000 * 60 * input$autosave_interval)
 })
 ```
