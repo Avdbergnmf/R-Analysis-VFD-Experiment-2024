@@ -8,7 +8,7 @@ selectizeInput("trialNum", "Trial Number",
 selectizeInput("xplot_15", "xplot",
   choices = xOptions, selected = "time", multiple = FALSE)#xOptions[2]
 selectizeInput("yplot_15", "yplot",
-  choices = xOptions, selected = "pos_x", multiple = FALSE) #xOptions[3]
+  choices = xOptions, selected = "pos.x", multiple = FALSE) #xOptions[3]
 
 # Add x and y limits inputs
 numericInput("xlim_min_15", "X-axis minimum",

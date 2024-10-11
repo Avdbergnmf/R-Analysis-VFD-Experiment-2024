@@ -106,7 +106,7 @@ generate_target_stepping_plot <- function(data, participant, baseSize = 10) {
 
 generate_scatter_plot <- function(data, participant, baseSize = 10) {
   scatter_data <- data[data$participant == participant, ]
-  make_scatter_plot_steps(scatter_data, "VFD", "relHeelStrikes.pos_x", "relHeelStrikes.actual_pos_z", baseSize = baseSize)
+  make_scatter_plot_steps(scatter_data, "VFD", "relHeelStrikes.pos.x", "relHeelStrikes.actual_pos.z", baseSize = baseSize)
 }
 
 generate_2d_plots <- function(data, participant, trials, xtracker, yplot, baseSize = 10, overrideLims = c()) {
@@ -137,9 +137,9 @@ observeEvent(input$generateReports, {
     participant <- selected_participants[i]
     progress$inc(1/length(selected_participants), detail = paste("Processing participant:", participant))
     
-    traj_plots_z <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos_z", doFilter, c(-0.6,0.6), baseSize)
-    traj_plots_y <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos_y", doFilter, c(0.4,0.7), baseSize)
-    traj_plots_x <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos_x", doFilter, c(-0.4,0.4), baseSize)
+    traj_plots_z <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos.z", doFilter, c(-0.6,0.6), baseSize)
+    traj_plots_y <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos.y", doFilter, c(0.4,0.7), baseSize)
+    traj_plots_x <- generate_traj_plots(filteredParams(), participant, trials, axis_to_plot = "pos.x", doFilter, c(-0.4,0.4), baseSize)
     
     pie_charts <- generate_pie_charts(allGaitParams, participant, trials, baseSize)
     
@@ -148,16 +148,14 @@ observeEvent(input$generateReports, {
     varList <- c("stepWidths.sd","stepWidths.cv", "stepLengths.cv")
     variability_plots <- generate_variability_plots(get_mu_dyn_long(), c(participant), varList, baseSize)
     
-    target_stepping_plot <- generate_target_stepping_plot(filteredTargetParams(), participant, baseSize)
-    
     scatter_plot <- generate_scatter_plot(filteredParams(), participant, baseSize)
     # 2D plots
-    disturbance_plots_z_l <- generate_2d_plots(filteredParams(), participant, trials, "leftdisturbance", "offset_z", baseSize)
-    disturbance_plots_x_l <- generate_2d_plots(filteredParams(), participant, trials, "leftdisturbance", "offset_x", baseSize)
-    disturbance_plots_z_r <- generate_2d_plots(filteredParams(), participant, trials, "rightdisturbance", "offset_z", baseSize)
-    disturbance_plots_x_r <- generate_2d_plots(filteredParams(), participant, trials, "rightdisturbance", "offset_x", baseSize)
-    eye_plots_x <- generate_2d_plots(filteredParams(), participant, trials, "eye", "hit_pos_x", baseSize, overrideLims = c(-1, 1))
-    eye_plots_z <- generate_2d_plots(filteredParams(), participant, trials, "eye", "hit_pos_z", baseSize, overrideLims = c(-1, 5))
+    #disturbance_plots_z_l <- generate_2d_plots(filteredParams(), participant, trials, "leftdisturbance", "offset_z", baseSize)
+    #disturbance_plots_x_l <- generate_2d_plots(filteredParams(), participant, trials, "leftdisturbance", "offset_x", baseSize)
+    #disturbance_plots_z_r <- generate_2d_plots(filteredParams(), participant, trials, "rightdisturbance", "offset_z", baseSize)
+    #disturbance_plots_x_r <- generate_2d_plots(filteredParams(), participant, trials, "rightdisturbance", "offset_x", baseSize)
+    #eye_plots_x <- generate_2d_plots(filteredParams(), participant, trials, "eye", "hit_pos.x", baseSize, overrideLims = c(-1, 1))
+    #eye_plots_z <- generate_2d_plots(filteredParams(), participant, trials, "eye", "hit_pos.z", baseSize, overrideLims = c(-1, 5))
     
     # Create the PDF report for each participant
     output_file <- file.path(temp_dir, paste0("participant_report_", participant, "_", Sys.Date(), ".pdf"))
@@ -169,14 +167,7 @@ observeEvent(input$generateReports, {
       pie_charts = pie_charts,
       questionnaire_plots = questionnaire_plots,
       variability_plots = variability_plots,
-      target_stepping_plot = target_stepping_plot,
-      scatter_plot = scatter_plot,
-      disturbance_plots_z_l = disturbance_plots_z_l,
-      disturbance_plots_x_l = disturbance_plots_x_l,
-      disturbance_plots_z_r = disturbance_plots_z_r,
-      disturbance_plots_x_r = disturbance_plots_x_r,
-      eye_plots_x = eye_plots_x,
-      eye_plots_z = eye_plots_z
+      scatter_plot = scatter_plot
     ), envir = new.env(parent = globalenv()))
     
     files[[participant]] <- output_file

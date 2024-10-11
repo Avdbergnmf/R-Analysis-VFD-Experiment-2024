@@ -22,7 +22,7 @@ get_proper_legend <- function(show_legend, position = "inside") {
   }
 }
 
-plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time", y_axis = "pos_z", doFilter = FALSE, show_legend = TRUE, extraTitle = "", baseSize = 5, xlim = NULL, ylim = NULL, preprocessedData = NULL) { # start=first step to plot, end=last step to plot
+plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time", y_axis = "pos.z", doFilter = FALSE, show_legend = TRUE, extraTitle = "", baseSize = 5, xlim = NULL, ylim = NULL, preprocessedData = NULL) { # start=first step to plot, end=last step to plot
   filteredGaitParams <- filteredGaitParams[filteredGaitParams$participant == participant & filteredGaitParams$trialNum == trialNum, ]
 
   if (is.null(preprocessedData)) {
@@ -103,7 +103,7 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
   return(p)
 }
 
-add_lines <- function(p, footEvents, rightData, leftData, start, end, x_axis = "time", y_axis = "pos_z") { # start=first step to plot, end=last step to plot
+add_lines <- function(p, footEvents, rightData, leftData, start, end, x_axis = "time", y_axis = "pos.z") { # start=first step to plot, end=last step to plot
   heelStrikes <- footEvents$heelStrikes
 
   # Filter out a subset of the steps if needed
@@ -151,7 +151,7 @@ plot_steps_with_overlay <- function(data, selected_participant, selected_trialNu
   return(p)
 }
 
-plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTime, x_axis = "time", y_axis = "pos_z", plotlines = TRUE, plotpoints = FALSE, extraTitle = "", override_ylims = c(), baseSize = 10) {
+plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTime, x_axis = "time", y_axis = "pos.z", plotlines = TRUE, plotpoints = FALSE, extraTitle = "", override_ylims = c(), baseSize = 10) {
   xData <- get_t_data(participant, xtracker, trialNum)
   yData <- get_t_data(participant, ytracker, trialNum)
   startTime <- get_p_results(participant, "start_time", trialNum)

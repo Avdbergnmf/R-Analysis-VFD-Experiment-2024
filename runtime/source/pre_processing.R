@@ -206,8 +206,7 @@ rotate_y <- function(data, theta_deg, prefixList) {
 
   # Update the dataframe with rotated positions
   data[, pos_cols] <- rotated_positions
-
-  # Optionally, if you need to rotate orientation vectors (rot_x, rot_y, rot_z)
+  
   rotations <- as.matrix(data[, rot_cols])
   rotated_rotations <- rotations %*% t(rotation_matrix)
   data[, rot_cols] <- rotated_rotations
@@ -340,7 +339,6 @@ preprocess_data <- function(participant, trialNum) {
   data <- data[order(data$time), ] # Due to problems with the buffer, sometimes data was loaded in incorrect order. We can simply order it by time to fix this
   # Further, there are some issues where sometimes one value is recorded twice, we filter these out as well as they cause problems when differentiating our timeseries.
   data <- data[!c(FALSE, diff(data$time) == 0), ]
-  
   # Correct the swapped tracker names
   # This patch is required due to a mistake in data recording where TreadmillLeft and TreadmillRight trackers were swapped
   colnames(data) <- gsub("TreadmillLeft", "TempTreadmill", colnames(data))  # Temporarily rename TreadmillLeft to a placeholder
