@@ -4,7 +4,7 @@ allTrials <- c(1, 2, 3, 4, 5, 6) # VFD conditions
 # Getting types for later use
 xOptions <- c("time", "pos.x", "pos.y", "pos.z")
 xOptions2D <- colnames(get_t_data(participants[1], "leftfoot", 1)) # options for pos rot trackers
-categories <- c("participant", "VFD", "trialNum") #  "heelStrikes.foot"
+categories <- c("participant", "trialNum") #  "heelStrikes.foot"
 categoriesInputs <- append(categories, "None")
 columns_to_not_summarize <- c("practice", "startedWithNoise", "conditionNumber", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed") # these are categorical columns we may want to use for our statistics but we dont want to summarize in our mu table
 categoriesExtra <- c(categories, columns_to_not_summarize)

@@ -61,3 +61,6 @@ library(doParallel)
 library(dbscan) # also for lof filtering ?
 library(DT)
 library(plotly)
+
+# Interactive 3D plots
+#library(rgl)

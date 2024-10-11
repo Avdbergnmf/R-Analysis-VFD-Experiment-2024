@@ -29,11 +29,16 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
     preprocessedData <- preprocess_data(participant, trialNum)
   }
 
-  rightData <- preprocessedData$rightFoot
-  leftData <- preprocessedData$leftFoot
+  # Extract foot data
+  rightData <- preprocessedData[, c("time", grep("^RightFoot\\.", names(preprocessedData), value = TRUE))]
+  leftData <- preprocessedData[, c("time", grep("^LeftFoot\\.", names(preprocessedData), value = TRUE))]
+  
+  # Remove prefixes from column names
+  names(rightData) <- gsub("^RightFoot\\.", "", names(rightData))
+  names(leftData) <- gsub("^LeftFoot\\.", "", names(leftData))
 
   if (doFilter) {
-    numeric_columns <- sapply(rightData, is.numeric) # Identify numeric columns
+    numeric_columns <- sapply(rightData, is.numeric)
     rightData[numeric_columns] <- lapply(rightData[numeric_columns], function(column) {
       apply_padding_and_filter(column, 4, 90)
     })
@@ -47,7 +52,7 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
   leftData$foot <- "Left"
   # Combine the dataframes
   both <- rbind(rightData, leftData)
-  both <- both[order(both$time), ] # Order by time
+  both <- both[order(both$time), ]
 
   rParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Right", ]
   lParams <- filteredGaitParams[filteredGaitParams$heelStrikes.foot == "Left", ]
@@ -322,7 +327,6 @@ make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize =
   # bothSteps                 <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
   # new marking
   incorrectDetectionSteps <- length(data[data$heelStrikes.incorrectDetection == TRUE, ]$VFD)
-  targetIgnoreSteps <- length(data[data$heelStrikes.targetIgnoreSteps == TRUE, ]$VFD)
   outlierSteps <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$VFD)
   included <- length(data[data$heelStrikes.incorrectDetection == FALSE & data$heelStrikes.targetIgnoreSteps == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$VFD) # non filtered out
   total_steps <- length(data$VFD)

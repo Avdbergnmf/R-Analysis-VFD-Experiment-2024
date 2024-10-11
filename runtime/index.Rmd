@@ -21,7 +21,6 @@ source('source/get_questionnaire_results.R', local = FALSE)
 # File paths
 resultsFolder <- "results"
 agpFile <- file.path(resultsFolder, "allGaitParams.rds")
-atpFile <- file.path(resultsFolder, "allTargetParams.rds")
 aqrFile <- file.path(resultsFolder, "allQResults.rds")
 
 # Load or calculate the data
@@ -73,17 +72,6 @@ renderSVG <- function(expr) {
 }
 ```
 
-```{r, results='asis', echo=FALSE}
-# Custom script to switch pages
-cat("
-<script>
-Shiny.addCustomMessageHandler('navigateToPage', function(message) {
-  window.location.hash = message.hash;
-});
-</script>
-")
-```
-
 Feet trajectories {data-orientation=columns}
 =====================================
 ```{r, child='pages/page1_feetTrajectories.Rmd'}
@@ -98,16 +86,6 @@ Removed Steps
 2D Plot {data-orientation=columns}
 =====================================
 ```{r, child='pages/page3_twoDPlot.Rmd'}
-```
-
-3D Plot {data-orientation=columns}
-=====================================
-```{r, child='pages/page3_2_threeDPlot.Rmd'}
-```
-
-Target Steps
-=====================================
-```{r, child='pages/page4_targetSteps.Rmd'}
 ```
 
 

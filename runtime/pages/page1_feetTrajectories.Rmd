@@ -3,7 +3,7 @@
 
 ### Plot Options
 ```{r}
-trialNumbers = c(1,2,3,4,5,6)
+trialNumbers = c(2,3,4,5,6,7,8,9,10)
 checkboxInput("filter", "Show filtered data",
   value = FALSE)
 selectizeInput("participant", "participant",
@@ -39,12 +39,12 @@ imageOutput("FeetTraj")
 
 ```{r, context="server"}
 output$FeetTraj <- renderSVG({ reactive({
-    plot_steps(
-      filteredParams(), input$participant, as.numeric(input$trialNum),
+    plot_steps( # filteredParams()
+      allGaitParams, input$participant, as.numeric(input$trialNum),
       input$xplot, input$yplot, input$filter, 
-      baseSize=input$baseSize,
-      xlim=c(input$xlim_min, input$xlim_max),
-      ylim=c(input$ylim_min, input$ylim_max)
+      baseSize = input$baseSize,
+      xlim = c(input$xlim_min, input$xlim_max),
+      ylim = c(input$ylim_min, input$ylim_max)
     )
   })
 })
