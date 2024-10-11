@@ -3,3 +3,5 @@ tracker_name,datafile_prefix
 "rightfoot","rightfoot_tracker_movement"
 "treadmillleft","tmleft_tracker_movement"
 "treadmillright","tmright_tracker_movement"
+"vivetrackers","vivetrackers_SteamVRData"
+"loko","loko_lokodata"
