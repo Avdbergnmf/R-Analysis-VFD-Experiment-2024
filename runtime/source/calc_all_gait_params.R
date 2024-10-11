@@ -2,7 +2,7 @@
 
 allTrials <- c(1, 2, 3, 4, 5, 6) # VFD conditions
 # Getting types for later use
-xOptions <- c("time", "pos_x", "pos_y", "pos_z")
+xOptions <- c("time", "pos.x", "pos.y", "pos.z")
 xOptions2D <- colnames(get_t_data(participants[1], "leftfoot", 1)) # options for pos rot trackers
 categories <- c("participant", "VFD", "trialNum") #  "heelStrikes.foot"
 categoriesInputs <- append(categories, "None")
@@ -31,15 +31,11 @@ add_category_columns <- function(data, participant, trial) {
   # Add a column for the participant identifier
   data$participant <- participant
   data$trialNum <- trial
-  data$practice <- get_p_results(participant, "practice", trial) == "True"
-  data$VFD <- get_p_results(participant, "noise_enabled", trial) == "True"
-  data$startedWithNoise <- started_with_noise(participant)
-  data$noticed <- noticed_vfd(participant)
-
-  data$conditionNumber <- c(1, 1, 1, 2, 2, 2)[trial]
-  data$trialNumWithinCondition <- c(0, 1, 2, 0, 1, 2)[trial] # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
-  data$trialNumWithoutPractice <- c(0, 1, 2, 0, 3, 4)[trial] # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
-
+  data$freqHigh <- get_p_results(participant, "freqHigh", trial)
+  data$freqLow <- get_p_results(participant, "freqLow", trial)
+  data$gain <- get_p_results(participant, "gain", trial)
+  data$treadmillSpeed <- get_p_results(participant, "treadmillSpeed", trial)
+  
   return(data)
 }
 
