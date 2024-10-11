@@ -1,0 +1,1297 @@
+---
+title: "DataProcessing"
+author: "Alex van den Berg"
+output:
+  html_document:
+    toc: true
+    theme: united
+    highlight: tango
+date: "`r Sys.Date()`"
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(RColorBrewer)
+library(ggplot2)
+library(ggpubr)
+library(plyr)
+library(dplyr)
+library(readxl)
+library(rstatix)
+library(plotrix)
+library(car)
+library(Rmisc)
+library(zoo)
+#library(ggrepel)
+
+# boxplots?
+library(tidyr)
+#library(tidyverse)
+library(devtools)
+library(ggpattern) # To differentiate when printing in black and white
+  # install.packages("devtools")
+  # devtools::install_github("coolbutuseless/ggpattern")
+  # make sure RTools is installed: https://cran.r-project.org/bin/windows/Rtools/rtools42/rtools.html
+
+#LMER stuff
+library(lme4)
+library(emmeans)
+library(sjstats)
+library(lmerTest)
+library(MuMIn)
+
+# saving figures
+library(svglite)
+
+# File importing / reading
+library(jsonlite) # for json files
+
+# Reshaping data for questionnaires
+library(reshape2)
+
+# For the rotation matrices
+library(geometry)
+
+# For the filtering of the artefacts
+library(zoo)
+
+# Interactive 3D plots
+library(rgl)
+
+# Cross product
+library(pracma)
+
+# Low pass filter
+library(signal)
+```
+
+(Optional) clear the environment
+```{r}
+rm(list=ls())  # clear objects
+cat("\014")  # clear console
+```
+
+# Loading in the Data
+Loading done with help of chatgpt-4.0, see chat [here](https://chat.openai.com/share/e776898f-356f-4b5b-8d75-656ed7fd7a6f).
+
+## Obtaining the paths, participant details, & trial results
+
+First, we get list of all participants, which are saved into folders in data directory.
+
+```{r}
+dataFolder = file.path(".","data")
+participants = list.dirs(path = dataFolder, full.names = FALSE, recursive = FALSE)
+participants
+
+getPdir = function(pnum){ 
+  return(file.path(dataFolder, pnum))
+}
+
+#getPdir(participants[1]) # example usage
+```
+
+The experimental conditions are saved in terms of the [UXF settings](https://github.com/immersivecognition/unity-experiment-framework/wiki). In the settings file, one of the parameters: `first` determined whether the VFD condition was done first (`first==TRUE`) or second (`first==FALSE`). 
+
+We will also need the participant details from this same folder, which include the demographic data
+
+```{r}
+getPsettingsFile = function(pnum){ 
+  return(file.path(getPdir(pnum),"session_info","settings.json"))
+}
+
+# If true, the participant started with noise VFD enabled, otherwise without it enabled
+getPsetting <- function(pnum, settingName) {
+  # get the path to the settings file for the participant
+  settingsFile <- getPsettingsFile(pnum)
+  # read the json file into a list
+  settings <- jsonlite::fromJSON(settingsFile)
+  
+  # retrieve the value of the specific detail
+  settingValue <- settings[[settingName]][1]
+  
+  return(settingValue)
+}
+
+# If true, the participant started with noise VFD enabled, otherwise without it enabled
+startedWithNoise <- function(pnum) {
+  return(getPsetting(pnum,"first"))
+}
+
+#startedWithNoise(participants[1])
+
+getPdetail <- function(pnum, detailName) {
+  # get the path to the details file for the participant
+  detailsFile <- file.path(getPdir(pnum),"session_info","participant_details.csv")
+  
+  # read the csv file into a data frame
+  details <- read.csv(detailsFile)
+  
+  # retrieve the value of the specific detail
+  detailValue <- details[[detailName]][1]
+  
+  return(detailValue)
+}
+
+#getPdetail(participants[1],"age") # example usage
+
+
+getTrialResultsFile = function(pnum){ 
+  return(file.path(getPdir(pnum),"trial_results.csv"))
+}
+
+# If true, the participant started with noise VFD enabled, otherwise without it enabled
+getTrialResults <- function(pnum, resultName, trialNumber) {
+  resultsFile <- getTrialResultsFile(pnum)
+  results <- read.csv(resultsFile)
+  
+  # retrieve the value of the specific detail
+  #print(results)
+  settingValue <- results[[resultName]][which(results$trial_num==trialNumber)]
+  
+  return(settingValue)
+}
+
+getTrialResults(participants[3],"gain",11) # freqHigh freqLow gain treadmillSpeed
+```
+
+## Get the tracking data
+
+We'll need the paths to the [trackers](https://github.com/immersivecognition/unity-experiment-framework/wiki/Data-collection). Which contain all the data which is tracked for each of the trials. The same tracker names are used for each participant for each session (condition in this case), so we'll just get a list we can refer back to later. Additionally, we'll define another function to get a certain tracker dataset for a selected participant.
+
+```{r}
+trackerPath = file.path(getPdir(participants[1]),"trackers")
+trackers = list.files(path = trackerPath, full.names = FALSE)
+trackers # use one of the participants to get the different file names for all the tracker files.
+
+# we make a list of the filenames so we can easily call them without writing the whole filename
+filenameDict <- list(
+  "leftfoot" = "leftfoot_tracker_movement_T",
+  "loko_lokodata" = "loko_lokodata_T",
+  "rightfoot" = "rightfoot_tracker_movement_T",
+  "tmleft" = "tmleft_tracker_movement_T",
+  "tmright" = "tmright_tracker_movement_T",
+  "vivetrackers" = "vivetrackers_SteamVRData_T"
+)
+
+# get any type of data
+getTdata <- function(pnum, trackerType, trialNumber) {
+  
+  # Construct filename from filenamePattern and participantNumber
+  filename <- paste0(filenameDict[[trackerType]], sprintf("%03d", trialNumber), ".csv")
+  
+  # Construct full file path
+  filePath <- file.path(getPdir(pnum),"trackers",filename)
+  
+  # Check if the file exists
+  if(!file.exists(filePath)) {
+    stop("The specified file does not exist.")
+  }
+  
+  # Read the data from the csv file
+  data <- read.csv(filePath)
+  
+  return(data)
+}
+
+#getTdata(participants[1],"leftfoot",TRUE) # example usage
+```
+
+
+## Get the Questionnaire data
+The questionnaire data is in a separate file. First, we write some methods to extract the data.
+```{r}
+questionnaireInfoFolder = file.path(".","questionnaires")
+
+getQfile = function(pnum,qType){ # qType = IMI / SSQ / VEQ
+  return(file.path(getPdir(pnum),"questionnaires",paste0("questionnaireID_",qType,"_ALL_answers.csv")))
+}
+
+getQdata <- function(pnum) {
+  qName <- "UserExperience" # FinalQ UserExperience
+  # Get the path to the questionnaire file for the participant
+  questionnaireFile <- getQfile(pnum, qName)
+
+  # Read the CSV file into a data frame
+  questionnaire <- read.csv(questionnaireFile)
+  
+  # Identifying the columns with answers
+  answerColumns <- grep("Answer_", names(questionnaire), value = TRUE)
+  print(length(answerColumns))
+  # Initialize an empty data frame for the results
+  result <- data.frame()
+  sequence <- seq_along(answerColumns)
+  for (i in sequence) {
+    # Get gain and max frequency for each trial
+    gain <- getTrialResults(pnum, "gain", i+1)
+    freqHigh <- getTrialResults(pnum, "freqHigh", i+1)
+    
+    # Extract and label the data for each trial
+    trialData <- data.frame(
+      Participant = pnum,
+      Trial = i,
+      Gain = gain,
+      MaxFrequency = freqHigh,
+      QuestionID = questionnaire$QuestionID,
+      Answer = questionnaire[[answerColumns[i]]]
+    )
+
+    # Combine trial data into the result dataframe
+    result <- rbind(result, trialData)
+  }
+  
+  return(result)
+}
+
+allParticipantsQs<- do.call(rbind, lapply(participants, getQdata))
+write.csv(allParticipantsQs, file = "./results/AllUXQ.csv", row.names = FALSE)
+
+
+getFinalQdata <- function(pnum) {
+  qName <- "FinalQ" # FinalQ UserExperience
+  # Get the path to the questionnaire file for the participant
+  questionnaireFile <- getQfile(pnum, qName)
+
+  # Read the CSV file into a data frame
+  questionnaire <- read.csv(questionnaireFile)
+  
+  # Identifying the columns with answers
+  answerColumns <- grep("Answer_", names(questionnaire), value = TRUE)
+  
+  # Initialize an empty data frame for the results
+  result <- data.frame()
+  sequence <- seq_along(answerColumns)
+  for (i in sequence) {
+    
+    # Extract and label the data for each trial
+    trialData <- data.frame(
+      Participant = pnum,
+      Trial = i,
+      QuestionID = questionnaire$QuestionID,
+      Answer = questionnaire[[answerColumns[i]]]
+    )
+
+    # Combine trial data into the result dataframe
+    result <- rbind(result, trialData)
+  }
+  
+  return(result)
+}
+
+
+allParticipantsQs<- do.call(rbind, lapply(participants, getFinalQdata))
+write.csv(allParticipantsQs, file = "./results/AllFinalQ.csv", row.names = FALSE)
+```
+
+# Pre-processing
+
+## Extract trial data
+We first find the start and end times for each trial and each participant
+
+```{r}
+findTrialTimes <- function(participant, trialNumber) {
+    # Retrieve trial start and end times from loko_lokodata
+    lokoData <- getTdata(participant, "loko_lokodata", trialNumber)
+    
+    # Find indices where trialStarted transitions from 0 to 1 (start) and 1 to 0 (end)
+    transitions <- diff(lokoData$trialStarted)
+    startIndices <- which(transitions == 1)
+    endIndices <- which(transitions == -1)
+    # Always taking the last trial: sometimes a crash happened and the trial was fully re-done within the same dataset
+    startIndex <- startIndices[length(startIndices)]   
+    endIndex <- endIndices[length(endIndices)]
+    # Ensure that both start and end indices are found
+    if (is.na(startIndex) || is.na(endIndex)) {
+        stop("Could not find start or end of the trial.")
+    }
+    
+    # Extracting time and Lokotime at the start and end of the trial
+    trialStartTime <- lokoData$time[startIndex]
+    trialStartLokotime <- lokoData$Lokotime[startIndex]
+    trialEndTime <- lokoData$time[endIndex]
+    trialEndLokotime <- lokoData$Lokotime[endIndex]
+    
+    # Make sure the data is 120 seconds
+    lengthTrial = trialEndTime - trialStartTime
+    if (lengthTrial < 119) { # Taking 1 second of play to account for sampling frequency / delays
+      cat("WARNING: Participant: ", participant, " Trial: ", trialNumber, " has trial length of only ", lengthTrial,"\n\n")
+    }
+    else if (lengthTrial > 121) { # Taking 1 second of play to account for sampling frequency / delays
+      cat("Participant: ", participant, " Trial: ", trialNumber, " trial length of ", lengthTrial, ". Trimming to 120 seconds.\n\n")
+      trialEndTime <- trialStartTime + 120
+      trialEndLokotime <- trialStartLokotime + 120 # this time isn't being used but lets be consistent and trim it too.
+    }
+    
+    # Save the start and end times for later use or analysis
+    trialTimes <- data.frame(
+        Start_Time = trialStartTime, 
+        Start_Lokotime = trialStartLokotime,
+        End_Time = trialEndTime,
+        End_Lokotime = trialEndLokotime
+    )
+    
+    return(trialTimes)
+}
+
+# Example usage
+#findTrialTimes(participants[4], 4)
+```
+
+## Tracker data
+
+All tracker data is recorded in the vivetracker csv. The others are just for backup but aren't used right now. We extract the relevant data by matching the timepoints in the lokodata.
+
+```{r}
+getTrackerDataForTrial <- function(participant, trialNumber, startTime = 0, endTime = 130) {
+  # Retrieve the trial times using findTrialTimes
+  trialTimes <- findTrialTimes(participant, trialNumber)
+  
+  # Get the tracker data
+  data <- getTdata(participant, "vivetrackers", trialNumber)
+  
+  # Filter the tracker data based on trial start and end times
+  data <- data[data$time >= trialTimes$Start_Time & data$time <= trialTimes$End_Time,]
+  
+  # Replace recording time ("time") with real, more accurate, time of the recording thread ("systemTime")
+  data$time <- data$systemTime
+  data$systemTime<- NULL
+  
+  # Adjust time so its relative to the first sample
+  data$time <- data$time - data$time[1]
+  data <- data[data$time >= 0, ] # I believe when the device disconnects, or some problem happens with the buffer, the time defaults to some other value, which is always negative and can be filtered out like this.
+  data <- data[order(data$time), ] # Due to problems with the buffer, sometimes data was loaded in incorrect order. We can simply order it by time to fix this
+  
+  # Further, there are some issues where sometimes one value is recorded twice, we filter these out as well as they cause problems when differentiating our timeseries.
+  duplicate_times <- c(FALSE, diff(data$time) == 0)
+  data <- data[!duplicate_times, ]
+  
+  # Correct the swapped tracker names
+  # This patch is required due to a mistake in data recording where TreadmillLeft and TreadmillRight trackers were swapped
+  colnames(data) <- gsub("TreadmillLeft", "TempTreadmill", colnames(data))  # Temporarily rename TreadmillLeft to a placeholder
+  colnames(data) <- gsub("TreadmillRight", "TreadmillLeft", colnames(data)) # Rename TreadmillRight to TreadmillLeft
+  colnames(data) <- gsub("TempTreadmill", "TreadmillRight", colnames(data)) # Rename the placeholder to TreadmillRight
+  
+  return(data)
+}
+
+# Example usage
+trackerData <- getTrackerDataForTrial(participants[4], 9)
+
+ggplot(trackerData, aes_string(x = "time", y = "LeftFoot.pos.y")) + geom_line(color = "black")
+```
+
+# Post-processing
+We need to filter and transform our data before we can extract the gait parameters.
+
+## Filtering artefacts
+First, we filter out artefacts from our dataset (points at which the trackers disconnected). We identify these by using two methods:
+- One of the components is equal to zero (this almost only happens when a tracker disconnects).
+- A threshold velocity is passed. Points at which the trackers shoot away from one frame to the next.
+
+```{r}
+# For interpolation quaternions
+slerp <- function(q1, q2, t) {
+    cosTheta <- sum(q1 * q2)
+    if (cosTheta < 0) {
+        q1 <- -q1
+        cosTheta <- -cosTheta
+    }
+
+    if (cosTheta > 0.95) {
+        # If the quaternions are very close, linearly interpolate and normalize the result
+        result <- (1 - t) * q1 + t * q2
+        return(result / sqrt(sum(result * result)))
+    }
+
+    theta <- acos(cosTheta)
+    sinTheta <- sqrt(1 - cosTheta * cosTheta)
+
+    return((sin((1 - t) * theta) * q1 + sin(t * theta) * q2) / sinTheta)
+}
+
+interpolateQuaternions <- function(data, quatCols, artifact_indices) {
+  if (length(artifact_indices) == 0) {
+      return(data) # No artifacts to interpolate
+  }
+  
+  ### Interpolating this data takes too much compute, but we don't need rotations anyway so lets ignore this problem for now.
+  data[, quatCols] <- na.approx(data[, quatCols], na.rm=FALSE)
+  return(data) ### For now, we do linear interpolation, which is way faster but not actually accurate
+}
+
+filterArtifacts <- function(data, trackerName, velocity_threshold = 10, rotational_velocity_threshold = 3, passes = 1) { # velocity_threshold in m/s , rotational_velocity_threshold in rad/s
+  #print(paste("Filtering tracker data:", trackerName))
+  pattern <- paste0("^", trackerName) # get just the position data
+  trackerCols <- grep(pattern, colnames(data), value = TRUE) # Get the column names that match the pattern
+  posCols <- grep("\\.pos", trackerCols, value = TRUE) # only the position columns (these are used to get the velocity)
+  quatCols <- grep("\\.rot", trackerCols, value = TRUE) # Quaternion columns
+  
+  if (length(posCols) != 3 || length(quatCols) != 4) {
+      stop("Error: Incorrect number of position or quaternion columns.")
+  }
+  
+  # Now, we remove all the datapoints where the tracker got disconnected (at least one of the values gets set to 0)
+  artifact_indices <- c()
+  THRESHOLD = 0.00001 # To account for floating point inaccuracies
+  for (col in trackerCols) {
+    artifact_indices <- c(artifact_indices, which(abs(data[[col]]) <= THRESHOLD))
+  }
+  # mark the datapoints
+  artifact_indices <- sort(unique(artifact_indices))
+  #data$artifact[artifact_indices] <- trackerName 
+  # filter them out
+  data[artifact_indices, trackerCols] <- NA
+  data[, posCols] <- na.approx(data[, posCols], na.rm = FALSE) # approx position
+  data <- interpolateQuaternions(data, quatCols, artifact_indices) # approx rotation
+  
+  # We downsample our data and apply a simple low pass filter
+  fixedRate <- 100  # Target fixed sampling rate in Hz
+  newTime <- seq(from = min(data$time), to = max(data$time), by = 1 / fixedRate)
+  resampledData <- data.frame(time = newTime)
+  
+  peakThreshold <- 0.01  # Define a threshold for peak detection
+  for (col in colnames(data)) {
+      if (col != "time" && is.numeric(data[[col]])) {
+          if (sum(!is.na(data[[col]])) >= 2) {
+              # Resample the data
+              resampled <- na.approx(data[[col]], x = data$time, xout = newTime, na.rm = FALSE)
+              
+              # Apply a rolling median or mean
+              smoothed <- rollapply(resampled, width = 5, FUN = median, fill = NA, align = "center")
+  
+              # Identify and replace peaks, handling NAs
+              isPeak <- !is.na(resampled) & !is.na(smoothed) & (abs(resampled - smoothed) > peakThreshold)
+              resampled[isPeak] <- smoothed[isPeak]
+              #print(length(sum(isPeak)))
+              resampledData[[col]] <- resampled
+          } else {
+              resampledData[[col]] <- rep(NA, length(newTime))
+          }
+      }
+  }
+  data <- resampledData
+  for (i in 1:passes) {
+    tempData <- data
+    
+    # Calculate positional differences
+    diffs <- data.frame(lapply(tempData[, posCols], function(col) c(NA, diff(col))))
+    names(diffs) <- paste0("diff_", posCols)
+    diffs$diff_time <- c(NA, diff(data$time))
+    
+    # Calculate quaternion differences and rotational velocity
+    quat_current <- tempData[, quatCols]
+    quat_next <- rbind(quat_current[-1, ], rep(NA, length(quatCols)))
+    dot_product <- rowSums(quat_current * quat_next, na.rm = FALSE)
+    
+    # Clamping dot product within the range [-1, 1] to avoid NaNs
+    dot_product <- pmin(pmax(dot_product, -1), 1)
+    rotational_diff <- 2 * acos(dot_product)
+    rotational_velocity <- c(NA, rotational_diff[-1] / diffs$diff_time[-1])  # Skip first and align lengths
+
+    # Combine diffs with data and calculate linear velocity
+    tempData <- cbind(tempData, diffs)
+    tempData$distance <- sqrt(rowSums(tempData[, paste0("diff_", posCols)]^2))
+    tempData$velocity <- tempData$distance / tempData$diff_time
+    tempData$rotational_velocity <- rotational_velocity
+      
+    # Identify velocity artifacts
+    velocity_artifact_indices <- which(tempData$velocity > velocity_threshold)
+    rotational_velocity_artifact_indices <- which(tempData$rotational_velocity > rotational_velocity_threshold)
+    combined_artifact_indices <- unique(c(velocity_artifact_indices, rotational_velocity_artifact_indices))
+    
+    # Interpolate (use original data)
+    data[combined_artifact_indices, trackerCols] <- NA
+    data[, posCols] <- na.approx(data[, posCols], na.rm = FALSE)
+    data <- interpolateQuaternions(data, quatCols, combined_artifact_indices) 
+  }
+  
+  return(data)
+}
+
+#filterArtifacts(getTrackerDataForTrial(participants[4], 2), "LeftFoot") # example usage
+
+filterAllData <- function(data, velocity_threshold = 100, rotational_velocity_threshold = 3000, passes = 1) {
+  # Process and filter each dataset with a unique artifact label  --> Note, if 2 datasets both have an artefact at the same time frame, only the last one here will be saved.
+  data <- filterArtifacts(data, "TreadmillLeft", velocity_threshold, rotational_velocity_threshold, passes)
+  data <- filterArtifacts(data, "TreadmillRight", velocity_threshold, rotational_velocity_threshold, passes)
+  data <- filterArtifacts(data, "LeftFoot", velocity_threshold, rotational_velocity_threshold, passes)
+  data <- filterArtifacts(data, "RightFoot", velocity_threshold, rotational_velocity_threshold, passes)
+  
+  return(data)
+}
+
+# Usage example:
+#filteredData <- filterAllData(getTrackerDataForTrial(participants[4], 2))
+#filteredData[filteredData$artifact != "none",]
+```
+
+### Select data to plot
+Select what data to plot for the trajectory plots.
+
+```{r, echo=FALSE}
+inputPanel(
+  selectizeInput("participant", "Participant", 
+                choices = participants, selected = participants[4], multiple = FALSE),
+  numericInput("TrialNumber", "Trial Number", 
+                min = 1, max = Inf, value = 4, step = 1),
+  numericInput("start", "Start Time",
+              min = 0, max = 500, value = 0, step = 1),
+  numericInput("end", "End Time",
+              min = 0, max = 500, value = 20, step = 1)
+)
+```
+
+### 2D Plot
+We plot our data in 2D to check our filtered datapoints to make sure we are not discarding important data. Play with the max velocity by which the data is filtered.
+
+```{r,echo=FALSE}
+data <- getTrackerDataForTrial(participants[1], 2)
+posCols <- grep("\\.pos", colnames(data), value = TRUE)
+rotCols <- grep("\\.rot", colnames(data), value = TRUE)
+xOptions = c("time", posCols, rotCols)
+
+
+
+inputPanel(
+  selectizeInput("xplot", "X-axis", 
+                choices = xOptions, selected = xOptions[1], multiple = FALSE),
+  selectizeInput("yplot", "Y-axis", 
+                choices = xOptions, selected = xOptions[2], multiple = FALSE),
+  numericInput("maxv", "Max velocity (m/s)",
+              min = 0, max = 50, value = 100, step = 1),
+  numericInput("maxvRot", "Max rotational velocity (rad/s)",
+              min = 0, max = 5000, value = 3000, step = 15),
+  numericInput("nPasses", "Number of passes",
+              min = 1, max = 10, value = 1, step = 1),
+  numericInput("plotheight", "Plot Height",
+            min = 50, max = Inf, value = 500, step = 50),
+  checkboxInput("filter", "Filter",
+            value = TRUE)
+)
+
+renderPlot({
+  data <- getTrackerDataForTrial(input$participant, input$TrialNumber)
+  if (input$filter) {
+    data <- filterAllData(data, input$maxv, input$maxvRot, input$nPasses)
+  }
+  
+  # Create plot
+  return(plotData2D(data, input$xplot, input$yplot))
+}, height = reactive(input$plotheight))
+
+
+plotData2D <- function(data, x_axis, y_axis) {
+  # Filter out the desired time to plot
+  data <- data[data$time >= input$start & data$time <= input$end, ]
+  
+  p <- ggplot(data, aes_string(x = x_axis, y = y_axis)) +
+    geom_line(color = "black") +
+    #geom_point(aes_string(color = "artifact"), data = data[data$artifact != "none", ]) +
+    #scale_color_manual(values = c("LeftFoot" = "red", "RightFoot" = "blue", "TreadmillLeft" = "green", "TreadmillRight" = "purple")) +
+    theme_minimal()
+
+  return(p)
+}
+```
+
+## Transform data
+We also need to transform the data to the Lokomat reference frame.
+
+### Find transformation matrix
+First, we find the transformation matrix by using the two trackers next to the treadmill to identify the origin position and orientation.
+
+Here:
+- `x = left`
+- `y = up`
+- `z = front`
+
+```{r}
+quaternionToRotationMatrix <- function(q) {
+    # Ensure the quaternion is normalized
+    q <- q / sqrt(sum(q^2))
+    
+    w <- q[1]
+    x <- q[2]
+    y <- q[3]
+    z <- q[4]
+
+    # Compute the elements of the rotation matrix
+    rotMatrix <- matrix(c(
+        1 - 2 * y^2 - 2 * z^2, 2 * x * y - 2 * z * w, 2 * x * z + 2 * y * w,
+        2 * x * y + 2 * z * w, 1 - 2 * x^2 - 2 * z^2, 2 * y * z - 2 * x * w,
+        2 * x * z - 2 * y * w, 2 * y * z + 2 * x * w, 1 - 2 * x^2 - 2 * y^2
+    ), nrow = 3, byrow = TRUE)
+
+    # Append a fourth row and column for homogeneous coordinates
+    rotMatrix <- rbind(rotMatrix, c(0, 0, 0))
+    rotMatrix <- cbind(rotMatrix, c(0, 0, 0, 1))
+
+    return(rotMatrix)
+}
+
+averageQuaternion <- function(quaternions) {
+  # Ensure all quaternions are normalized
+  normalizedQuaternions <- t(apply(quaternions, 1, function(q) {
+    q / sqrt(sum(q^2))
+  }))
+
+  # Calculate the weighted average
+  avgQ <- colMeans(normalizedQuaternions)
+
+  # Normalize the result
+  avgQ <- avgQ / sqrt(sum(avgQ^2))
+
+  return(avgQ)
+}
+
+calculateTransformationMatrix <- function(trackerData) {
+  # Calculate the average position of the trackers over the first x frames
+  # Calculate the means
+  avgLeftPos <- sapply(trackerData[, c("TreadmillLeft.pos.x", "TreadmillLeft.pos.y", "TreadmillLeft.pos.z")], mean, na.rm = TRUE)
+  avgRightPos <- sapply(trackerData[, c("TreadmillRight.pos.x", "TreadmillRight.pos.y", "TreadmillRight.pos.z")], mean, na.rm = TRUE)
+  avgLeftRot <- sapply(trackerData[, c("TreadmillLeft.rot.w", "TreadmillLeft.rot.x", "TreadmillLeft.rot.y", "TreadmillLeft.rot.z")], mean, na.rm = TRUE) # this should be done with slerp but for now this is fine.
+  avgRightRot <- sapply(trackerData[, c("TreadmillRight.rot.w", "TreadmillRight.rot.x", "TreadmillRight.rot.y", "TreadmillRight.rot.z")], mean, na.rm = TRUE) # this should be done with slerp but for now this is fine.
+  avgLeftPos <- unname(avgLeftPos)
+  avgRightPos <- unname(avgRightPos)
+  
+  # X Axis: Line between two trackers
+  xAxis <- avgLeftPos - avgRightPos
+  xAxis <- xAxis / sqrt(sum(xAxis^2))  # Normalize
+  
+  # Y Axis: Average 'up' direction of the trackers
+  leftUp <- quaternionToRotationMatrix(avgLeftRot)[1:3, 3] # z axis of tracker is up
+  rightUp <- quaternionToRotationMatrix(avgRightRot)[1:3, 3]
+  yAxis <- (leftUp + rightUp) / 2
+  yAxis <- yAxis / sqrt(sum(yAxis^2))  # Normalize
+  
+  # Project to ensure orthogonality
+  projection <- sum(yAxis * xAxis) * xAxis # Project yAxis onto xAxis
+  yAxisOrthogonal <- yAxis - projection # Subtract the projection from xAxis to get the orthogonal component
+  yAxisOrthogonal <- yAxisOrthogonal / sqrt(sum(yAxisOrthogonal^2)) # Normalize the new X axis
+  yAxis <- yAxisOrthogonal
+  
+  # Z Axis: Orthogonal to X and Y
+  zAxis <- cross(xAxis, yAxis)
+  zAxis <- zAxis / sqrt(sum(zAxis^2))  # Normalize
+  
+  # Create the rotation matrix
+  #rotationMatrix <- matrix(c(xAxis, yAxis, zAxis), nrow = 3, byrow = FALSE)
+  rotation_matrix <- matrix(c(xAxis, yAxis, zAxis), nrow = 3, ncol = 3)
+  # Construct the translation vector
+  avgPos <- -(avgLeftPos + avgRightPos) / 2
+  translation_vector <-  t(rotation_matrix) %*% avgPos
+  translation_vector <- c(translation_vector[1], translation_vector[2], translation_vector[3])
+  # Construct the full transformation matrix
+  tmatrix <- rbind(cbind(rotation_matrix, translation_vector), c(translation_vector, 1))
+  
+  return(tmatrix)
+}
+
+# Example usage with your tracker data
+#tmatrix <- calculateTransformationMatrix(getTrackerDataForTrial(participants[1], 2))
+```
+
+### Transform the data
+
+```{r}
+transformTrackerData <- function(data, trackerName, tmatrix) {
+  pattern <- paste0("^", trackerName) # get just the position data
+  trackerCols <- grep(pattern, colnames(data), value = TRUE) # Get the column names that match the pattern
+  posCols <- grep("\\.pos", trackerCols, value = TRUE) # only the position columns (these are used to get the velocity)
+  
+  positions <- as.matrix(data[, posCols])
+  positionsHomogeneous <- cbind(positions, matrix(1, nrow = nrow(positions), ncol = 1)) # Convert positions to homogeneous coordinates (x, y, z, 1)
+  
+  # Apply the transformation
+  transformedPositions <- positionsHomogeneous %*% tmatrix
+  data[, posCols] <- transformedPositions[, 1:3] # Only take the x, y, z components
+  return(data)
+}
+
+# Example usage
+#transformTrackerData(trackerData, "LeftFoot", tmatrix)
+
+transformAllData <- function(data, tmatrix) {
+  data <- transformTrackerData(data, "LeftFoot", tmatrix)
+  data <- transformTrackerData(data, "RightFoot", tmatrix)
+  data <- transformTrackerData(data, "TreadmillLeft", tmatrix)
+  data <- transformTrackerData(data, "TreadmillRight", tmatrix)
+  return(data)
+}
+
+# Usage example:
+#transformedData <- transformAllData(filteredData, tmatrix)
+```
+
+
+### 3D Plot
+
+First thing to do is check if our transform works. We do this by making a 3D plot that shows our new reference frame. 
+
+```{r,echo=FALSE}
+tfGizmo <- function(origin, len, rotationMatrix = diag(4), label = "", labelaxes = TRUE, labelsize = 0.6){
+  rotationMatrix <- rotationMatrix[1:3,1:3] # we only use the rotation
+  xAxis <- as.vector(rotationMatrix %*% c(len, 0, 0))
+  yAxis <- as.vector(rotationMatrix %*% c(0, len, 0))
+  zAxis <- as.vector(rotationMatrix %*% c(0, 0, len))
+  arrow3d(origin, origin + xAxis, col="red")   # X-axis
+  arrow3d(origin, origin + yAxis, col="green") # Y-axis
+  arrow3d(origin, origin + zAxis, col="blue")  # Z-axis
+  
+  text3d(origin, text = label, col = "white", adj = c(0, 0), cex = labelsize)
+  
+  # Label the axes
+  if (labelaxes) {
+    text3d(origin + xAxis, text = "X", col = "red", adj = c(0, 0), cex = 0.5*labelsize)
+    text3d(origin + yAxis, text = "Y", col = "green", adj = c(0, 0), cex = 0.5*labelsize)
+    text3d(origin + zAxis, text = "Z", col = "blue", adj = c(0, 0), cex = 0.5*labelsize)
+  }
+}
+
+drawMeanAxes <- function(data, trackerName, label, labelsize = 0.6){
+  posCols <- grep(paste0(trackerName,"\\.pos"), colnames(data), value = TRUE)
+  rotCols <- grep(paste0(trackerName,"\\.rot"), colnames(data), value = TRUE)
+  
+  # Calculate the means (First 1000 datapoints should suffice, is just for plot)
+  meanPos <- sapply(data[1:1000, posCols], mean, na.rm = TRUE)
+  meanQuaternion <- sapply(data[1:1000, rotCols], mean, na.rm = TRUE) # this should be done with slerp but for now this is fine.
+  
+  points3d(meanPos[1], meanPos[2], meanPos[3], col = "red", size = 5)
+  tfGizmo(meanPos, 0.1, quaternionToRotationMatrix(meanQuaternion), label, labelsize)
+}
+
+renderRglwidget({
+  # Clear existing rgl plot
+  clear3d()
+  # Set uniform aspect ratio
+  rgl::aspect3d(1, 1, 1)
+  # Get data
+  data <- getTrackerDataForTrial(input$participant, input$TrialNumber)
+  data <- filterAllData(data, input$maxv, input$nPasses)
+  tmatrix <- calculateTransformationMatrix(data)
+  
+  # add axes
+  axes3d()
+  axis3d('y', pos = c(0, 0, 0))
+  
+  # Plot transformation data
+  #data <- transformAllData(data, tmatrix) # we dont transform here, we just want to show the new transform origin
+  # Add origin arrows
+  tfGizmo(c(0,0,0), 0.2)
+  origin <- -tmatrix[1:3, 4]
+  arrow3d(origin, origin + 0.3*tmatrix[1:3, 1], col="red")   # X-axis
+  arrow3d(origin, origin + 0.3*tmatrix[1:3, 2], col="green") # Y-axis
+  arrow3d(origin, origin + 0.3*tmatrix[1:3, 3], col="blue")  # Z-axis
+  
+  # Create your 3D plot
+  leftFootCols <- grep("LeftFoot.pos", colnames(data), value = TRUE)
+  lines3d(data[[leftFootCols[1]]], data[[leftFootCols[2]]], data[[leftFootCols[3]]], color="black") 
+  rightFootCols <- grep("RightFoot.pos", colnames(data), value = TRUE)
+  lines3d(data[[rightFootCols[1]]], data[[rightFootCols[2]]], data[[rightFootCols[3]]], color="black") 
+  
+  drawMeanAxes(data, "TreadmillLeft", "L", 1)
+  drawMeanAxes(data, "TreadmillRight", "R", 1)
+  
+  # Return the rgl widget
+  rglwidget()
+})
+```
+
+# Extracting gait data
+
+Now our data is loaded, cleaned, and transformed, the gait phases can be extracted.
+
+## Detect gait phases
+
+```{r}
+detectStancePhase <- function(data, velocityMax, velocityMin) {
+  data <- na.omit(data)
+  
+  smoothingSize <- 10
+  filterWeights <- rep(1 / smoothingSize, smoothingSize)
+  
+  timeDiffs <- diff(data$time)
+  data[["time.diff"]] <- c(NA,timeDiffs)
+  
+  # Smooth and calculate velocities for both feet
+  for(foot in c("LeftFoot", "RightFoot")) {
+    velCols <- paste0(foot, ".vel.", c("x", "y", "z"))
+    posCols <- paste0(foot, ".pos.", c("x", "y", "z"))
+    frontalVelCol <- paste0(foot, ".vel.frontal")
+    # Apply low-pass filter and calculate velocities
+    cutoffFrequency <- 30
+    samplingRate <- 100
+    Wn <- cutoffFrequency / (samplingRate / 2)
+    filterCoeffs <- butter(2, Wn)
+    for(i in 1:3) {
+      # Filter position data
+      filteredPos <- filtfilt(filterCoeffs, data[[posCols[i]]])
+      data[[posCols[i]]] <- filteredPos
+      # Calculate velocity
+      data[[velCols[i]]] <- c(NA, diff(filteredPos) / timeDiffs)
+      # Optionally, apply additional smoothing to vel
+      data[[velCols[i]]] <- filtfilt(filterCoeffs, data[[velCols[i]]])
+      data[[velCols[i]]] <- stats::filter(data[[velCols[i]]], filterWeights, sides = 2)
+    }
+    
+    # Velocity in frontal plane
+    data[[frontalVelCol]] <- sqrt(data[[velCols[1]]]^2 + data[[velCols[3]]]^2)
+    
+    # Calculate ground level
+    validHeights <- data[[posCols[2]]][!is.na(data[[posCols[2]]])]
+    sortedHeights <- sort(validHeights)
+    groundLevel <- mean(sortedHeights[1:floor(length(sortedHeights) * 0.2)])
+    
+    # Calculate velocity stance
+    validXVel <- abs(data[[velCols[1]]][!is.na(data[[velCols[1]]])])
+    validYVel <- abs(data[[velCols[2]]][!is.na(data[[velCols[2]]])])
+    stanceXVel <- mean(sort(validXVel)[1:floor(length(validXVel) * 0.5)])
+    stanceYVel <- mean(sort(validYVel)[1:floor(length(validYVel) * 0.5)])
+
+    # Detect stance phases
+    stanceCol <- paste0(foot, ".stancePhase")
+    isStance <- data[[posCols[2]]] <= groundLevel + 0.01 & 
+                data[[velCols[3]]] >= velocityMin & 
+                data[[velCols[3]]] <= velocityMax
+    data[[stanceCol]] <- ifelse(is.na(isStance), FALSE, isStance)
+  }
+  
+  return(data)
+}
+#d<- filterAllData(getTrackerDataForTrial(participants[4], 11))
+# Example usage
+#stanceData <- detectStancePhase(d, 0, -10)
+```
+
+## Extract Gait Metrics
+
+```{r}
+extractFootMetrics <- function(data, posCols, heelStrikes, toeOffs) {
+    # Ensure the sequence starts with a toe-off and ends with a heel-strike
+    if (length(toeOffs) > 0 && length(heelStrikes) > 0) {
+        if (toeOffs[1] > heelStrikes[1]) {
+            heelStrikes <- heelStrikes[-1]
+        }
+        if (length(toeOffs) > length(heelStrikes)) {
+            toeOffs <- toeOffs[1:length(heelStrikes)]
+        }
+    }
+  
+    # define the column names
+    xCol <- grep("x", posCols, value = TRUE)
+    yCol <- grep("y", posCols, value = TRUE)
+    zCol <- grep("z", posCols, value = TRUE)
+
+    nextHeelStrikes <- c(heelStrikes[-1], NA) # Shift indices by one, pad with NA
+    
+    # Create a dataframe for one foot
+    footMetrics <- data.frame(
+        ToeOffTime = data$time[toeOffs],
+        HeelStrikeTime = data$time[heelStrikes],
+        HeelStrikeX = data[[xCol]][heelStrikes],
+        HeelStrikeY = data[[yCol]][heelStrikes],
+        HeelStrikeZ = data[[zCol]][heelStrikes],
+        ToeOffX = data[[xCol]][toeOffs],
+        ToeOffY = data[[yCol]][toeOffs],
+        ToeOffZ = data[[zCol]][toeOffs]
+    )
+    
+    # Calculate Step Duration and Step Length
+    footMetrics$StepDuration <- data$time[nextHeelStrikes] - footMetrics$HeelStrikeTime
+    footMetrics$StepLength <- sqrt(
+        (data[[xCol]][nextHeelStrikes] - footMetrics$HeelStrikeX)^2 +
+        (data[[zCol]][nextHeelStrikes] - footMetrics$HeelStrikeZ)^2
+    )
+
+    # Calculate Swing Time and Stance Time
+    footMetrics$SwingTime <- footMetrics$HeelStrikeTime - footMetrics$ToeOffTime
+    footMetrics$StanceTime <- footMetrics$StepDuration - footMetrics$SwingTime
+
+    # Calculate Ratio of Swing Time to Stance Time
+    footMetrics$SwingStanceRatio <- footMetrics$SwingTime / footMetrics$StanceTime
+
+    # Remove the first and last steps (often faulty)
+    if (nrow(footMetrics) > 2) {
+        footMetrics <- footMetrics[-c(1,2, nrow(footMetrics)), ]
+    }
+    
+    return(footMetrics)
+}
+
+extractGaitMetrics <- function(data) {
+    trackerNameLeft <- "LeftFoot"
+    trackerNameRight <- "RightFoot"
+    toeOffsLeft <- which(diff(data$LeftFoot.stancePhase) == -1)
+    heelStrikesLeft <- which(diff(data$LeftFoot.stancePhase) == 1)
+    toeOffsRight <- which(diff(data$RightFoot.stancePhase) == -1)
+    heelStrikesRight <- which(diff(data$RightFoot.stancePhase) == 1)
+    
+    # Process left foot metrics
+    posColsLeft <- grep(paste0(trackerNameLeft,"\\.pos"), colnames(data), value = TRUE)
+    leftMetrics <- extractFootMetrics(data, posColsLeft, heelStrikesLeft, toeOffsLeft)
+    leftMetrics$Foot <- "Left"
+    # Process right foot metrics
+    posColsRight <- grep(paste0(trackerNameRight,"\\.pos"), colnames(data), value = TRUE)
+    rightMetrics <- extractFootMetrics(data, posColsRight, heelStrikesRight, toeOffsRight)
+    rightMetrics$Foot <- "Right"
+    # Merge left and right metrics into one dataframe
+    gaitMetrics <- rbind(leftMetrics, rightMetrics)
+    
+    return(gaitMetrics)
+}
+
+# Example usage
+#gaitMetrics <- extractGaitMetrics(stanceData)
+```
+
+# Final steps
+## Final data function
+It'll be useful down the line to have one single function that will just return the final, cleaned and transformed data set for a participant. Let's define this function here:
+
+```{r}
+getFinalResult <- function(participant, TrialNumber, maxVelocity = 100, maxRotVel = 3000, nPasses = 1, velocityMax = 0, velocityMin = -10){
+  data <- getTrackerDataForTrial(participant, TrialNumber)
+  data <- filterAllData(data, maxVelocity, maxRotVel, nPasses)
+  tmatrix <- calculateTransformationMatrix(data)
+  data <- transformAllData(data, tmatrix)
+  data <- detectStancePhase(data, velocityMax, velocityMin)
+  gaitMetrics <- extractGaitMetrics(data)
+  
+  # Add the treadmill distance
+  tmSpeed <- getTrialResults(participant,"treadmillSpeed",TrialNumber)
+  zCols <- grep("Foot.pos.z", colnames(data), value = TRUE)
+  zColsNew <- gsub(".pos", ".tmpos", zCols)
+  data[, zColsNew] <- data[, zCols] + tmSpeed*data$time
+  
+  gaitMetrics$StepLength <- gaitMetrics$StepLength + tmSpeed*gaitMetrics$StepDuration # adjust for treadmill speed
+  
+  return(list(data = data, gaitMetrics = gaitMetrics))
+}
+
+# Example usage
+result <- getFinalResult(participants[2], 3)
+```
+
+## Plotting gait events
+To check our algorithm, its best we somehow visualize it and inspect it.
+
+```{r, echo=FALSE}
+finalOptions <- colnames(result$data)
+
+inputPanel(
+  numericInput("stanceMaxV", "Max velocity stance (m/s)",
+              min = -10, max = 10, value = 0, step = 0.1),
+  numericInput("stanceMinV", "Min velocity stance (m/s)",
+              min = -10, max = 10, value = -10, step = 0.1),
+  selectizeInput("xplotFinal", "X-axis", 
+                 choices = finalOptions, selected = finalOptions[1], multiple = FALSE),
+  selectizeInput("yplotFinal", "Y-axis", 
+                 choices = finalOptions, selected = finalOptions[length(finalOptions)], multiple = FALSE),
+)
+
+renderPlot({
+  result <- getFinalResult(input$participant, input$TrialNumber, input$maxv, input$maxvRot, input$nPasses, input$stanceMaxV, input$stanceMinV)
+  
+  # Create plot
+  return(plotFinalData2D(result, input$xplotFinal, input$yplotFinal))
+  
+}, height = reactive(input$plotheight))
+
+
+inputPanel(
+  downloadButton("downloadSnapshot", "Download Snapshot")
+)
+
+renderRglwidget({
+  output$downloadSnapshot <- downloadHandler(
+    filename = function() {
+      paste("rgl-snapshot-", Sys.Date(), ".png", sep = "")
+    },
+    content = function(file) {
+      rgl.snapshot(file)
+    }
+  )
+  
+  result <- getFinalResult(input$participant, input$TrialNumber, input$maxv, input$maxvRot, input$nPasses, input$stanceMaxV, input$stanceMinV)
+  plotGaitData(result)
+})
+
+
+###### Helper functions ######
+  
+plotFinalData2D <- function(result, x_axis, y_axis) {
+  data <- result$data
+  gaitMetrics <- result$gaitMetrics
+  
+  
+  data <- data[data$time >= input$start & data$time <= input$end, ] # Filter out the desired time to plot
+  
+  p <- ggplot(data, aes_string(x = x_axis, y = y_axis)) +
+    geom_line(color = "black")
+
+  footToUse <- ifelse(grepl("Left", y_axis), "Left", 
+                      ifelse(grepl("Right", y_axis), "Right", NA))
+  
+  if (!is.na(footToUse)) {
+    # Toe-off points
+    toeOffTimes <- gaitMetrics[gaitMetrics$Foot==footToUse,][["ToeOffTime"]]
+    toeOffPoints <- data[data$time %in% toeOffTimes, ]
+    p <- p + geom_point(data = toeOffPoints, aes_string(x = x_axis, y = y_axis, color = "'Toe-off'"), size = 2)
+
+    # Heel-strike points
+    heelStrikeTimes <- gaitMetrics[gaitMetrics$Foot==footToUse,][["HeelStrikeTime"]]
+    heelStrikePoints <- data[data$time %in% heelStrikeTimes, ]
+    p <- p + geom_point(data = heelStrikePoints, aes_string(x = x_axis, y = y_axis, color = "'Heel-strike'"), size = 2)
+    
+    # Add legend for colors
+    isRight <- footToUse == "Right"
+    p <- p + scale_color_manual(name = "Event", 
+                                values = c("Toe-off" =  ifelse(!isRight, "yellow", "green"), "Heel-strike" = ifelse(!isRight, "red", "blue"))) +
+            theme(legend.position = "bottom")
+  }
+  
+  return(p)
+}
+
+
+plotGaitData <- function(result) {
+  # Clear existing rgl plot
+  clear3d()
+  rgl::aspect3d(1, 1, 1) # Set uniform aspect ratio
+  # Add axes
+  axes3d()
+  axis3d('y', pos = c(0, 0, 0))
+  # Add origin arrows
+  tfGizmo(c(0,0,0), 0.2)
+  
+  # Assign data variables
+  data <- result$data
+  gaitMetrics <- result$gaitMetrics
+  
+  # Left foot position columns
+  posColsLeft <- grep("LeftFoot.pos", colnames(data), value = TRUE)
+  xColLeft <- grep("x", posColsLeft, value = TRUE)
+  yColLeft <- grep("y", posColsLeft, value = TRUE)
+  zColLeft <- grep("z", posColsLeft, value = TRUE)
+  
+  # Right foot position columns
+  posColsRight <- grep("RightFoot.pos", colnames(data), value = TRUE)
+  xColRight <- grep("x", posColsRight, value = TRUE)
+  yColRight <- grep("y", posColsRight, value = TRUE)
+  zColRight <- grep("z", posColsRight, value = TRUE)
+  
+  # Plot left foot trajectory
+  lines3d(data[[xColLeft]], data[[yColLeft]], data[[zColLeft]], color="black") # left
+  lines3d(data[[xColRight]], data[[yColRight]], data[[zColRight]], color="black") # right 
+  
+  # Plot left foot heel strikes and toe-offs
+  points3d(gaitMetrics[gaitMetrics$Foot=="Left",]$HeelStrikeX, gaitMetrics[gaitMetrics$Foot=="Left",]$HeelStrikeY, gaitMetrics[gaitMetrics$Foot=="Left",]$HeelStrikeZ, color="blue", size=5)
+  points3d(gaitMetrics[gaitMetrics$Foot=="Left",]$ToeOffX, gaitMetrics[gaitMetrics$Foot=="Left",]$ToeOffY, gaitMetrics[gaitMetrics$Foot=="Left",]$ToeOffZ, color="green", size=5)
+  
+  # Plot right foot heel strikes and toe-offs
+  points3d(gaitMetrics[gaitMetrics$Foot=="Right",]$HeelStrikeX, gaitMetrics[gaitMetrics$Foot=="Right",]$HeelStrikeY, gaitMetrics[gaitMetrics$Foot=="Right",]$HeelStrikeZ, color="red", size=5)
+  points3d(gaitMetrics[gaitMetrics$Foot=="Right",]$ToeOffX, gaitMetrics[gaitMetrics$Foot=="Right",]$ToeOffY, gaitMetrics[gaitMetrics$Foot=="Right",]$ToeOffZ, color="yellow", size=5)
+  
+  # Draw treadmill positions
+  drawMeanAxes(data, "TreadmillLeft", "L", 1)
+  drawMeanAxes(data, "TreadmillRight","R", 1)
+  
+  # Return the rgl widget
+  rglwidget(width = "1200px", height = "600px")
+}
+
+```
+
+# Aggregate results
+
+We would also like to see how our data is distributed to identify any outliers etc. Let's start by creating some histograms.
+
+Re-generating takes a LONG time (~5 mins).
+
+If you want to re-load the csv file (`./results/AllSteps.csv`), just re-start this entire script.
+
+```{r}
+aggregateAllResults <- function() { # takes ~5 minute to run, be careful.
+    trials <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11)  # List of trials
+    allMetrics <- list()  # Initialize a list to store all metrics
+
+    # Loop over all participants and trials
+    for (participant in participants) {
+        for (trial in trials) {
+            tryCatch({
+                # Retrieve and process data for each participant and trial
+                result <- getFinalResult(participant, trial)
+                gaitMetrics <- extractGaitMetrics(result$data)
+                
+                # Retrieve additional trial information
+                freqHigh <- getTrialResults(participant, "freqHigh", trial)
+                freqLow <- getTrialResults(participant, "freqLow", trial)
+                gain <- getTrialResults(participant, "gain", trial)
+
+                # Combine freqHigh and freqLow
+                freqCombined <- paste(freqHigh, freqLow, sep = "-")
+
+                # Add the additional information to gaitMetrics
+                gaitMetrics$Participant <- participant
+                gaitMetrics$Trial <- trial
+                gaitMetrics$Frequency <- freqCombined
+                gaitMetrics$Gain <- gain
+
+                # Append to the list
+                allMetrics <- rbind(allMetrics, gaitMetrics)
+                print(paste("Participant",participant,", Trial:",trial, "completed"))
+            }, error = function(e) {
+                # Error handling: print or log the error message
+                cat("Error in processing Participant", participant, "Trial", trial, ":", e$message, "\n")
+            })
+        }
+    }
+    
+    return(allMetrics)
+}
+# uncomment these and run the chunk to generate new csv (can also be done from ui)
+#allMetrics <- aggregateAllResults()
+#write.csv(allMetrics, file = "./results/AllSteps.csv", row.names = FALSE)
+
+```
+
+```{r, echo=FALSE}
+inputPanel({
+  actionButton("generateCSV", "Generate CSV")
+})
+
+observeEvent(input$generateCSV, {
+  trials <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11)  # List of trials
+  
+  # Initialize the progress bar
+  withProgress(message = 'Processing data..., when done, saving to "./results/AllSteps.csv"', value = 0, {
+    # Number of steps for the progress bar
+    total <- length(participants) * length(trials)
+    progress <- 0
+
+    # Loop for data processing
+    for (participant in participants) {
+      for (trial in trials) {
+        # Update progress
+        progress <- progress + 1
+        incProgress(1/total, detail = paste("Processing Participant", participant, "Trial", trial))
+        
+        allMetrics <- list()  # Initialize a list to store all metrics
+
+        tryCatch({
+              # Retrieve and process data for each participant and trial
+              result <- getFinalResult(participant, trial)
+              gaitMetrics <- extractGaitMetrics(result$data)
+
+              # Retrieve additional trial information
+              freqHigh <- getTrialResults(participant, "freqHigh", trial)
+              freqLow <- getTrialResults(participant, "freqLow", trial)
+              gain <- getTrialResults(participant, "gain", trial)
+
+              # Combine freqHigh and freqLow
+              freqCombined <- paste(freqHigh, freqLow, sep = "-")
+              
+              if (is.na(freqHigh) || is.na(freqLow) || is.na(gain)){
+                cat("ERROR, WRONG trial results - freqHigh: ", freqHigh, "freqLow: ", freqLow, "gain: ", gain)
+              }
+
+              # Add the additional information to gaitMetrics
+              gaitMetrics$Participant <- participant
+              gaitMetrics$Trial <- trial
+              gaitMetrics$Frequency <- freqCombined
+              gaitMetrics$Gain <- gain
+              
+              # Append to the list
+              allMetrics <- rbind(allMetrics, gaitMetrics)
+              print(paste("Participant",participant,", Trial:",trial, "completed"))
+          }, error = function(e) {
+              # Error handling: print or log the error message
+              cat("Error in processing Participant", participant, "Trial", trial, ":", e$message, "\n")
+          })
+      }
+    }
+
+    # Combine all metrics into a single dataframe
+    combinedMetrics <- do.call(rbind, allMetrics)
+    
+    write.csv(combinedMetrics, file = "./results/AllSteps.csv", row.names = FALSE)
+  })
+  
+  # Notify completion
+  showNotification("CSV generation complete!", type = "message")
+})
+
+```
+
+```{r, echo=FALSE}
+allStepsData <- read.csv("./results/AllSteps.csv") # comment out this stuff if you havent generated yet
+
+dataTypes <- names(allStepsData)
+frequencies <-  unique(allStepsData$Frequency)
+gains <-  unique(allStepsData$Gain)
+feet <-  unique(allStepsData$Foot)
+categoriesInputs <- append(dataTypes, "None")
+
+inputPanel(
+  selectizeInput("plot", "Plot", 
+                choices = dataTypes, selected = dataTypes[1], multiple = FALSE),
+  selectizeInput("group", "Group by", 
+                choices = categoriesInputs, selected = categoriesInputs[length(categoriesInputs)], multiple = FALSE),
+  selectizeInput("position", "Bar positions", 
+                choices = c("stack","identity","dodge"), selected = "identity", multiple = FALSE),
+  selectizeInput("split", "Split by", 
+                choices = categoriesInputs, selected = "None", multiple = FALSE),
+  checkboxInput("means", "Show means", 
+                value = TRUE),
+  numericInput("height", "Height per plot",
+              min = 50, max = 1500, value = 200, step = 50),
+  numericInput("bin", "Bin width",
+              min = 0.001, max = 0.5, value = 0.01, step = 0.01),
+)
+
+inputPanel(
+  selectizeInput("filterParticipants", "Filter Participants", choices = participants, selected = participants, multiple = TRUE),
+  selectizeInput("filterFrequencies", "Filter Frequencies", choices = frequencies, selected = frequencies, multiple = TRUE),
+  selectizeInput("filterGains", "Filter Gains", choices = gains, selected = gains, multiple = TRUE),
+  selectizeInput("filterFoot", "Filter Foot", choices = feet, selected = feet, multiple = TRUE),
+)
+
+makeHistogramPlot = reactive({
+  # Filter data
+  filteredIndices <- which(allStepsData$Participant %in% input$filterParticipants &
+                           allStepsData$Gain %in% input$filterGains &
+                           allStepsData$Frequency %in% input$filterFrequencies & 
+                           allStepsData$Foot %in% input$filterFoot)
+  filteredData <- allStepsData[filteredIndices, ]
+  
+  # Define aesthetic mappings
+  aes <- aes_string(x = input$plot)
+  fill <- "grey"
+  alphaValue <- 1
+  if (input$group != "None") {
+    fill <- "white"
+    # Convert the grouping variable to a factor if it's numerical
+    filteredData[[input$group]] <- as.factor(filteredData[[input$group]])
+    aes <- modifyList(aes, aes_string(col = input$group))
+    if (input$position == "identity") {
+      alphaValue <- 0.5
+    }
+  }
+
+  # Create the histogram plot
+  p <- ggplot(filteredData, aes) + 
+    geom_histogram(binwidth = input$bin, fill = fill, alpha = alphaValue, position = input$position)
+  
+  if (input$split != "None") {
+    p <- p + facet_grid(sym(input$split))
+  }
+  
+  return(p)
+})
+
+renderPlot({
+  makeHistogramPlot()
+}, height = reactive(input$height))
+
+```
