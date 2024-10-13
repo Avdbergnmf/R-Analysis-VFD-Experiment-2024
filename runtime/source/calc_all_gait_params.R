@@ -1,9 +1,9 @@
 ####### DEFINITIONS
 trials <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11) # List of trials
 # Getting types for later use
-xOptions <- c("time", "pos.x", "pos.y", "pos.z")
+xOptions <- c("time", "pos.x", "pos.y", "pos.z", "actual_pos.z")
 xOptions2D <- colnames(get_t_data(participants[1], "leftfoot", 1)) # options for pos rot trackers
-categories <- c("participant", "trialNum", "freqHigh", "freqLow", "gain")
+categories <- c("participant", "trialNum", "condition", "freqHigh", "freqLow", "gain")
 categoriesInputs <- append(categories, "None")
 
 getTypes <- function(dt) {
@@ -45,6 +45,7 @@ get_condition_number <- function(gain, freqHigh) {
 
   # If no match is found, return NA
   if (length(condition) == 0) {
+    print(paste("No condition found for gain:", gain, "and freqHigh:", freqHigh))
     return(NA_integer_)
   }
 
@@ -56,7 +57,7 @@ add_p_results <- function(data, participant, trial) {
   data$freqLow <- get_p_results(participant, "freqLow", trial)
   data$gain <- get_p_results(participant, "gain", trial)
   data$treadmillSpeed <- get_p_results(participant, "treadmillSpeed", trial)
-  data$condition <- get_condition_number(data$gain, data$freqHigh)
+  data$condition <- get_condition_number(get_p_results(participant, "gain", trial), get_p_results(participant, "freqHigh", trial))
 
   return(data)
 }

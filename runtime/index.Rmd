@@ -89,6 +89,7 @@ Removed Steps
 ```{r, child='pages/page3_twoDPlot.Rmd'}
 ```
 
+
 Histograms 
 =====================================
 ```{r, child='pages/page5_histograms.Rmd'}
@@ -116,5 +117,28 @@ Questionnaires
 Boxplots 
 =====================================
 ```{r, child='pages/page9_boxplots.Rmd'}
+```
+
+
+Participant Summary {data-icon="fa-id-card-clip"}
+=====================================
+```{r, child='pages/page12_participantSummary.Rmd'}
+```
+
+
+Data Table {data-icon="fa-table"}
+=====================================
+```{r, child='pages/page13_table.Rmd'}
+```
+
+
+Data Correction
+=====================================
+```{r, child='pages/page15_dataCorrection.Rmd'}
+```
+
+Manual Outlier Filtering
+=====================================
+```{r, child='pages/page16_manualOutlierFiltering.Rmd'}
 ```
 

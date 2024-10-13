@@ -5,7 +5,17 @@ selectizeInput("filterParticipants", "Participants", choices = participants, sel
 
 #### Trial Filtering
 ```{r}
-selectizeInput("filterTrials", "Trials", choices = trials, selected = trials, multiple = TRUE)
+selectizeInput("filterTrials", "Trials", choices = trials, selected = trials, multiple = TRUE)  
+```
+
+#### Condition Filtering
+```{r}
+freqHighList <- unique(allGaitParams$freqHigh)
+freqLowList <- unique(allGaitParams$freqLow)
+gainList <- unique(allGaitParams$gain)
+selectizeInput("freqHigh", "High Frequency", choices = freqHighList, selected = freqHighList, multiple = TRUE)
+selectizeInput("freqLow", "Low Frequency", choices = freqLowList, selected = freqLowList, multiple = TRUE)
+selectizeInput("gain", "Gain", choices = gainList, selected = gainList, multiple = TRUE)
 ```
 
 #### Step Filtering

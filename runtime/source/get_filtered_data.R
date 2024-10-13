@@ -9,6 +9,12 @@ filteredParams <- reactive({
   # Trial based
   included <- included & data[["trialNum"]] %in% input$filterTrials
 
+
+  # condition based
+  included <- included & data[["freqHigh"]] %in% input$freqHigh
+  included <- included & data[["freqLow"]] %in% input$freqLow
+  included <- included & data[["gain"]] %in% input$gain
+
   # Step based
   included <- included & data[["heelStrikes.incorrectDetection"]] %in% input$filterImpossible
   included <- included & data[["heelStrikes.outlierSteps"]] %in% input$filterOutliers
@@ -22,6 +28,11 @@ filteredQResults_new <- reactive({
   data <- allQResults
   included <- data[["participant"]] %in% input$filterParticipants
   included <- included & data[["trialNum"]] %in% input$filterTrials
+
+  # condition based
+  included <- included & data[["freqHigh"]] %in% input$freqHigh
+  included <- included & data[["freqLow"]] %in% input$freqLow
+  included <- included & data[["gain"]] %in% input$gain
 
   return(data[included, ])
 })

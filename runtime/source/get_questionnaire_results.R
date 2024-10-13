@@ -73,11 +73,17 @@ calculate_all_scores <- function(qType) {
     for (trialNum in trialNums) {
       # Compute the scores for this trial
       scores <- compute_scores(participant, combined, qWeights, trialNum)
-
+      freqHigh <- get_p_results(participant, "freqHigh", trialNum)
+      freqLow <- get_p_results(participant, "freqLow", trialNum)
+      gain <- get_p_results(participant, "gain", trialNum)
       # Transform the scores into a data frame with a single row
       scoresRow <- cbind(
         participant = participant,
         trialNum = trialNum,
+        condition = get_condition_number(gain, freqHigh),
+        freqHigh = freqHigh,
+        freqLow = freqLow,
+        gain = gain,
         as.data.frame(t(scores))
       )
 
@@ -93,6 +99,12 @@ get_all_questionnaire_results <- function() {
   # Initialize an empty list to store results for each questionnaire
   all_q_results <- list()
 
+  # Function to rename columns with the questionnaire prefix
+  rename_columns <- function(data, prefix) {
+    colnames(data) <- ifelse(colnames(data) %in% categories, colnames(data), paste0(prefix, ".", colnames(data)))
+    return(data)
+  }
+
   # Process each questionnaire
   for (q_type in questionnaireList) {
     # Calculate scores for current questionnaire
@@ -106,11 +118,7 @@ get_all_questionnaire_results <- function() {
     }
 
     # Rename columns with the questionnaire prefix
-    colnames(q_data) <- ifelse(
-      colnames(q_data) %in% c(matchByList, "unique_id"),
-      colnames(q_data),
-      paste0(q_type, ".", colnames(q_data))
-    )
+    q_data <- rename_columns(q_data, q_type)
 
     # Add to the list
     all_q_results[[q_type]] <- q_data
@@ -118,18 +126,6 @@ get_all_questionnaire_results <- function() {
 
   # Merge all questionnaire results
   merged_results <- Reduce(function(x, y) merge(x, y, by = matchByList, all = TRUE), all_q_results)
-
-  # Remove the temporary unique_id column
-  merged_results$unique_id <- NULL
-
-  # # Add category columns for each row
-  # merged_results <- merged_results %>%
-  #   rowwise() %>%
-  #   mutate(across(everything(), ~ {
-  #     row <- add_category_columns(cur_data(), participant, trialNum)
-  #     if (is.data.frame(row) && ncol(row) == 1) row[[1]] else row
-  #   })) %>%
-  #   ungroup()
 
   return(merged_results)
 }

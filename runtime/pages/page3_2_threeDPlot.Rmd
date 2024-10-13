@@ -117,4 +117,51 @@ output$download3dPlot <- downloadHandler(
     rgl.snapshot(file, fmt = "png")
   }
 )
+
+#plotGaitData <- function(result) {
+#  # Clear existing rgl plot
+#  clear3d()
+#  rgl::aspect3d(1, 1, 1) # Set uniform aspect ratio
+#  # Add axes
+#  axes3d()
+#  axis3d('y', pos = c(0, 0, 0))
+#  # Add origin arrows
+#  tfGizmo(c(0,0,0), 0.2)
+#  
+#  # Assign data variables
+#  data <- result$data
+#  gaitMetrics <- result$gaitMetrics
+#  
+#  # Left foot position columns
+#  posColsLeft <- grep("LeftFoot.pos", colnames(data), value = TRUE)
+#  xColLeft <- grep("x", posColsLeft, value = TRUE)
+#  yColLeft <- grep("y", posColsLeft, value = TRUE)
+#  zColLeft <- grep("z", posColsLeft, value = TRUE)
+#  
+#  # Right foot position columns
+#  posColsRight <- grep("RightFoot.pos", colnames(data), value = TRUE)
+#  xColRight <- grep("x", posColsRight, value = TRUE)
+#  yColRight <- grep("y", posColsRight, value = TRUE)
+#  zColRight <- grep("z", posColsRight, value = TRUE)
+#  
+#  # Plot left foot trajectory
+#  lines3d(data[[xColLeft]], data[[yColLeft]], data[[zColLeft]], color="black") # left
+#  lines3d(data[[xColRight]], data[[yColRight]], data[[zColRight]], color="black") # right 
+#  
+#  # Plot left foot heel strikes and toe-offs
+#  points3d(gaitMetrics[gaitMetrics$Foot=="Left",]$HeelStrikeX, gaitMetrics[gaitMetrics$Foot=="Left",]$HeelStrikeY, gaitMetrics[gaitMetrics$Foot=="Left",]$HeelStrikeZ, color="blue", size=5)
+#  points3d(gaitMetrics[gaitMetrics$Foot=="Left",]$ToeOffX, gaitMetrics[gaitMetrics$Foot=="Left",]$ToeOffY, gaitMetrics[gaitMetrics$Foot=="Left",]$ToeOffZ, color="green", size=5)
+#  
+#  # Plot right foot heel strikes and toe-offs
+#  points3d(gaitMetrics[gaitMetrics$Foot=="Right",]$HeelStrikeX, gaitMetrics[gaitMetrics$Foot=="Right",]$HeelStrikeY, gaitMetrics[gaitMetrics$Foot=="Right",]$HeelStrikeZ, color="red", size=5)
+#  points3d(gaitMetrics[gaitMetrics$Foot=="Right",]$ToeOffX, gaitMetrics[gaitMetrics$Foot=="Right",]$ToeOffY, gaitMetrics[gaitMetrics$Foot=="Right",]$ToeOffZ, color="yellow", size=5)
+#  
+#  # Draw treadmill positions
+#  drawMeanAxes(data, "TreadmillLeft", "L", 1)
+#  drawMeanAxes(data, "TreadmillRight","R", 1)
+#  
+#  # Return the rgl widget
+#  rglwidget(width = "1200px", height = "600px")
+#}
+
 ```

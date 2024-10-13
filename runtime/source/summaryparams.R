@@ -56,9 +56,9 @@ summarize_table <- function(data, allQResults) {
   original_cols <- names(mu_full)
 
   # Re-add category columns using add_p_results
-  for (i in 1:nrow(mu_full)) {
-    mu_full[i, ] <- add_p_results(mu_full[i, ], mu_full$participant[i], mu_full$trialNum[i])
-  }
+  # for (i in 1:nrow(mu_full)) {
+  #   mu_full[i, ] <- add_p_results(mu_full[i, ], mu_full$participant[i], mu_full$trialNum[i])
+  # }
 
   # Keep only the original columns
   mu_full <- mu_full[, original_cols]

@@ -213,6 +213,31 @@ rotate_y <- function(data, theta_deg, prefixList) {
   return(data)
 }
 
+rotate_preprocessed_data <- function(data, rotation) {
+  # Get all column names
+  all_cols <- colnames(data)
+
+  # Iterate over all trackerPrefixes
+  for (prefix in trackerPrefixes) {
+    # Find columns that match the current prefix
+    matching_cols <- grep(paste0("^", prefix, "\\."), all_cols, value = TRUE)
+
+    if (length(matching_cols) > 0) {
+      # Extract the data for the current tracker
+      tracker_data <- data[, matching_cols]
+
+      # Rotate the data
+      rotated_data <- rotate_y(tracker_data, rotation)
+
+      # Replace the original data with the rotated data
+      data[, matching_cols] <- rotated_data
+    }
+  }
+
+  return(data)
+}
+
+
 quaternion_to_rotation_matrix <- function(q) {
   # Ensure the quaternion is normalized
   q <- q / sqrt(sum(q^2))
@@ -376,25 +401,6 @@ add_actual_z <- function(data, moveSpeed, movingTrackerPrefixes) {
     data[[paste0(prefix, ".actual_pos.z")]] <- data[[paste0(prefix, ".pos.z")]] + moveSpeed * data$time
   }
   return(data)
-}
-
-# Detect and remove outliers using a Modified z-score method
-detect_outliers_modified_z_scores <- function(data, ignoreSteps = c(FALSE), threshold = 3.5) {
-  data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our med etc
-
-  # Calculate the median of the column
-  med <- median(data_filtered, na.rm = TRUE)
-
-  # Calculate the Median Absolute Deviation (MAD)
-  mad_value <- median(abs(data_filtered - med), na.rm = TRUE)
-
-  # Calculate the Modified z-scores
-  modified_z_scores <- 0.6745 * (data - med) / mad_value
-
-  # Identify outliers based on the threshold
-  outliers <- abs(modified_z_scores) > threshold
-
-  return(outliers)
 }
 
 detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {

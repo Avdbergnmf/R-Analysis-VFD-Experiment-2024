@@ -38,13 +38,13 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
   names(leftData) <- gsub("^LeftFoot\\.", "", names(leftData))
 
   if (doFilter) {
-    numeric_columns <- sapply(rightData, is.numeric)
-    rightData[numeric_columns] <- lapply(rightData[numeric_columns], function(column) {
-      apply_padding_and_filter(column, 4, 90)
-    })
-    leftData[numeric_columns] <- lapply(leftData[numeric_columns], function(column) {
-      apply_padding_and_filter(column, 4, 90)
-    })
+    # numeric_columns <- sapply(rightData, is.numeric)
+    # rightData[numeric_columns] <- lapply(rightData[numeric_columns], function(column) {
+    #   apply_padding_and_filter(column, 4, 90)
+    # })
+    # leftData[numeric_columns] <- lapply(leftData[numeric_columns], function(column) {
+    #   apply_padding_and_filter(column, 4, 90)
+    # })
   }
 
   # Add a new column to both dataframes to identify the foot
@@ -73,8 +73,8 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
   p <- ggplot(both, aes(x = .data[[x_axis]], y = .data[[y_axis]], color = .data$foot)) +
     geom_path() +
     # toeOffs
-    geom_point(data = rParams, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 24, color = "red", size = footEventSize) +
-    geom_point(data = lParams, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 24, color = "blue", size = footEventSize) + # 12=empty square
+    # geom_point(data = rParams, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 24, color = "red", size = footEventSize) +
+    # geom_point(data = lParams, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 24, color = "blue", size = footEventSize) + # 12=empty square
     # heelstrikes
     geom_point(data = rParams, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 25, color = "red", size = footEventSize) + # 16=ball
     geom_point(data = lParams, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 25, color = "blue", size = footEventSize) +
@@ -84,8 +84,8 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
     # outlier steps (with filled icons and larger size)
     geom_point(data = rOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 21, fill = "red", color = "red", size = outlierSize) +
     geom_point(data = lOutliers, aes(x = .data[[paste0("heelStrikes.", x_axis)]], y = .data[[paste0("heelStrikes.", y_axis)]]), shape = 21, fill = "blue", color = "blue", size = outlierSize) + # 21 = filled circle
-    geom_point(data = rOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "red", size = outlierSize) +
-    geom_point(data = lOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "blue", size = outlierSize) +
+    # geom_point(data = rOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "red", size = outlierSize) +
+    # geom_point(data = lOutliers, aes(x = .data[[paste0("toeOffs.", x_axis)]], y = .data[[paste0("toeOffs.", y_axis)]]), shape = 21, color = "blue", size = outlierSize) +
     scale_color_manual(values = c("Right" = "black", "Left" = "grey")) +
     ggtitle(extraTitle) +
     theme_minimal(base_size = baseSize) # get_sized_theme(baseSize)
@@ -200,14 +200,9 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
 }
 
 
-plot_questionnaire_data <- function(data, qType, cols_to_include = c(), baseSize = 10, x_var = NULL, color_var = NULL) {
+plot_questionnaire_data <- function(data, qType, baseSize = 10, x_var = NULL, color_var = NULL) {
   data <- filter_questionnaire_results(data, qType)
-  # Only keep the columns to include in the plot
-  if (length(cols_to_include) == 0) {
-    cols_to_include <- setdiff(colnames(data), c(matchByList, "none")) # just take all of them, except for participant, trialNum and none
-  }
-  data <- data[, c(matchByList, cols_to_include), drop = FALSE]
-
+  print(colnames(data))
   # Reshape the data to long format for ggplot
   data_long <- reshape2::melt(data, id.vars = matchByList)
 
@@ -233,7 +228,7 @@ plot_questionnaire_data <- function(data, qType, cols_to_include = c(), baseSize
     line.color = "gray",
     line.size = 0.4
   ) +
-    facet_wrap(~variable, scales = "free", ncol = length(cols_to_include)) +
+    facet_wrap(~variable, scales = "free", ncol = setdiff(colnames(data), categories)) +
     labs(x = x_var, y = "Score") +
     ggtitle(paste0(qType, " Scores")) +
     theme(plot.title = element_text(hjust = 0.5)) +
@@ -290,37 +285,32 @@ plot_boxplots <- function(mu, participants, datatype, xaxis, baseSize = 10) {
       names_to = "variable",
       values_to = "value"
     )
-
   # Set trialNum as factor so we can use it to color our datapoints
-  data_long$trialNum <- factor(data_long$trialNum, levels = trials, labels = trials)
+  data_long$trialNum <- factor(data_long$trialNum, levels = c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11), labels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
 
   # Create a combined x-axis variable
   data_long$xaxis_combined <- apply(data_long[, xaxis], 1, paste, collapse = "_")
 
-  # Define shapes and colors
-  shapes <- c(15, 15, 16, 16) # Square for 1, 2 and Circle for 3, 4
-  colors <- c("darkred", "pink", "darkblue", "lightblue") # Dark/light for 1, 2 and 3, 4
-
   # Create the plot
   p <- ggplot(data_long, aes(x = xaxis_combined, y = value)) +
     geom_boxplot() +
-    geom_jitter(aes(color = trialNum, shape = trialNum), width = 0.2, size = baseSize / 4, alpha = 0.7) +
+    geom_jitter(aes(color = trialNum), width = 0.2, size = baseSize / 4, alpha = 0.7) +
     labs(x = paste(xaxis, collapse = " + "), y = datatype) +
     ggtitle(datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    scale_color_manual(name = "Trial Number", values = colors) +
-    scale_shape_manual(name = "Trial Number", values = shapes) +
     get_sized_theme(baseSize)
 
   return(p)
 }
 
 
-
 make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize = 10) {
   incorrectDetectionSteps <- length(data[data$heelStrikes.incorrectDetection == TRUE, ]$participant)
   outlierSteps <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$participant)
   included <- length(data[data$heelStrikes.incorrectDetection == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$participant) # non filtered out
+  total_steps <- length(data$participant)
+
+  # Create a data frame for ggplot
   total_steps <- length(data$participant)
 
   # Create a data frame for ggplot
@@ -390,17 +380,4 @@ make_scatter_plot_mu <- function(data, xinput, yinput, group, baseSize = 10) {
     theme_minimal(base_size = baseSize)
 
   return(p)
-}
-
-###### Extra
-
-# Function to save plot as an image
-save_plot <- function(plot, filename, width = 8, height = 4, pdf = FALSE) {
-  if (!pdf) {
-    ggsave(filename, plot, device = "png", width = width, height = height)
-  } else {
-    pdf(filename, width = width, height = height)
-    print(plot)
-    dev.off()
-  }
 }

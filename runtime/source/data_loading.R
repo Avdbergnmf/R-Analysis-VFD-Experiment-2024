@@ -2,7 +2,7 @@
 dataFolder <- "data"
 dataExtraFolder <- "data_extra"
 questionnaireInfoFolder <- "questionnaires"
-questionnaireList <- c("UserExperience", "FinalQ") # List of all questionnaires
+questionnaireList <- c("UserExperience") # , "FinalQ") # List of all questionnaires
 matchByList <- c("participant", "trialNum") # list to match questionnaires with (parameters in which questionnaires are separated)
 
 participants <- list.dirs(path = dataFolder, full.names = FALSE, recursive = FALSE)
