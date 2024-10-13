@@ -21,10 +21,11 @@ filteredParams <- reactive({
 filteredQResults_new <- reactive({
   data <- allQResults
   included <- data[["participant"]] %in% input$filterParticipants
+  included <- included & data[["trialNum"]] %in% input$filterTrials
 
   return(data[included, ])
 })
 
 get_mu_dyn_long <- reactive({
-  return(get_full_mu(filteredParams(), allQResults, categories))
+  return(get_full_mu(filteredParams(), allQResults))
 })

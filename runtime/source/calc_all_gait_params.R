@@ -28,10 +28,35 @@ add_category_columns <- function(data, participant, trial) {
   # Add a column for the participant identifier
   data$participant <- participant
   data$trialNum <- trial
+  data <- add_p_results(data, participant, trial)
+  return(data)
+}
+
+get_condition_number <- function(gain, freqHigh) {
+  # Create a lookup table for the 10 unique combinations
+  condition_lookup <- data.frame(
+    gain = c(0, 0.5, 1, 2, 0.5, 1, 2, 0.5, 1, 2),
+    freqHigh = c(0.5, 0.5, 0.5, 0.5, 3, 3, 3, 10, 10, 10),
+    condition = 1:10
+  )
+
+  # Find the matching condition
+  condition <- condition_lookup$condition[condition_lookup$gain == gain & condition_lookup$freqHigh == freqHigh]
+
+  # If no match is found, return NA
+  if (length(condition) == 0) {
+    return(NA_integer_)
+  }
+
+  return(condition)
+}
+
+add_p_results <- function(data, participant, trial) {
   data$freqHigh <- get_p_results(participant, "freqHigh", trial)
   data$freqLow <- get_p_results(participant, "freqLow", trial)
   data$gain <- get_p_results(participant, "gain", trial)
   data$treadmillSpeed <- get_p_results(participant, "treadmillSpeed", trial)
+  data$condition <- get_condition_number(data$gain, data$freqHigh)
 
   return(data)
 }

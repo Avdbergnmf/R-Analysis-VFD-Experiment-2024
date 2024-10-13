@@ -21,7 +21,6 @@ source('source/get_questionnaire_results.R', local = FALSE)
 # File paths
 resultsFolder <- "results"
 agpFile <- file.path(resultsFolder, "allGaitParams.rds")
-atpFile <- file.path(resultsFolder, "allTargetParams.rds")
 aqrFile <- file.path(resultsFolder, "allQResults.rds")
 
 # Load or calculate the data
@@ -32,9 +31,9 @@ dataTypes         <- setdiff(getTypes(allGaitParams), categories)
 
 ## Summary tables
 source('source/summaryparams.R', local = FALSE)
-#mu <- get_full_mu(allGaitParams, allQResults, categories)
-#muDataTypes <- setdiff(getTypes(mu), categories) 
-#muVars <- colnames(mu)
+mu <- get_full_mu(allGaitParams, allQResults)
+muDataTypes <- setdiff(getTypes(mu), categories) 
+muVars <- colnames(mu)
 
 ## Plotting code
 source('source/plotting.R', local = FALSE)
@@ -90,7 +89,6 @@ Removed Steps
 ```{r, child='pages/page3_twoDPlot.Rmd'}
 ```
 
-
 Histograms 
 =====================================
 ```{r, child='pages/page5_histograms.Rmd'}
@@ -118,46 +116,5 @@ Questionnaires
 Boxplots 
 =====================================
 ```{r, child='pages/page9_boxplots.Rmd'}
-```
-
-
-Statistics {data-icon="fa-chart-bar"}
-=====================================
-```{r, child='pages/page10_statistics.Rmd'}
-```
-
-
-Correlations {data-icon="fa-chart-line"}
-=====================================
-```{r, child='pages/page11_correlations.Rmd'}
-```
-
-
-Participant Summary {data-icon="fa-id-card-clip"}
-=====================================
-```{r, child='pages/page12_participantSummary.Rmd'}
-```
-
-
-Data Table {data-icon="fa-table"}
-=====================================
-```{r, child='pages/page13_table.Rmd'}
-```
-
-
-Data Correction
-=====================================
-```{r, child='pages/page15_dataCorrection.Rmd'}
-```
-
-
-Outlier Filtering
-=====================================
-```{r, child='pages/page14_dataFiltering.Rmd'}
-```
-
-Manual Outlier Filtering
-=====================================
-```{r, child='pages/page16_manualOutlierFiltering.Rmd'}
 ```
 

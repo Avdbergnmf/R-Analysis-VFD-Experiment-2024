@@ -6,7 +6,6 @@ selectInput("par", "Parametric data",
             selected = "parametric", multiple = FALSE)
 
 checkboxInput("averageData", "Average data across condition", value = TRUE)
-checkboxInput("diffData", "Calculate difference + means per participant", value = TRUE)
 
 # Add selectors for x and y inputs for the correlation plot
 selectizeInput("xVar", "X Variable for Correlation Plot", choices = muVars, selected = muVars[1], multiple = FALSE)
@@ -44,9 +43,6 @@ get_correlation_data <- reactive({
   if (input$averageData) {
     data <- summarize_across_conditions(data)
   }
-  if (input$diffData){
-    data <- calculate_vfd_difference(data)
-  }
   return(data)
 })
 
@@ -55,8 +51,8 @@ observe({
   data <- get_correlation_data()
   numeric_cols <- names(data)[sapply(data, is.numeric)]
   
-  updateSelectizeInput(session, "xVar", choices = numeric_cols , selected = ifelse(input$diffData, "diff_VEQ.total", "VEQ.total"))
-  updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = ifelse(input$diffData, "diff_stepWidths.sd", "stepWidths.sd"))
+  updateSelectizeInput(session, "xVar", choices = numeric_cols , selected = numeric_cols[1])
+  updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = numeric_cols[2])
 })
 
 output$correlation_plot <- renderSVG({ reactive({

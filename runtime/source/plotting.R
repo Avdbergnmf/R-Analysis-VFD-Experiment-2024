@@ -160,8 +160,8 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
   xData <- get_t_data(participant, xtracker, trialNum)
   yData <- get_t_data(participant, ytracker, trialNum)
   startTime <- get_p_results(participant, "start_time", trialNum)
-  xData <- adjust_times(xData, startTime)
-  yData <- adjust_times(yData, startTime)
+  xData <- adjust_time(xData, startTime)
+  yData <- adjust_time(yData, startTime)
 
   # Filter time subset if needed
   if (endTime > startTime && endTime != 0) {
@@ -200,36 +200,44 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
 }
 
 
-plot_questionnaire_data <- function(data, qType, cols_to_include = c(), baseSize = 10) {
+plot_questionnaire_data <- function(data, qType, cols_to_include = c(), baseSize = 10, x_var = NULL, color_var = NULL) {
   data <- filter_questionnaire_results(data, qType)
   # Only keep the columns to include in the plot
   if (length(cols_to_include) == 0) {
-    cols_to_include <- setdiff(colnames(data), c("participant", "VFD", "none")) # just take all of them, except for participant and VFD (condition) - Also removing the none scale because in that case we are just interested in the total.
+    cols_to_include <- setdiff(colnames(data), c(matchByList, "none")) # just take all of them, except for participant, trialNum and none
   }
-  data <- data[, c("participant", "VFD", cols_to_include), drop = FALSE]
+  data <- data[, c(matchByList, cols_to_include), drop = FALSE]
 
   # Reshape the data to long format for ggplot
-  data_long <- reshape2::melt(data, id.vars = c("participant", "VFD"))
+  data_long <- reshape2::melt(data, id.vars = matchByList)
 
   qweights <- get_question_weights(qType)
   min_plot <- if ("min_plot" %in% qweights$category) qweights[qweights$category == "min_plot", "weight"] else NULL
   max_plot <- if ("max_plot" %in% qweights$category) qweights[qweights$category == "max_plot", "weight"] else NULL
 
+  # Set default x_var and color_var if not provided
+  if (is.null(x_var)) x_var <- matchByList[2]
+  if (is.null(color_var)) color_var <- x_var
+
+  # Ensure x_var and color_var are valid
+  if (!x_var %in% matchByList) stop(paste("Invalid x_var:", x_var))
+  if (!color_var %in% matchByList) stop(paste("Invalid color_var:", color_var))
+
   # Create the plot for each column to include
   p <- ggpaired(
     data = data_long,
-    x = "VFD",
+    x = x_var,
     y = "value",
-    id = "participant",
-    color = "VFD",
+    id = matchByList[1],
+    color = color_var,
     line.color = "gray",
     line.size = 0.4
   ) +
     facet_wrap(~variable, scales = "free", ncol = length(cols_to_include)) +
-    labs(x = "VFD", y = "Score") +
+    labs(x = x_var, y = "Score") +
     ggtitle(paste0(qType, " Scores")) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    get_sized_theme(baseSize) # theme_minimal(base_size = baseSize)
+    get_sized_theme(baseSize)
 
   # Conditionally add y-axis limits if min_plot and max_plot are provided
   if (!is.null(min_plot) && !is.null(max_plot)) {
@@ -269,14 +277,7 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
   return(p)
 }
 
-plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
-  ylims <- c()
-  if (grepl(".sd", datatype)) {
-    # ylims <- c(0, 0.05)
-  } else if (grepl(".cv", datatype)) {
-    # ylims <- c(0, 0.3)
-  }
-
+plot_boxplots <- function(mu, participants, datatype, xaxis, baseSize = 10) {
   # Filter data for the specified columns and participants
   data_long <- mu %>%
     select(c("participant", "trialNum", all_of(xaxis), !!datatype))
@@ -311,9 +312,6 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
     scale_shape_manual(name = "Trial Number", values = shapes) +
     get_sized_theme(baseSize)
 
-  if (length(ylims) == 2) {
-    p <- p + coord_cartesian(ylim = ylims)
-  }
   return(p)
 }
 

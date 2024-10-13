@@ -30,7 +30,6 @@ numericInput("num_tests",
 Further data processing:
 ```{r}
 checkboxInput("averageData_stats", "Average data across condition", value = FALSE)
-checkboxInput("diffData_stats", "Calculate difference + means per participant", value = FALSE)
 ```
 
 Column
@@ -134,9 +133,6 @@ get_stats_data <- reactive({
   if (input$averageData_stats) {
     data <- summarize_across_conditions(data)
   }
-  if (input$diffData_stats){
-    data <- calculate_vfd_difference(data)
-  }
   return(data)
 })
 
@@ -145,8 +141,8 @@ observe({
   data <- get_stats_data()
   numeric_cols <- colnames(data)#[sapply(data, is.numeric)]
   
-  updateSelectizeInput(session, "depVar", choices = numeric_cols , selected = ifelse(input$diffData_stats, "diff_stepWidths.sd", "stepWidths.sd"))
-  updateSelectizeInput(session, "indepInterVars", choices = numeric_cols, selected = ifelse(input$diffData_stats, "diff_VEQ.total", "VFD"))
+  updateSelectizeInput(session, "depVar", choices = numeric_cols , selected = "stepWidths.sd")
+  updateSelectizeInput(session, "indepInterVars", choices = numeric_cols, selected = numeric_cols[1])
   updateSelectizeInput(session, "indepVars", choices = numeric_cols)
 })
 # Automatically enable "averageData_stats" if paired_ttest is selected

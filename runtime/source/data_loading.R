@@ -2,7 +2,7 @@
 dataFolder <- "data"
 dataExtraFolder <- "data_extra"
 questionnaireInfoFolder <- "questionnaires"
-allQs <- c("UserExperience","FinalQ") # List of all questionnaires
+questionnaireList <- c("UserExperience", "FinalQ") # List of all questionnaires
 matchByList <- c("participant", "trialNum") # list to match questionnaires with (parameters in which questionnaires are separated)
 
 participants <- list.dirs(path = dataFolder, full.names = FALSE, recursive = FALSE)
@@ -53,29 +53,35 @@ get_p_detail <- function(pnum, detail) {
 
 calculate_participant_details <- function(participants) {
   details <- data.frame(participant = participants)
-  
+
   # List of possible details
   possible_details <- c("age", "gender", "height", "weight", "education")
-  
+
   # Retrieve details for each participant if available
   for (detail in possible_details) {
-    tryCatch({
-      details[[detail]] <- sapply(participants, get_p_detail, detail = detail)
-    }, error = function(e) {
-      message(paste("Detail", detail, "not available for all participants. Skipping."))
-    })
+    tryCatch(
+      {
+        details[[detail]] <- sapply(participants, get_p_detail, detail = detail)
+      },
+      error = function(e) {
+        message(paste("Detail", detail, "not available for all participants. Skipping."))
+      }
+    )
   }
 
-  tryCatch({
-    details$move_speed <- sapply(participants, get_move_speed)
-  }, error = function(e) {
-    message("move_speed not available for all participants. Skipping.")
-  })
-  
+  tryCatch(
+    {
+      details$move_speed <- sapply(participants, get_move_speed)
+    },
+    error = function(e) {
+      message("move_speed not available for all participants. Skipping.")
+    }
+  )
+
   # Calculate statistics for available numeric columns
   numeric_cols <- sapply(details, is.numeric)
   result <- data.frame(Detail = character(), Value = character(), Category = character())
-  
+
   for (col in names(details)[numeric_cols]) {
     if (col != "participant") {
       col_mean <- mean(details[[col]], na.rm = TRUE)
@@ -84,10 +90,10 @@ calculate_participant_details <- function(participants) {
       col_min <- min(details[[col]], na.rm = TRUE)
       col_max <- max(details[[col]], na.rm = TRUE)
       col_iqr <- IQR(details[[col]], na.rm = TRUE)
-      
+
       mean_sd <- sprintf("%.2f, SD: %.2f", col_mean, col_sd)
       median_min_max_iqr <- sprintf("%.2f [%.2f, %.2f], IQR=%.2f", col_median, col_min, col_max, col_iqr)
-      
+
       result <- rbind(result, data.frame(
         Detail = c(paste(col, "(Mean, SD)"), paste(col, "(Median [Min, Max], IQR)")),
         Value = c(mean_sd, median_min_max_iqr),
@@ -95,11 +101,11 @@ calculate_participant_details <- function(participants) {
       ))
     }
   }
-  
+
   # Count the occurrences of each unique value in categorical columns
   categorical_cols <- sapply(details, is.character)
-  categorical_cols["participant"] <- FALSE  # Exclude the participant column
-  
+  categorical_cols["participant"] <- FALSE # Exclude the participant column
+
   for (col in names(details)[categorical_cols]) {
     counts <- table(details[[col]])
     result <- rbind(result, data.frame(
@@ -108,7 +114,7 @@ calculate_participant_details <- function(participants) {
       Category = names(counts)
     ))
   }
-  
+
   return(result)
 }
 
@@ -119,7 +125,7 @@ get_t_data <- function(pnum, trackerType, trialNum) {
     stop("Invalid tracker type specified.")
   }
 
-  filename <- paste0(filenameDict[[trackerType]],"_T", sprintf("%03d", trialNum), ".csv")
+  filename <- paste0(filenameDict[[trackerType]], "_T", sprintf("%03d", trialNum), ".csv")
   filePath <- file.path(get_p_dir(pnum), "trackers", filename)
 
   # Use tryCatch for more robust error handling
@@ -159,15 +165,15 @@ get_q_data <- function(pnum, qType) {
 
   # Extract the QuestionID and the two answer columns
   answerColumns <- grep("Answer_", names(questionnaire), value = TRUE)
-  
+
   # Initialize an empty data frame for the results
   result <- data.frame()
   sequence <- seq_along(answerColumns)
   for (i in sequence) {
     # Get gain and max frequency for each trial
-    gain <- get_p_results(pnum, "gain", i+1)
-    freqHigh <- get_p_results(pnum, "freqHigh", i+1)
-    
+    gain <- get_p_results(pnum, "gain", i + 1)
+    freqHigh <- get_p_results(pnum, "freqHigh", i + 1)
+
     # Extract and label the data for each trial
     trialData <- data.frame(
       participant = pnum,
@@ -181,7 +187,7 @@ get_q_data <- function(pnum, qType) {
     # Combine trial data into the result dataframe
     result <- rbind(result, trialData)
   }
-  
+
   return(result)
 }
 

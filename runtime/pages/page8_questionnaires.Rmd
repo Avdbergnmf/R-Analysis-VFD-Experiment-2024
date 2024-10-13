@@ -1,8 +1,9 @@
 ### Options
 
 ```{r}
-questionnaireList <- c("VEQ", "SSQ", "IMI")
 selectizeInput("plotQ", "Plot Questionnaire", choices = questionnaireList, selected = questionnaireList[1], multiple = FALSE)
+selectizeInput("qCategory", "Category", choices = categories, selected = categories[1], multiple = TRUE)
+selectizeInput("qColor", "Color", choices = categories, selected = categories[1], multiple = FALSE)
 ```
 
 Column
@@ -15,7 +16,7 @@ imageOutput("q")
 
 ```{r, context="server"}
 output$q <- renderSVG({ reactive({
-  plot_questionnaire_data(filteredQResults_new(), input$plotQ, baseSize = input$baseSize)
+  plot_questionnaire_data(filteredQResults_new(), input$plotQ, input$qCategory, input$qColor, baseSize = input$baseSize)
   })
 })
 ```
