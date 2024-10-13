@@ -3,13 +3,12 @@
 
 ### Plot Options
 ```{r}
-trialNumbers = c(2,3,4,5,6,7,8,9,10)
 checkboxInput("filter", "Show filtered data",
   value = FALSE)
 selectizeInput("participant", "participant",
   choices = participants, selected = participants[1], multiple = FALSE)
 selectizeInput("trialNum", "Trial Number",
-  choices = trialNumbers, selected = trialNumbers[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
+  choices = trials, selected = trials[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
 
 
 selectizeInput("xplot", "xplot",

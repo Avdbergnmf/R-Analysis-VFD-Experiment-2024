@@ -21,6 +21,7 @@ source('source/get_questionnaire_results.R', local = FALSE)
 # File paths
 resultsFolder <- "results"
 agpFile <- file.path(resultsFolder, "allGaitParams.rds")
+atpFile <- file.path(resultsFolder, "allTargetParams.rds")
 aqrFile <- file.path(resultsFolder, "allQResults.rds")
 
 # Load or calculate the data
@@ -32,8 +33,9 @@ dataTypes         <- setdiff(getTypes(allGaitParams), categories)
 ## Summary tables
 source('source/summaryparams.R', local = FALSE)
 #mu <- get_full_mu(allGaitParams, allQResults, categories)
-#muDataTypes <- setdiff(getTypes(mu), categories)
+#muDataTypes <- setdiff(getTypes(mu), categories) 
 #muVars <- colnames(mu)
+
 ## Plotting code
 source('source/plotting.R', local = FALSE)
 ```

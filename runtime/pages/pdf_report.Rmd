@@ -9,7 +9,6 @@ params:
   pie_charts: NA
   questionnaire_plots: NA
   variability_plots: NA
-  target_stepping_plot: NA
   scatter_plot: NA
   disturbance_plots_z_l: NA
   disturbance_plots_x_l: NA
@@ -31,7 +30,6 @@ traj_plots_x <- params$traj_plots_x
 pie_charts <- params$pie_charts
 questionnaire_plots <- params$questionnaire_plots
 variability_plots <- params$variability_plots
-target_stepping_plot <- params$target_stepping_plot
 scatter_plot <- params$scatter_plot
 disturbance_plots_z_l <- params$disturbance_plots_z_l
 disturbance_plots_x_l <- params$disturbance_plots_x_l
@@ -44,7 +42,7 @@ eye_plots_z <- params$eye_plots_z
 ### Page 1: Variability Plots, Scatter Plot, Target Stepping Plot
 ```{r, fig.width = 8.3, fig.height = 9}
 # Combine variability plots with scatter plot and target stepping plot
-all_plots <- list(scatter_plot, target_stepping_plot)
+all_plots <- scatter_plot
 
 # Arrange Variability Plots, Scatter Plot, and Target Stepping Plot
 grid.arrange(

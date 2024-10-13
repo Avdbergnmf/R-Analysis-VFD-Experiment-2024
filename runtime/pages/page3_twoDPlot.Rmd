@@ -12,7 +12,7 @@ selectizeInput("xtracker", "Data to plot",
 selectizeInput("participant2d", "participant",
   choices = participants, selected = participants[1], multiple = FALSE)
 selectizeInput("trialNum2d", "Trial Number",
-  choices = trialNumbers, selected = trialNumbers[1], multiple = FALSE)
+  choices = trials, selected = trials[1], multiple = FALSE)
 
 
 selectizeInput("xplot2d", "xplot",

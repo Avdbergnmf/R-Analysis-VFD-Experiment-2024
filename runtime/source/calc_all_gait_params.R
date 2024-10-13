@@ -1,13 +1,10 @@
 ####### DEFINITIONS
-
-allTrials <- c(1, 2, 3, 4, 5, 6) # VFD conditions
+trials <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11) # List of trials
 # Getting types for later use
 xOptions <- c("time", "pos.x", "pos.y", "pos.z")
 xOptions2D <- colnames(get_t_data(participants[1], "leftfoot", 1)) # options for pos rot trackers
-categories <- c("participant", "trialNum") #  "heelStrikes.foot"
+categories <- c("participant", "trialNum", "freqHigh", "freqLow", "gain")
 categoriesInputs <- append(categories, "None")
-columns_to_not_summarize <- c("practice", "startedWithNoise", "conditionNumber", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed") # these are categorical columns we may want to use for our statistics but we dont want to summarize in our mu table
-categoriesExtra <- c(categories, columns_to_not_summarize)
 
 getTypes <- function(dt) {
   numericDataTypes <- sapply(dt, is.numeric)
@@ -35,13 +32,13 @@ add_category_columns <- function(data, participant, trial) {
   data$freqLow <- get_p_results(participant, "freqLow", trial)
   data$gain <- get_p_results(participant, "gain", trial)
   data$treadmillSpeed <- get_p_results(participant, "treadmillSpeed", trial)
-  
+
   return(data)
 }
 
 get_data_from_loop_parallel <- function(get_data_function, ...) {
   # Create a data frame of all participant and trial combinations
-  combinations <- expand.grid(participant = participants, trial = allTrials)
+  combinations <- expand.grid(participant = participants, trial = trials)
 
   # Set up parallel backend to use multiple processors
   numCores <- detectCores() - 1 # Leave one core free for system processes
@@ -49,7 +46,7 @@ get_data_from_loop_parallel <- function(get_data_function, ...) {
   registerDoParallel(cl)
 
   # Export necessary variables and functions to the cluster
-  clusterExport(cl, c("participants", "allTrials", "get_data_function", "add_category_columns"), envir = environment())
+  clusterExport(cl, c("participants", "trials", "get_data_function", "add_category_columns"), envir = environment())
 
   # Run the loop in parallel using foreach
   data_list <- foreach(
@@ -88,13 +85,13 @@ get_data_from_loop <- function(get_data_function, ...) {
   data <- data.frame()
 
   # Variables for progress bar
-  total_iterations <- length(participants) * length(allTrials)
+  total_iterations <- length(participants) * length(trials)
   current_iteration <- 0
 
   for (participant in participants) {
     print(paste("Participant:", participant))
 
-    for (trial in allTrials) {
+    for (trial in trials) {
       # PRINT PROGRESS BAR
       current_iteration <- current_iteration + 1 # Increment the iteration count
       progress_percent <- (current_iteration / total_iterations) * 100 # Calculate the percentage of progress
@@ -122,9 +119,5 @@ get_data_from_loop <- function(get_data_function, ...) {
 
 
 calc_all_gait_params <- function() {
-  return(get_data_from_loop(calculate_gait_parameters))
-}
-
-calc_all_target_params <- function() {
-  return(get_data_from_loop(calculate_target_data))
+  return(get_data_from_loop_parallel(calculate_gait_parameters))
 }

@@ -32,7 +32,7 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
   # Extract foot data
   rightData <- preprocessedData[, c("time", grep("^RightFoot\\.", names(preprocessedData), value = TRUE))]
   leftData <- preprocessedData[, c("time", grep("^LeftFoot\\.", names(preprocessedData), value = TRUE))]
-  
+
   # Remove prefixes from column names
   names(rightData) <- gsub("^RightFoot\\.", "", names(rightData))
   names(leftData) <- gsub("^LeftFoot\\.", "", names(leftData))
@@ -291,7 +291,7 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
     )
 
   # Set trialNum as factor so we can use it to color our datapoints
-  data_long$trialNum <- factor(data_long$trialNum, levels = c(2, 3, 5, 6), labels = c(1, 2, 3, 4))
+  data_long$trialNum <- factor(data_long$trialNum, levels = trials, labels = trials)
 
   # Create a combined x-axis variable
   data_long$xaxis_combined <- apply(data_long[, xaxis], 1, paste, collapse = "_")
@@ -320,21 +320,15 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
 
 
 make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize = 10) {
-  # data <- filteredParams()
-  # incorrectDetectionSteps   <- length(data[data$heelStrikes.incorrectDetection==TRUE  & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  # targetIgnoreSteps         <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  # outlierSteps              <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  # bothSteps                 <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  # new marking
-  incorrectDetectionSteps <- length(data[data$heelStrikes.incorrectDetection == TRUE, ]$VFD)
-  outlierSteps <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  included <- length(data[data$heelStrikes.incorrectDetection == FALSE & data$heelStrikes.targetIgnoreSteps == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$VFD) # non filtered out
-  total_steps <- length(data$VFD)
+  incorrectDetectionSteps <- length(data[data$heelStrikes.incorrectDetection == TRUE, ]$participant)
+  outlierSteps <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$participant)
+  included <- length(data[data$heelStrikes.incorrectDetection == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$participant) # non filtered out
+  total_steps <- length(data$participant)
 
   # Create a data frame for ggplot
   df_filtered <- data.frame(
-    StepType = factor(c("Impossible", "Target Ignore", "Outlier", "Included")),
-    TotalCount = c(incorrectDetectionSteps, targetIgnoreSteps, outlierSteps, included)
+    StepType = factor(c("Impossible", "Outlier", "Included")),
+    TotalCount = c(incorrectDetectionSteps, outlierSteps, included)
   )
 
   # Calculate label positions for the pie chart
@@ -351,59 +345,6 @@ make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize =
     theme_minimal(base_size = baseSize) # get_sized_theme(baseSize)# theme_minimal(base_size = baseSize)
 
   p <- p + get_proper_legend(show_legend, "right")
-
-  return(p)
-}
-
-
-#### Target plots
-
-make_target_histogram <- function(data, group, split, xinput, binwidth, position, baseSize = 10) {
-  aes <- aes_string(x = xinput)
-  a <- 1
-  fill <- "grey"
-  if (group != "None") {
-    fill <- "white"
-    aes <- modifyList(aes, aes_string(col = group))
-    if (position == "identity") {
-      a <- 1 / 2
-    }
-  }
-
-  p <- ggplot(data, aes) +
-    geom_histogram(binwidth = binwidth, fill = fill, alpha = a, position = position) +
-    theme_minimal(base_size = baseSize)
-
-  if (split != "None") {
-    p <- p + facet_grid(sym(split))
-  }
-
-  return(p)
-}
-
-circleFun <- function(center = c(0, 0), r = 1, npoints = 100) {
-  tt <- seq(0, 2 * pi, length.out = npoints)
-  xx <- center[1] + r * cos(tt)
-  yy <- center[2] + r * sin(tt)
-  return(data.frame(x = xx, y = yy))
-}
-
-make_target_steps_plot <- function(targetData, show_legend = TRUE, baseSize = 10) {
-  circle <- circleFun(c(0, 0), 0.3, 100)
-  axesLims <- 0.3
-  p <- ggplot() +
-    geom_path(data = circle, aes(x = x, y = y), color = "black") +
-    geom_point(data = targetData, aes(x = rel_x, y = rel_z, col = VFD), fill = rgb(0, 0, 0, 0.2), shape = 21, size = 5) +
-    xlim(-axesLims, axesLims) +
-    ylim(-axesLims, axesLims) +
-    theme_minimal(base_size = baseSize)
-  p <- p + get_proper_legend(show_legend)
-
-  p <- p + coord_equal() +
-    labs(title = "Center Foot Relative to Target Center", x = "x", y = "z")
-
-  # Add marginal density plots
-  p <- ggExtra::ggMarginal(p, type = "density", margins = "both", groupColour = TRUE, groupFill = TRUE)
 
   return(p)
 }

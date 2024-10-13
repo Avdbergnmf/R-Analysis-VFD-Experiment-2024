@@ -6,7 +6,7 @@ checkboxInput("plotpoints", "Plot points", value = FALSE)
 selectizeInput("participant3d", "Participant",
   choices = participants, selected = participants[1], multiple = FALSE)
 selectizeInput("trialNum3d", "Trial Number",
-  choices = trialNumbers, selected = trialNumbers[1], multiple = FALSE)
+  choices = trials, selected = trials[1], multiple = FALSE)
 
 numericInput("startTime", "Start time (s)",
   min = 0, max = 500, value = 0, step = 1)

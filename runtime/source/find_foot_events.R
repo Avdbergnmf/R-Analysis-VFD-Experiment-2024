@@ -2,7 +2,7 @@
 detect_foot_events_coordinates <- function(data, footPrefix, hipPrefix = NULL) {
   # Extract all columns with the specified foot prefix
   footCols <- grep(paste0("^", footPrefix, "\\."), names(data), value = TRUE)
-  
+
   # Create a new data frame with time and all foot-related columns
   footData <- data.frame(
     time = data$time,
@@ -16,9 +16,9 @@ detect_foot_events_coordinates <- function(data, footPrefix, hipPrefix = NULL) {
   if (doRelative) {
     relFootPos <- relFootPos - data[[paste0(hipPrefix, ".pos.z")]]
   }
-  
-  #relFootPos <- apply_padding_and_filter(relFootPos, 4, 90, 5)  # skipping filtering for now
-  
+
+  # relFootPos <- apply_padding_and_filter(relFootPos, 4, 90, 5)  # skipping filtering for now
+
   # Detect local extremes of relative foot pos
   local_maxima <- which(diff(sign(diff(relFootPos))) == -2) + 1
   local_minima <- which(diff(sign(diff(relFootPos))) == 2) + 1
@@ -72,9 +72,9 @@ detect_foot_events_coordinates <- function(data, footPrefix, hipPrefix = NULL) {
   } else {
     # If no hip data, use a threshold based on the mean foot position
     mean_foot_pos <- mean(relFootPos)
-    threshold <- 0.00  # Adjust this value based on your data
-    count_wrong_side_of_hip <- length(relFootPos[local_maxima] > mean_foot_pos + threshold) + 
-                               length(relFootPos[local_minima] < mean_foot_pos - threshold)
+    threshold <- 0.00 # Adjust this value based on your data
+    count_wrong_side_of_hip <- length(relFootPos[local_maxima] > mean_foot_pos + threshold) +
+      length(relFootPos[local_minima] < mean_foot_pos - threshold)
     local_maxima <- local_maxima[relFootPos[local_maxima] > mean_foot_pos + threshold]
     local_minima <- local_minima[relFootPos[local_minima] < mean_foot_pos - threshold]
   }
@@ -145,13 +145,13 @@ find_foot_events <- function(participant, trialNum) {
   # Detect toe-off and heelstrikes
   footEventsLeft <- detect_foot_events_coordinates(data, "LeftFoot")
   footEventsRight <- detect_foot_events_coordinates(data, "RightFoot")
-  
+
   # Add a 'foot' column to each event dataframe
   footEventsLeft$heelStrikes$foot <- "Left"
   footEventsLeft$toeOffs$foot <- "Left"
   footEventsRight$heelStrikes$foot <- "Right"
   footEventsRight$toeOffs$foot <- "Right"
-  
+
   # Combine heel strikes and foot lifts from both feet
   combinedHeelStrikes <- rbind(footEventsLeft$heelStrikes, footEventsRight$heelStrikes)
   combinedToeOffs <- rbind(footEventsLeft$toeOffs, footEventsRight$toeOffs)
@@ -181,13 +181,13 @@ find_foot_events <- function(participant, trialNum) {
   # Label step numbers. Assuming each heel strike represents a new step
   combinedHeelStrikes$step <- seq_len(nrow(combinedHeelStrikes))
   combinedToeOffs$step <- seq_len(nrow(combinedToeOffs))
-  
+
   return(list(heelStrikes = combinedHeelStrikes, toeOffs = combinedToeOffs))
 }
 
 calculate_gait_parameters <- function(participant, trialNum) {
   gaitData <- find_foot_events(participant, trialNum)
-  
+
   heelStrikesData <- gaitData$heelStrikes # should already be sorted based on time
   toeOffsData <- gaitData$toeOffs
 
@@ -210,7 +210,7 @@ calculate_gait_parameters <- function(participant, trialNum) {
 
   # position-based
   stepWidths <- relHeelStrikesData$pos.x # Calculate step width
-  
+
   stepWidths <- ifelse(relHeelStrikesData$foot == "Left", stepWidths * -1, stepWidths) # Adjust sign based on which foot is stepping
   stepLengths <- relHeelStrikesData$actual_pos.z # Calculate step lengths
   speed <- stepLengths / stepTimes # Calculate speed
@@ -295,18 +295,6 @@ refine_heelstrike <- function(footData, local_maxima, local_minima, smoothing_wi
     }
   }
   return(refined_local_maxima)
-}
-
-calculate_target_data <- function(participant, trial) {
-  # get the target tracker results
-  targetData <- get_t_data(participant, "steptargets", trial)
-  targetData$rel_x <- targetData$foot_x - targetData$target_x
-  targetData$rel_z <- targetData$foot_z - targetData$target_z
-
-  # calculate total target distance
-  targetData$targetDist <- sqrt(targetData$rel_x^2 + targetData$rel_z^2)
-
-  return(targetData)
 }
 
 refine_heelstrike <- function(footData, local_maxima, local_minima, smoothing_window = 5, change_threshold = 0.02) {

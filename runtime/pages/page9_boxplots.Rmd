@@ -3,7 +3,7 @@
 ```{r}
 selectizeInput("plotVar", "Variable", choices = muVars, selected = "stepWidths.sd", multiple = FALSE)
 #selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
-selectizeInput("varCategory", "Category", choices = categoriesExtra, selected = "VFD", multiple = TRUE)
+selectizeInput("varCategory", "Category", choices = categories, selected = "VFD", multiple = TRUE)
 ```
 
 Column

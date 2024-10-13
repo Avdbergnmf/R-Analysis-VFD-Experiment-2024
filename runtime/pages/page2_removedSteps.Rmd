@@ -4,7 +4,7 @@ checkboxInput("useFiltered", "Filter data",
   value = FALSE
 )
 
-selectizeInput("groupStatsCategory", "Category", choices = categoriesExtra, selected = "participant", multiple = TRUE)
+selectizeInput("groupStatsCategory", "Category", choices = categories, selected = "participant", multiple = TRUE)
 ```
 
 Column

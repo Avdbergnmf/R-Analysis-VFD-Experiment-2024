@@ -18,7 +18,7 @@ checkboxInput("filter_15", "Show filtered data",
 selectizeInput("participant_15", "participant",
   choices = participants, selected = participants[1], multiple = FALSE)
 selectizeInput("trialNum_15", "Trial Number",
-  choices = trialNumbers, selected = trialNumbers[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
+  choices = trials, selected = trials[2], multiple = FALSE) # set to trial 2 so that if practice is filtered out, it still plots
 
 selectizeInput("xplot_15", "xplot",
   choices = xOptions, selected = "time", multiple = FALSE)
