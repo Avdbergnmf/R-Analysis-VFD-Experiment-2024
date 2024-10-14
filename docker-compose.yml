@@ -4,9 +4,9 @@ services:
       context: .  # Assumes the Dockerfile is in the current directory
       dockerfile: Dockerfile.rocker
     ports:
-      - "8787:8787"
+      - "8788:8788"
     expose:
-      - 8787
+      - 8788
     volumes:
       - ./runtime:/home/rstudio/workspace
     env_file: .rstudio.env
