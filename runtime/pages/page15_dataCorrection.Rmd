@@ -1,6 +1,10 @@
 ### Plot Options
 ```{r}
-numericInput("rotationCorrection", "Rotation Correction (degrees)",
+numericInput("rotationCorrectionX", "Rotation Correction X (degrees)",
+  min = -360, max = 360, value = 0, step = 0.1)
+numericInput("rotationCorrectionY", "Rotation Correction Y (degrees)",
+  min = -360, max = 360, value = 0, step = 0.1)
+numericInput("rotationCorrectionZ", "Rotation Correction Z (degrees)",
   min = -360, max = 360, value = 0, step = 0.1)
 
 # Add save rotation button
@@ -53,7 +57,9 @@ tableOutput("rotationTable")
 # Initialize rotation dataframe
 rotationDF <- reactiveVal(data.frame(participant = character(),
                                      trial = numeric(),
-                                     rotation = numeric(),
+                                     rotation_x = numeric(),
+                                     rotation_y = numeric(),
+                                     rotation_z = numeric(),
                                      stringsAsFactors = FALSE))
 
 # Function to get or set rotation
@@ -61,20 +67,22 @@ getRotation <- function(participant, trial) {
   df <- rotationDF()
   row <- df[df$participant == participant & df$trial == trial, ]
   if (nrow(row) > 0) {
-    return(row$rotation)
+    return(c(row$rotation_x, row$rotation_y, row$rotation_z))
   }
   # If not found, look for any rotation for the same participant
   participantRow <- df[df$participant == participant, ]
   if (nrow(participantRow) > 0) {
-    return(participantRow$rotation[1])
+    return(c(participantRow$rotation_x[1], participantRow$rotation_y[1], participantRow$rotation_z[1]))
   }
-  return(0)  # Default to 0 if no rotation found
+  return(c(0, 0, 0))  # Default to 0 if no rotation found
 }
 
 # Update rotation input when participant or trial changes
 observe({
-  rotation <- getRotation(input$participant_15, as.numeric(input$trialNum_15))
-  updateNumericInput(session, "rotationCorrection", value = rotation)
+  rotations <- getRotation(input$participant_15, as.numeric(input$trialNum_15))
+  updateNumericInput(session, "rotationCorrectionX", value = rotations[1])
+  updateNumericInput(session, "rotationCorrectionY", value = rotations[2])
+  updateNumericInput(session, "rotationCorrectionZ", value = rotations[3])
 })
 
 # Save rotation when button is clicked
@@ -82,13 +90,15 @@ observeEvent(input$saveRotation, {
   df <- rotationDF()
   participant <- input$participant_15
   trial <- as.numeric(input$trialNum_15)
-  rotation <- input$rotationCorrection
+  rotation_x <- input$rotationCorrectionX
+  rotation_y <- input$rotationCorrectionY
+  rotation_z <- input$rotationCorrectionZ
   
   # Update or add new row
   if (nrow(df[df$participant == participant & df$trial == trial, ]) > 0) {
-    df[df$participant == participant & df$trial == trial, "rotation"] <- rotation
+    df[df$participant == participant & df$trial == trial, c("rotation_x", "rotation_y", "rotation_z")] <- c(rotation_x, rotation_y, rotation_z)
   } else {
-    df <- rbind(df, data.frame(participant = participant, trial = trial, rotation = rotation))
+    df <- rbind(df, data.frame(participant = participant, trial = trial, rotation_x = rotation_x, rotation_y = rotation_y, rotation_z = rotation_z))
   }
   
   rotationDF(df)
@@ -110,11 +120,11 @@ observeEvent(input$importRotations, {
   tryCatch(
     {
       df <- read.csv(input$importRotations$datapath, stringsAsFactors = FALSE)
-      if (all(c("participant", "trial", "rotation") %in% colnames(df))) {
+      if (all(c("participant", "trial", "rotation_x", "rotation_y", "rotation_z") %in% colnames(df))) {
         rotationDF(df)
         showNotification("Rotations imported successfully", type = "message")
       } else {
-        showNotification("Invalid CSV format. Please ensure the file has 'participant', 'trial', and 'rotation' columns.", type = "error")
+        showNotification("Invalid CSV format. Please ensure the file has 'participant', 'trial', 'rotation_x', 'rotation_y', and 'rotation_z' columns.", type = "error")
       }
     },
     error = function(e) {
@@ -132,7 +142,12 @@ output$FeetTraj_15 <- renderPlotly({
   tnum <- as.numeric(input$trialNum_15)
   preprocessedData <- preprocess_data(input$participant_15, tnum) 
   rotation <- getRotation(input$participant_15, tnum)
-  preprocessedData <- rotate_preprocessed_data(preprocessedData, rotation)
+  
+  # Define the axes order
+  axes <- c("x", "y", "z")
+  
+  # Rotate the preprocessed data using the rotation vector and axes
+  preprocessedData <- rotate_preprocessed_data(preprocessedData, rotation, axes = axes)
 
   # Create the base ggplot
   p <- plot_steps(
@@ -143,6 +158,7 @@ output$FeetTraj_15 <- renderPlotly({
     ylim = c(input$ylim_min_15, input$ylim_max_15),
     preprocessedData = preprocessedData
   )
+  
   # Convert to ggplotly
   ggplotly(p, width = input$plotwidth, height = input$plotheight) %>%
     layout(autosize = F)

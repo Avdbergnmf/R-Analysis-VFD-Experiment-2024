@@ -183,39 +183,70 @@ filter_all_data <- function(data, velocity_threshold = 100, rotational_velocity_
 
 ######### ROTATION CORRECTION #########
 
-rotate_y <- function(data, theta_deg, prefix) {
-  theta <- theta_deg * pi / 180 # convert to radians
-  # Create the rotation matrix
-  rotation_matrix <- matrix(
-    c(
-      cos(theta), 0, sin(theta),
-      0, 1, 0,
-      -sin(theta), 0, cos(theta)
+rotate_axes <- function(data, theta_degs, prefix, axes = c("x", "y", "z")) {
+  # Ensure the axes are in the correct order
+  axes <- intersect(c("x", "y", "z"), axes)
+  
+  # Convert angles to radians
+  theta_rads <- theta_degs * pi / 180
+  
+  # Define rotation matrices for each axis
+  rotation_matrices <- list(
+    "x" = function(theta) matrix(
+      c(
+        1, 0, 0,
+        0, cos(theta), -sin(theta),
+        0, sin(theta), cos(theta)
+      ),
+      nrow = 3, byrow = TRUE
     ),
-    nrow = 3, byrow = TRUE
+    "y" = function(theta) matrix(
+      c(
+        cos(theta), 0, sin(theta),
+        0, 1, 0,
+        -sin(theta), 0, cos(theta)
+      ),
+      nrow = 3, byrow = TRUE
+    ),
+    "z" = function(theta) matrix(
+      c(
+        cos(theta), -sin(theta), 0,
+        sin(theta), cos(theta), 0,
+        0, 0, 1
+      ),
+      nrow = 3, byrow = TRUE
+    )
   )
-
+  
   # Select columns for this tracker
   pos_cols <- paste0(prefix, ".pos.", c("x", "y", "z"))
   rot_cols <- paste0(prefix, ".rot.", c("x", "y", "z"))
-
-  # Apply the rotation to position columns
-  positions <- as.matrix(data[, pos_cols])
-  rotated_positions <- positions %*% t(rotation_matrix)
-
-  # Update the dataframe with rotated positions
-  data[, pos_cols] <- rotated_positions
-
-  rotations <- as.matrix(data[, rot_cols])
-  rotated_rotations <- rotations %*% t(rotation_matrix)
-  data[, rot_cols] <- rotated_rotations
-
+  
+  # Apply rotations in the order of x, y, z
+  for (axis in axes) {
+    theta <- theta_rads[which(axes == axis)]
+    rotation_matrix <- rotation_matrices[[axis]](theta)
+    
+    # Apply the rotation to position columns
+    positions <- as.matrix(data[, pos_cols])
+    rotated_positions <- positions %*% t(rotation_matrix)
+    data[, pos_cols] <- rotated_positions
+    
+    # Apply the rotation to rotation columns
+    rotations <- as.matrix(data[, rot_cols])
+    rotated_rotations <- rotations %*% t(rotation_matrix)
+    data[, rot_cols] <- rotated_rotations
+  }
+  
   return(data)
 }
 
-rotate_preprocessed_data <- function(data, rotation) {
+rotate_preprocessed_data <- function(data, rotations, axes = c("x", "y", "z")) {
   # Get all column names
   all_cols <- colnames(data)
+
+  # Ensure the axes are in the correct order
+  axes <- intersect(c("x", "y", "z"), axes)
 
   # Iterate over all trackerPrefixes
   for (prefix in trackerPrefixes) {
@@ -227,7 +258,7 @@ rotate_preprocessed_data <- function(data, rotation) {
       tracker_data <- data[, matching_cols]
 
       # Rotate the data
-      rotated_data <- rotate_y(tracker_data, rotation, prefix)
+      rotated_data <- rotate_axes(tracker_data, rotations, prefix, axes = axes)
 
       # Replace the original data with the rotated data
       data[, matching_cols] <- rotated_data
@@ -288,10 +319,10 @@ vector_cross <- function(a, b) {
 calculate_transformation_matrix <- function(data) {
   # Calculate the average position of the trackers over the first x frames
   # Calculate the means
-  avgLeftPos <- sapply(data[, c("TreadmillLeft.pos.x", "TreadmillLeft.pos.y", "TreadmillLeft.pos.z")], mean, na.rm = TRUE)
-  avgRightPos <- sapply(data[, c("TreadmillRight.pos.x", "TreadmillRight.pos.y", "TreadmillRight.pos.z")], mean, na.rm = TRUE)
-  avgLeftRot <- sapply(data[, c("TreadmillLeft.rot.w", "TreadmillLeft.rot.x", "TreadmillLeft.rot.y", "TreadmillLeft.rot.z")], mean, na.rm = TRUE) # this should be done with slerp but for now this is fine.
-  avgRightRot <- sapply(data[, c("TreadmillRight.rot.w", "TreadmillRight.rot.x", "TreadmillRight.rot.y", "TreadmillRight.rot.z")], mean, na.rm = TRUE) # this should be done with slerp but for now this is fine.
+  avgLeftPos <- sapply(data[, c("TreadmillLeft.pos.x", "TreadmillLeft.pos.y", "TreadmillLeft.pos.z")], median, na.rm = TRUE)
+  avgRightPos <- sapply(data[, c("TreadmillRight.pos.x", "TreadmillRight.pos.y", "TreadmillRight.pos.z")], median, na.rm = TRUE)
+  avgLeftRot <- sapply(data[, c("TreadmillLeft.rot.w", "TreadmillLeft.rot.x", "TreadmillLeft.rot.y", "TreadmillLeft.rot.z")], median, na.rm = TRUE) # this should be done with slerp but for now this is fine.
+  avgRightRot <- sapply(data[, c("TreadmillRight.rot.w", "TreadmillRight.rot.x", "TreadmillRight.rot.y", "TreadmillRight.rot.z")], median, na.rm = TRUE) # this should be done with slerp but for now this is fine.
   avgLeftPos <- unname(avgLeftPos)
   avgRightPos <- unname(avgRightPos)
 
@@ -373,24 +404,29 @@ preprocess_data <- function(participant, trialNum) {
   tmatrix <- calculate_transformation_matrix(data)
   data <- transform_all_data(data, tmatrix, trackerPrefixes)
 
-  # Rotate the data if needed (rotate data around y axis to align with treadmill direction)
+  # Rotate the data if needed (rotate data around specified axes to align with treadmill direction)
   rotations_file <- "./data_extra/rotations_kinematic_data.csv"
   if (file.exists(rotations_file)) {
     rotations_data <- read.csv(rotations_file)
-    rotation <- rotations_data[rotations_data$participant == participant & rotations_data$trial == trialNum, "rotation"]
-    if (length(rotation) == 0) {
-      rotation <- rotations_data[rotations_data$participant == participant, "rotation"]
+    
+    # Extract rotation angles and axes for the specific participant and trial
+    rotation_info <- rotations_data[rotations_data$participant == participant & rotations_data$trial == trialNum, ]
+    
+    if (nrow(rotation_info) == 0) {
+      rotation_info <- rotations_data[rotations_data$participant == participant, ]
     }
 
-    if (length(rotation) > 0) {
-      rotation <- rotation[1]
-      data <- rotate_preprocessed_data(data, rotation)
+    if (nrow(rotation_info) > 0) {
+      # Assuming the CSV has columns named 'rotation_x', 'rotation_y', 'rotation_z'
+      rotations <- c(rotation_info$rotation_x[1], rotation_info$rotation_y[1], rotation_info$rotation_z[1])
+      axes <- c("x", "y", "z")
+      
+      data <- rotate_preprocessed_data(data, rotations, axes)
     }
   }
 
   # Adjust times and add actual position
-  moveSpeed <- get_move_speed(participant)
-  data <- add_actual_z(data, moveSpeed, travelingTrackerPrefixes)
+  data <- add_actual_z(data, get_move_speed(participant), travelingTrackerPrefixes)
 
   return(data)
 }

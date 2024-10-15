@@ -38,8 +38,8 @@ imageOutput("FeetTraj")
 
 ```{r, context="server"}
 output$FeetTraj <- renderSVG({ reactive({
-    plot_steps( # filteredParams()
-      allGaitParams, input$participant, as.numeric(input$trialNum),
+    plot_steps(
+      filteredParams(), input$participant, as.numeric(input$trialNum),
       input$xplot, input$yplot, input$filter, 
       baseSize = input$baseSize,
       xlim = c(input$xlim_min, input$xlim_max),
