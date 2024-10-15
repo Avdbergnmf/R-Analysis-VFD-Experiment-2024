@@ -29,6 +29,10 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
     preprocessedData <- preprocess_data(participant, trialNum)
   }
 
+  if (doFilter) {
+    preprocessedData <- filter_all_data(preprocessedData, 10, 3) 
+  }
+  
   # Extract foot data
   rightData <- preprocessedData[, c("time", grep("^RightFoot\\.", names(preprocessedData), value = TRUE))]
   leftData <- preprocessedData[, c("time", grep("^LeftFoot\\.", names(preprocessedData), value = TRUE))]
@@ -37,15 +41,6 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
   names(rightData) <- gsub("^RightFoot\\.", "", names(rightData))
   names(leftData) <- gsub("^LeftFoot\\.", "", names(leftData))
 
-  if (doFilter) {
-    # numeric_columns <- sapply(rightData, is.numeric)
-    # rightData[numeric_columns] <- lapply(rightData[numeric_columns], function(column) {
-    #   apply_padding_and_filter(column, 4, 90)
-    # })
-    # leftData[numeric_columns] <- lapply(leftData[numeric_columns], function(column) {
-    #   apply_padding_and_filter(column, 4, 90)
-    # })
-  }
 
   # Add a new column to both dataframes to identify the foot
   rightData$foot <- "Right"
@@ -243,36 +238,31 @@ plot_questionnaire_data <- function(data, qType, baseSize = 10, x_var = NULL, co
 }
 
 make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwidth, position, baseSize) {
-  # Convert group to factor to handle numerical groups
   if (group != "None") {
     data[[group]] <- as.factor(data[[group]])
   }
-  
-  # Use tidy evaluation with aes()
-  aes <- aes(x = .data[[xinput]], fill = if (group != "None") .data[[group]] else NULL)
-  a <- 1
-  fill <- "grey"
-  
+
+  fill <- if (group != "None") "white" else "grey"
+  a <- if (group != "None" & position == "identity") 1 else 1/2
   if (group != "None") {
-    fill <- "white"
-    if (position == "identity") {
-      a <- 1 / 2
-    }
+    aes <- aes(x = .data[[xinput]], col = .data[[group]])
+  } else {
+    aes <- aes(x = .data[[xinput]])
   }
 
-  p <- ggplot(data, aes) + 
-    geom_histogram(binwidth = binwidth, fill = fill, alpha = a, position = position) +
+  p <- ggplot(data, aes) + geom_histogram(binwidth = binwidth, fill = fill, alpha = a, position = position) +
     theme_minimal(base_size = baseSize)
 
   # if (showMeans && split != "None") {
-  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes(xintercept = mean, col = .data[[split]]), linetype = "dashed")
+  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = split), linetype = "dashed")
   # }
   # if (showMeans && split == "None" && group != "None") {
-  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes(xintercept = mean, col = .data[[group]]), linetype = "dashed")
+  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = group), linetype = "dashed")
   # }
 
   if (split != "None") {
-    p <- p + facet_grid(rows = vars(.data[[split]]))
+    p <- p + facet_grid(sym(split))
+    #p <- p + facet_grid(rows = vars(.data[[split]]))
   }
 
   return(p)

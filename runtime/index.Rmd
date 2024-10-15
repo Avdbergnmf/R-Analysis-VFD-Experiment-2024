@@ -89,6 +89,11 @@ Removed Steps
 ```{r, child='pages/page3_twoDPlot.Rmd'}
 ```
 
+3D Plot {data-orientation=columns}
+=====================================
+```{r, child='pages/page3_2_threeDPlot.Rmd'}
+```
+
 
 Histograms 
 =====================================
