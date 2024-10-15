@@ -63,4 +63,4 @@ library(DT)
 library(plotly)
 
 # Interactive 3D plots
-#library(rgl)
+library(rgl)

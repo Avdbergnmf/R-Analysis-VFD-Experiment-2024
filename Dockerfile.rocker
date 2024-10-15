@@ -2,8 +2,9 @@ FROM rocker/rstudio:4.4.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
-
+    
 RUN install2.r --skipinstalled \
+    libglu1-mesa-dev freeglut3-dev mesa-common-dev \
     shiny rmarkdown flexdashboard plyr dplyr purrr data.table RColorBrewer \
     ggplot2 ggpubr readxl rstatix plotrix car Rmisc tidyr devtools ggpattern \
     lme4 emmeans sjstats lmerTest MuMIn svglite jsonlite pwr lme4 DT \
