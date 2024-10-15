@@ -183,7 +183,7 @@ filter_all_data <- function(data, velocity_threshold = 100, rotational_velocity_
 
 ######### ROTATION CORRECTION #########
 
-rotate_y <- function(data, theta_deg, prefixList) {
+rotate_y <- function(data, theta_deg, prefix) {
   theta <- theta_deg * pi / 180 # convert to radians
   # Create the rotation matrix
   rotation_matrix <- matrix(
@@ -227,7 +227,7 @@ rotate_preprocessed_data <- function(data, rotation) {
       tracker_data <- data[, matching_cols]
 
       # Rotate the data
-      rotated_data <- rotate_y(tracker_data, rotation)
+      rotated_data <- rotate_y(tracker_data, rotation, prefix)
 
       # Replace the original data with the rotated data
       data[, matching_cols] <- rotated_data
@@ -384,7 +384,7 @@ preprocess_data <- function(participant, trialNum) {
 
     if (length(rotation) > 0) {
       rotation <- rotation[1]
-      data <- rotate_y(data, rotation, trackerPrefixes)
+      data <- rotate_preprocessed_data(data, rotation)
     }
   }
 
@@ -416,6 +416,26 @@ detect_outliers <- function(data, ignoreSteps, IQR_mlp = 1.5) {
 
   return(!(data >= lower_bound & data <= upper_bound))
 }
+
+# Detect and remove outliers using a Modified z-score method
+detect_outliers_modified_z_scores <- function(data, ignoreSteps = c(FALSE), threshold = 3.5) {
+  data_filtered <- data[!ignoreSteps] # We don't use the target steps to calculate our med etc
+
+  # Calculate the median of the column
+  med <- median(data_filtered, na.rm = TRUE)
+
+  # Calculate the Median Absolute Deviation (MAD)
+  mad_value <- median(abs(data_filtered - med), na.rm = TRUE)
+
+  # Calculate the Modified z-scores
+  modified_z_scores <- 0.6745 * (data - med) / mad_value
+
+  # Identify outliers based on the threshold
+  outliers <- abs(modified_z_scores) > threshold
+
+  return(outliers)
+}
+
 
 apply_padding_and_filter <- function(column, poly_order, fs, cutoff_freq = 5) {
   column <- hampel_filter(column, k = 7, t0 = 3) # this is kinda slow but makes step detection more consistent.

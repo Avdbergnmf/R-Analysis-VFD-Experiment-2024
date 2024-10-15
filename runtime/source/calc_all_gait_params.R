@@ -1,5 +1,5 @@
 ####### DEFINITIONS
-trials <- c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11) # List of trials
+trials <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11) # List of trials
 # Getting types for later use
 xOptions <- c("time", "pos.x", "pos.y", "pos.z", "actual_pos.z")
 xOptions2D <- colnames(get_t_data(participants[1], "leftfoot", 1)) # options for pos rot trackers
@@ -49,15 +49,15 @@ get_condition_number <- function(gain, freqHigh) {
     return(NA_integer_)
   }
 
-  return(condition)
+  return(condition[1])
 }
 
 add_p_results <- function(data, participant, trial) {
-  data$freqHigh <- get_p_results(participant, "freqHigh", trial)
-  data$freqLow <- get_p_results(participant, "freqLow", trial)
-  data$gain <- get_p_results(participant, "gain", trial)
-  data$treadmillSpeed <- get_p_results(participant, "treadmillSpeed", trial)
-  data$condition <- get_condition_number(get_p_results(participant, "gain", trial), get_p_results(participant, "freqHigh", trial))
+  data$freqHigh <- get_p_results(participant, "freqHigh", trial)[1]
+  data$freqLow <- get_p_results(participant, "freqLow", trial)[1]
+  data$gain <- get_p_results(participant, "gain", trial)[1]
+  data$treadmillSpeed <- get_p_results(participant, "treadmillSpeed", trial)[1]
+  data$condition <- get_condition_number(get_p_results(participant, "gain", trial)[1], get_p_results(participant, "freqHigh", trial)[1])[1]
 
   return(data)
 }

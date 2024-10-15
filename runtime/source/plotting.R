@@ -286,7 +286,7 @@ plot_boxplots <- function(mu, participants, datatype, xaxis, baseSize = 10) {
       values_to = "value"
     )
   # Set trialNum as factor so we can use it to color our datapoints
-  data_long$trialNum <- factor(data_long$trialNum, levels = c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11), labels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
+  # data_long$trialNum <- factor(data_long$trialNum, levels = c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11), labels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10))
 
   # Create a combined x-axis variable
   data_long$xaxis_combined <- apply(data_long[, xaxis], 1, paste, collapse = "_")

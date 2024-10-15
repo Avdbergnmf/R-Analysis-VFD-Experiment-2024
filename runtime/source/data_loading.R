@@ -177,7 +177,7 @@ get_q_data <- function(pnum, qType) {
     # Extract and label the data for each trial
     trialData <- data.frame(
       participant = pnum,
-      trialNum = i,
+      trialNum = i + 1,
       Gain = gain,
       MaxFrequency = freqHigh,
       QuestionID = questionnaire$QuestionID,
