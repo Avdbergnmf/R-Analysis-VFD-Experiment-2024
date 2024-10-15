@@ -243,30 +243,36 @@ plot_questionnaire_data <- function(data, qType, baseSize = 10, x_var = NULL, co
 }
 
 make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwidth, position, baseSize) {
-  aes <- aes_string(x = xinput)
+  # Convert group to factor to handle numerical groups
+  if (group != "None") {
+    data[[group]] <- as.factor(data[[group]])
+  }
+  
+  # Use tidy evaluation with aes()
+  aes <- aes(x = .data[[xinput]], fill = if (group != "None") .data[[group]] else NULL)
   a <- 1
   fill <- "grey"
+  
   if (group != "None") {
     fill <- "white"
-    aes <- modifyList(aes, aes_string(col = group))
     if (position == "identity") {
       a <- 1 / 2
     }
   }
 
-  p <- ggplot(data, aes) +
+  p <- ggplot(data, aes) + 
     geom_histogram(binwidth = binwidth, fill = fill, alpha = a, position = position) +
     theme_minimal(base_size = baseSize)
 
   # if (showMeans && split != "None") {
-  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = split), linetype = "dashed")
+  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes(xintercept = mean, col = .data[[split]]), linetype = "dashed")
   # }
   # if (showMeans && split == "None" && group != "None") {
-  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes_string(xintercept = "mean", col = group), linetype = "dashed")
+  #  p <- p + geom_vline(mu_data[[xinput]], mapping = aes(xintercept = mean, col = .data[[group]]), linetype = "dashed")
   # }
 
   if (split != "None") {
-    p <- p + facet_grid(sym(split))
+    p <- p + facet_grid(rows = vars(.data[[split]]))
   }
 
   return(p)
