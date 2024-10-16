@@ -41,7 +41,6 @@ plot_steps <- function(filteredGaitParams, participant, trialNum, x_axis = "time
   names(rightData) <- gsub("^RightFoot\\.", "", names(rightData))
   names(leftData) <- gsub("^LeftFoot\\.", "", names(leftData))
 
-
   # Add a new column to both dataframes to identify the foot
   rightData$foot <- "Right"
   leftData$foot <- "Left"
@@ -273,6 +272,11 @@ plot_boxplots <- function(mu, participants, datatype, xaxis, baseSize = 10) {
   data_long <- mu %>%
     select(c("participant", "trialNum", all_of(xaxis), !!datatype))
   data_long <- data_long[data_long$participant %in% participants, ]
+  
+  # Assuming xaxis is a list of column names
+  for (x in xaxis) {
+    data[[x]] <- as.character(data[[x]])
+  }
 
   # Reshape data to long format for ggplot
   data_long <- data_long %>%
@@ -339,6 +343,7 @@ make_scatter_plot_steps <- function(data, group, xplot, yplot, show_legend = FAL
   if (group == "None") {
     aes <- aes_string(x = xplot, y = yplot)
   } else {
+    data[[group]] <- as.character(data[[group]])
     aes <- aes_string(x = xplot, y = yplot, col = group)
   }
 
@@ -368,6 +373,7 @@ make_scatter_plot_mu <- function(data, xinput, yinput, group, baseSize = 10) {
   if (group == "None") {
     aes <- aes_string(x = xinput, y = yinput)
   } else {
+    data[[group]] <- as.character(data[[group]])
     aes <- aes_string(x = xinput, y = yinput, col = group)
   }
 
