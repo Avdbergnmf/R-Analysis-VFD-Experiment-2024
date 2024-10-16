@@ -145,5 +145,5 @@ get_data_from_loop <- function(get_data_function, ...) {
 
 
 calc_all_gait_params <- function() {
-  return(get_data_from_loop_parallel(calculate_gait_parameters))
+  return(get_data_from_loop(calculate_gait_parameters))
 }

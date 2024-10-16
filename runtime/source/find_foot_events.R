@@ -71,7 +71,7 @@ detect_foot_events_coordinates <- function(data, footPrefix, hipPrefix = NULL) {
     local_minima <- local_minima[relFootPos[local_minima] < 0]
   } else {
     # If no hip data, use a threshold based on the mean foot position
-    mean_foot_pos <- mean(relFootPos)
+    mean_foot_pos <- median(relFootPos)
     threshold <- 0.00 # Adjust this value based on your data
     count_wrong_side_of_hip <- length(relFootPos[local_maxima] > mean_foot_pos + threshold) +
       length(relFootPos[local_minima] < mean_foot_pos - threshold)
