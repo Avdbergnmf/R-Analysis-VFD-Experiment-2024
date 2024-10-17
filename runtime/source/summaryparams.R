@@ -143,12 +143,17 @@ calculate_vfd_difference <- function(data) {
     mutate(across(where(is.numeric), ~ (. + vfd_false[[cur_column()]]) / 2, .names = "mean_{.col}"))
 
   # Combine the difference and mean data
-  final_data <- difference_data %>%
-    left_join(mean_data %>% select(participant, condition, starts_with("mean_")), by = c("participant", "condition"))
-
-  # Select relevant columns for the final output
-  final_output <- final_data %>%
-    select(participant, condition, starts_with("diff_"), starts_with("mean_"))
+  if ("condition" %in% colnames(difference_data) && "condition" %in% colnames(mean_data)) {
+    final_data <- difference_data %>%
+      left_join(mean_data %>% select(participant, condition, starts_with("mean_")), by = c("participant", "condition"))
+    # Select relevant columns for the final output
+    final_output <- final_data %>%
+      select(participant, condition, starts_with("diff_"), starts_with("mean_"))
+  } else {
+    final_data <- difference_data %>%left_join(mean_data %>% select(participant, starts_with("mean_")), by = c("participant"))
+    final_output <- final_data %>%
+      select(participant, starts_with("diff_"), starts_with("mean_"))
+  }
 
   return(final_output)
 }

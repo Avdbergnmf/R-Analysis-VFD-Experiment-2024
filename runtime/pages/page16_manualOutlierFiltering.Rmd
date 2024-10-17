@@ -21,6 +21,7 @@ numericInput("ylim_max_16", "Y-axis maximum",
   min = -Inf, max = Inf, value = .5, step = 0.1)
 # Add a reset button to reset the axis limits
 actionButton("reset_limits", "Reset Axis Limits")
+actionButton("refresh_plot", "Refresh Plot")
 ```
 ```{r}
 # Add a numeric input for the outlier matching threshold
@@ -31,20 +32,28 @@ fileInput("importOutliers", "Import Outliers from CSV",
   accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))
 downloadButton("export_outliers", "Export Outliers to CSV")
 ```
+
 ```{r}
-actionButton("overwrite_outliers", "Overwrite Outliers")
-actionButton("refresh_plot", "Refresh Plot")
-```
-```{r}
-actionButton("confirm_selection", "Confirm Selected Points")
+#actionButton("confirm_selection", "Confirm Selected Points") # not using this atm.
 ```
 
+```{r}
+actionButton("overwrite_outliers", "Overwrite Outliers")
+```
+.
+Autosaving:
 ```{r}
 # Add these new inputs for autosave configuration
 numericInput("autosave_interval", "Autosave interval (minutes)",
              value = 5, min = 1, max = 60, step = 1)
 checkboxInput("do_autosave", "Enable autosave", value = FALSE)
 ```
+
+Save allGaitParams to RDS.
+```{r}
+downloadButton("save_rds", "Save current parameters to RDS.")
+```
+
 
 Column
 --------------------------------------------
@@ -444,6 +453,16 @@ observeEvent(input$confirm_selection, {
   }
 })
 
+output$save_rds <- downloadHandler(
+  filename = function() {
+    file.path(dataExtraFolder, paste("allGaitParams-", Sys.Date(), ".rds", sep=""))
+  },
+  content = function(file) {
+    saveRDS(allGaitParams, file)
+  }
+)
+  
+
 # Modify the reactive timer to use the user-defined interval
 autoSaveTimer <- reactiveTimer(1000 * 60 * 5)  # Default to 5 minutes
 
@@ -469,7 +488,7 @@ observe({
   filename <- paste0("outliers_autosave_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
   
   # Define the full path for the file
-  filepath <- file.path("data_extra", filename)
+  filepath <- file.path(dataExtraFolder, filename)
   
   # Write the CSV file
   write.csv(outliers_data, filepath, row.names = FALSE)

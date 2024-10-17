@@ -8,7 +8,7 @@ selectizeInput("indepInterVars", "* Independent variables", choices = muVars, se
 selectizeInput("indepVars", "+ Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
 
 # Add a dropdown for selecting the correction method
-selectizeInput("correctionMethod", "Correction Method", choices = c("bonferroni", "tukey", "holm"), selected = "bonferroni", multiple = FALSE)
+selectizeInput("correctionMethod", "Correction Method", choices = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"), selected = "bonferroni", multiple = FALSE)
 
 # Add a text input for custom model formula
 textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "stepWidths.sd ~ VFD * startedWithNoise + trialNumWithinCondition + (1 | participant)")

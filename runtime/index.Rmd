@@ -152,15 +152,9 @@ Data Table {data-icon="fa-table"}
 ```
 
 
-Data Correction
+Y-Rotation Correction
 =====================================
 ```{r, child='pages/page15_dataCorrection.Rmd'}
-```
-
-
-Outlier Filtering
-=====================================
-```{r, child='pages/page14_dataFiltering.Rmd'}
 ```
 
 Manual Outlier Filtering
@@ -168,3 +162,9 @@ Manual Outlier Filtering
 ```{r, child='pages/page16_manualOutlierFiltering.Rmd'}
 ```
 
+
+<!-- Outlier Filtering
+=====================================-->
+```{r}
+#child='pages/page14_dataFiltering.Rmd'
+``` 
