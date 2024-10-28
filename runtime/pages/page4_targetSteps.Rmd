@@ -5,17 +5,17 @@ selectizeInput("targetPlotPlot", "Plot",
   choices = dataTypesTargets, selected = dataTypesTargets[2], multiple = FALSE
 )
 selectizeInput("targetPlotGroup", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+  choices = categoriesExtraInputs, selected = categoriesExtraInputs[1], multiple = FALSE
 )
 selectizeInput("targetPlotPosition", "Bar positions",
-  choices = c("stack", "identity", "dodge"), selected = "identity", multiple = FALSE
+  choices = c("stack", "identity", "dodge"), selected = "stack", multiple = FALSE
 )
 selectizeInput("targetPlotSplit", "Split by",
-  choices = categoriesInputs, selected = "None", multiple = FALSE
+  choices = categoriesExtraInputs, selected = "None", multiple = FALSE
 )
 
 numericInput("targetPlotBin", "Bin width",
-  min = 0.001, max = 0.5, value = 0.01, step = 0.01
+  min = 0.001, max = 0.5, value = 1, step = 0.01
 )
 ```
 

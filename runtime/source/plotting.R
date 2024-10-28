@@ -151,19 +151,14 @@ plot_steps_with_overlay <- function(data, selected_participant, selected_trialNu
   return(p)
 }
 
-plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTime, x_axis = "time", y_axis = "pos_z", plotlines = TRUE, plotpoints = FALSE, extraTitle = "", override_ylims = c(), baseSize = 10) {
+plot_2d <- function(xtracker, ytracker, participant, trialNum, x_axis = "time", y_axis = "pos_z", plotlines = TRUE, plotpoints = FALSE, extraTitle = "", baseSize = 10) {
   xData <- get_t_data(participant, xtracker, trialNum)
   yData <- get_t_data(participant, ytracker, trialNum)
   startTime <- get_p_results(participant, "start_time", trialNum)
-  xData <- adjust_times(xData, startTime)
-  yData <- adjust_times(yData, startTime)
-
-  # Filter time subset if needed
-  if (endTime > startTime && endTime != 0) {
-    xData <- xData %>% dplyr::filter(time > startTime & time < endTime)
-    yData <- yData %>% dplyr::filter(time > startTime & time < endTime)
-  }
-
+  maxTime <- ifelse(get_p_results(participant, "practice", trialNum) == "True", 120, 180)
+  xData <- adjust_times(xData, startTime, maxTime)
+  yData <- adjust_times(yData, startTime, maxTime)
+  
   # Combine the dataframes
   both <- data.frame(
     x = xData[[x_axis]],
@@ -175,9 +170,7 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, startTime, endTim
     theme_minimal(base_size = baseSize) +
     ggtitle(paste(extraTitle, ",", x_axis, "vs.", y_axis))
 
-  if (length(override_ylims) == 2) {
-    p <- p + coord_cartesian(ylim = override_ylims) # ylim(override_ylims)#
-  }
+  #p <- p + coord_cartesian(ylim = override_ylims)
 
   if (plotlines) {
     p <- p + geom_path()

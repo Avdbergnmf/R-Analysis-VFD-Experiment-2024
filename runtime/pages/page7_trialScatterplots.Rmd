@@ -11,11 +11,11 @@ selectizeInput("muyscatter", "yscatter",
 )
 
 selectizeInput("groupScatter", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+  choices = categoriesExtraInputs, selected = categoriesExtraInputs[1], multiple = FALSE
 )
 
-checkboxInput("averageData_trial", "Average data across condition", value = TRUE)
-checkboxInput("diffData_trial", "Calculate difference + means per participant", value = TRUE)
+checkboxInput("averageData_trial", "Average data across condition", value = FALSE)
+checkboxInput("diffData_trial", "Calculate difference + means per participant", value = FALSE)
 ```
 
 Column

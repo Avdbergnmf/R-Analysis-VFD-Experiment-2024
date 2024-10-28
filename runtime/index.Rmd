@@ -86,9 +86,9 @@ Removed Steps
 ```
 
 
-2D Plot {data-orientation=columns}
+Raw tracker data {data-orientation=columns}
 =====================================
-```{r, child='pages/page3_twoDPlot.Rmd'}
+```{r, child='pages/page3_rawTrackerData.Rmd'}
 ```
 
 
@@ -154,17 +154,15 @@ Data Table {data-icon="fa-table"}
 
 Y-Rotation Correction
 =====================================
-```{r, child='pages/page15_dataCorrection.Rmd'}
+```{r, child='pages/page14_dataCorrection.Rmd'}
 ```
+
+Automatic Outlier Filtering
+=====================================
+```{r, child='pages/page15_dataFiltering.Rmd'}
+``` 
 
 Manual Outlier Filtering
 =====================================
 ```{r, child='pages/page16_manualOutlierFiltering.Rmd'}
 ```
-
-
-<!-- Outlier Filtering
-=====================================-->
-```{r}
-#child='pages/page14_dataFiltering.Rmd'
-``` 

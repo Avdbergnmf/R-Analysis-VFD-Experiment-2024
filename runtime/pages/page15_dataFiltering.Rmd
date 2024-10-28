@@ -40,7 +40,7 @@ Column
 --------------------------------------------
 
 ### LOF Score Distribution
-
+THIS DOESN'T WORK GOOD ENOUGH AND WAS NOT USED IN THE END BUT LEFT HERE FOR LATER REFERENCE.
 ```{r}
 # Output cumulative distribution plot for LOF scores
 plotOutput("lof_score_distribution")

@@ -5,13 +5,13 @@ selectizeInput("plot", "Plot",
   choices = dataTypes, selected = dataTypes[1], multiple = FALSE
 )
 selectizeInput("group", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+  choices = categoriesExtraInputs, selected = categoriesExtraInputs[1], multiple = FALSE
 )
 selectizeInput("position", "Bar positions",
   choices = c("stack", "identity", "dodge"), selected = "identity", multiple = FALSE
 )
 selectizeInput("split", "Split by",
-  choices = categoriesInputs, selected = "None", multiple = FALSE
+  choices = categoriesExtraInputs, selected = "None", multiple = FALSE
 )
 #checkboxInput("means", "Show means",
 #  value = TRUE

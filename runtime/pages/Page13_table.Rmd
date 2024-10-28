@@ -3,16 +3,39 @@ Column
 
 ### Full Results Table {data-height=800}
 ```{r}
-tableOutput("full_results_table")
+checkboxInput("avgTable", "Summarize results (calc sd, mean, cv)",
+  value = FALSE)
+```
+```{r}
+#tableOutput("full_results_table")
+DT::dataTableOutput("full_results_table_interactive")
 ```
 
 
 
 ```{r, context="server"}
-# New output for the giant table
+tableToUse <- reactive({
+  if (input$avgTable) {
+    return(get_mu_dyn_long())
+  }
+  else {
+    return(filteredParams())
+  }
+})
+
 output$full_results_table <- renderTable({
-  dt <- get_mu_dyn_long()
-  return(dt)
+  return(tableToUse())
 }, rownames = TRUE, options = list(pageLength = 100, scrollY = "500px"))
 
+output$full_results_table_interactive <- DT::renderDataTable({
+  dt <- tableToUse()
+  DT::datatable(
+    dt,
+    options = list(
+      pageLength = 100,
+      search = NULL #list(regex = TRUE, caseInsensitive = TRUE)
+    ),
+    selection = 'single'
+  )
+})
 ```

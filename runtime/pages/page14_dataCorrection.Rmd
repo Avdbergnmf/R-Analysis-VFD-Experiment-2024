@@ -46,6 +46,8 @@ Save rotations dataset under "./data_extra/rotations_kinematic_data.csv". If the
 plotlyOutput("FeetTraj_15", width = "100%", height = "100%")
 ```
 
+Column
+--------------------------------------------
 ### Rotation Corrections Table
 ```{r}
 tableOutput("rotationTable")

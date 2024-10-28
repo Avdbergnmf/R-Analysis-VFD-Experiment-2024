@@ -8,7 +8,7 @@ selectizeInput("yscatter", "yscatter",
 )
 
 selectizeInput("groupScatter", "Group by",
-  choices = categoriesInputs, selected = categoriesInputs[1], multiple = FALSE
+  choices = categoriesExtraInputs, selected = categoriesExtraInputs[1], multiple = FALSE
 )
 ```
 
