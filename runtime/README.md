@@ -19,14 +19,31 @@ To run this code with your local R-Studio installation:
 - `questionnaires/` - Contains information about the questionnaire questions (how to calculate the results, categories within the questionnaire, etc.).
 - `results/` - Folder in which the resulting tables are stored (calculated gait parameters, target parameters, questionnaire results).
 
-
-<details>
-<summary>Pages</summary>
-
-<div class="tabset">
-
-### General info
+## Pages
 Click through the different tabs to get a preview and a brief explanation of what can be found there.
+
+- [Page 0: `sidebar_dynamicDataFiltering.Rmd`](#page-0-sidebar_dynamicDataFilteringrmd)
+- [Page 1: `page1_feetTrajectories.Rmd`](#page-1-page1_feettrajectoriesrmd)
+- [Page 2: `page2_removedSteps.Rmd`](#page-2-page2_removedstepsrmd)
+- [Page 3: `page3_rawTrackerData.Rmd`](#page-3-page3_rawtrackerdatarmd)
+- [Page 4: `page4_targetSteps.Rmd`](#page-4-page4_targetstepsrmd)
+- [Page 5: `page5_histograms.Rmd`](#page-5-page5_histogramsrmd)
+- [Page 6: `page6_scatterplots.Rmd`](#page-6-page6_scatterplotsrmd)
+- [Page 7: `page7_trialScatterplots.Rmd`](#page-7-page7_trialscatterplotsrmd)
+- [Page 8: `page8_questionnaires.Rmd`](#page-8-page8_questionnairesrmd)
+- [Page 9: `page9_boxplots.Rmd`](#page-9-page9_boxplotsrmd)
+- [Page 10: `page10_statistics.Rmd`](#page-10-page10_statisticsrmd)
+- [Page 11: `page11_correlations.Rmd`](#page-11-page11_correlationsrmd)
+- [Page 12: `page12_participantSummary.Rmd`](#page-12-page12_participantsummaryrmd)
+- [Page 13: `page13_table.Rmd`](#page-13-page13_tablermd)
+- [Page 14: `page14_dataCorrection.Rmd`](#page-14-page14_datacorrectionrmd)
+- [Page 15: `page15_dataFiltering.Rmd`](#page-15-page15_datafilteringrmd)
+- [Page 16: `page16_manualOutlierFiltering.Rmd`](#page-16-page16_manualoutlierfilteringrmd)
+
+
+---
+
+### Page 0: `sidebar_dynamicDataFiltering.Rmd`
 
 some general info:
 
@@ -47,103 +64,130 @@ The first "page" is the sidebar. This contains some settings that are shared acr
     - Average data across conditions - take average of the two trials of each participant and each condition.
     - Calculate difference + means per participant - Calculate the difference from baseline to VFD condition, as well as mean of both conditions.
 
+---
 
-### `page1_feetTrajectories.Rmd`
+### Page 1: `page1_feetTrajectories.Rmd`
 
 Plot the trajectory of the feet, with the heelstrike positions overlaid.
 
 ![page1](./readme_figures/main.png)
 
-### `page2_removedSteps.Rmd`
+---
+
+### Page 2: `page2_removedSteps.Rmd`
 
 Pie-chart to show which steps have been removed.
 
 ![page2](./readme_figures/p2.png)
 
-### `page3_rawTrackerData.Rmd`
+---
+
+### Page 3: `page3_rawTrackerData.Rmd`
 
 2D plot of raw tracker data of all the different trackers.
 
 ![page3](./readme_figures/p3.png)
 
-### `page4_targetSteps.Rmd`
+---
+
+### Page 4: `page4_targetSteps.Rmd`
 
 Histograms of target step results.
 
 ![page4](./readme_figures/p4.png)
 
-### `page5_histograms.Rmd`
+---
 
-Histograms of step parameters (heelstrike locations, stepwidth, step length etc).
+### Page 5: `page5_histograms.Rmd`
+
+Histograms of step parameters (heelstrike locations, step width, step length, etc).
 
 ![page5](./readme_figures/p5.png)
 
-### `page6_scatterplots.Rmd`
+---
+
+### Page 6: `page6_scatterplots.Rmd`
 
 Scatter plots to analyze relationships between step parameters.
 
 ![page6](./readme_figures/p6.png)
 
-### `page7_trialScatterplots.Rmd`
+---
 
-Scatter plots by trial to analyze relationship between summarized results (mean, sd, cv) of step parameters, and/or questionnaire data.
+### Page 7: `page7_trialScatterplots.Rmd`
+
+Scatter plots by trial to analyze relationships between summarized results (mean, SD, CV) of step parameters, and/or questionnaire data.
 
 ![page7](./readme_figures/p7.png)
 
-### `page8_questionnaires.Rmd`
+---
+
+### Page 8: `page8_questionnaires.Rmd`
 
 Boxplots of questionnaire results (subcategories + total score).
 
 ![page8](./readme_figures/p8.png)
 
-### `page9_boxplots.Rmd`
+---
+
+### Page 9: `page9_boxplots.Rmd`
 
 Box plots for step parameters.
 
 ![page9](./readme_figures/p9.png)
 
-### `page10_statistics.Rmd`
+---
 
-Statistical analysis of step data, using LMM. Outputs tables with results, also does post-hoc if required. Scroll down to visually evaluate model assumptions (qq-plots etc).
+### Page 10: `page10_statistics.Rmd`
+
+Statistical analysis of step data using LMM. Outputs tables with results and performs post-hoc analysis if required. Scroll down to visually evaluate model assumptions (QQ-plots, etc).
 
 ![page10](./readme_figures/p10.png)
 
-### `page11_correlations.Rmd`
+---
 
-Correlation plots showing relationships between different step parameters. Scroll down to evaluate test assumptions. If violated, you can set data to be non-parametric/bayes/robust types to do different (linear) correlation tests.
+### Page 11: `page11_correlations.Rmd`
+
+Correlation plots showing relationships between different step parameters. Scroll down to evaluate test assumptions. If violated, you can set data to be non-parametric/Bayesian/robust types to perform different (linear) correlation tests.
 
 ![page11](./readme_figures/p11.png)
 
-### `page12_participantSummary.Rmd`
+---
 
-Shows information about participant group (including demographics and category data). Also allows generation of pdf reports per participants which creates all plots of this interface for all trials of this particular participant, and allows you to download this pdf.
+### Page 12: `page12_participantSummary.Rmd`
+
+Shows information about participant groups (including demographics and category data). Allows generation of PDF reports per participant, which create all plots of this interface for all trials of a particular participant, and allows you to download the PDF.
 
 ![page12](./readme_figures/p12.png)
 
-### `page13_table.Rmd`
+---
 
-Data table with all (filtered) step data. Enable summarize checkbox to see aggregated results per trial.
+### Page 13: `page13_table.Rmd`
+
+Data table with all (filtered) step data. Enable the "Summarize" checkbox to see aggregated results per trial.
 
 ![page13](./readme_figures/p13.png)
 
-### `page14_dataCorrection.Rmd`
+---
 
-Functions to correct step data by rotation the whole data around the y axis (to correctly align the treadmill direction with data z axis). Save rotations into a table, shown next to the table.
+### Page 14: `page14_dataCorrection.Rmd`
+
+Functions to correct step data by rotating the whole dataset around the y-axis (to correctly align the treadmill direction with the data z-axis). Save rotations into a table, shown next to the table.
 
 ![page14](./readme_figures/p14.png)
 
-### `page15_dataFiltering.Rmd`
+---
 
-Tools for automatically filtering out unwanted data based on local outlier filtering (note: this was not used in the end and is kind of buggy).
+### Page 15: `page15_dataFiltering.Rmd`
+
+Tools for automatically filtering out unwanted data based on local outlier filtering (note: this was not used in the end and may be buggy).
 
 ![page15](./readme_figures/p15.png)
 
-### `page16_manualOutlierFiltering.Rmd`
+---
 
-Interface to manually filter out outliers in the data. Save outliers to csv & import later to continue. Once finished, click overwrite outliers to mark the selected steps as outliers. Click Save to current RDS to re-save the gaitparams table to rds file with the current outliers flagged. Also has autosaving functionality (adviced to use, as software crashes randomly sometimes).
+### Page 16: `page16_manualOutlierFiltering.Rmd`
+
+Interface to manually filter out outliers in the data. Save outliers to CSV & import later to continue. Once finished, click "Overwrite Outliers" to mark the selected steps as outliers. Click "Save to Current RDS" to re-save the gait parameters table to the RDS file with the current outliers flagged. Also includes auto-saving functionality (advised to use, as software may crash randomly sometimes).
 
 ![page16](./readme_figures/p16.png)
-
-</div>
-
-</details>
