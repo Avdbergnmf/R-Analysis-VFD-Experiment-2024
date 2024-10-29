@@ -10,7 +10,7 @@ With the files in this repository, you are able to run the code from any device 
 3. Within the R instance, navigate to `/home/rstudio/workspace/`, and open the `index.Rmd` file.
 3. Click `Run Document` and allow the popup window to appear.
 > Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `runtime/results/` and startup should be significantly faster. If you need to recalculate these tabled for any reason, just delete them and they will be recreated with the current contents of the data folder.
-4. Browse the tabs and interact with the data. See [runtime readme](./runtime/README.md) for more info.
+4. Browse the tabs and interact with the data. See [runtime readme](./runtime) for more info.
 
 ### Without Docker
 You can also just use the code with your local R-Studio installation:
@@ -23,4 +23,4 @@ You can also just use the code with your local R-Studio installation:
 - `docker-compose.yml` - The description of how to create the docker container. This also sets the port and shared volume.
 - `Dockerfile.rocker` - The dockerfile used to build the docker container - based on [rocker/rstudio:4.4.0](https://rocker-project.org).
 
-- `runtime/` - contains all the code that is ran in the docker container. Note: also contains a [`README.md`](./runtime/README.md) explaining its contents.
+- `runtime/` - contains all the code that is ran in the docker container. Note: also contains a [`README.md`](./runtime) explaining its contents.
