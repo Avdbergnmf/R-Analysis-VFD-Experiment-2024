@@ -4,7 +4,7 @@ The code used for the analysis of kinematic data to investigate the effect of vi
 ## How to use
 To run this code with your local R-Studio installation:
 1. Within the R instance, navigate to `./runtime/`, and open the `index.Rmd` file.
-2. Click `Run Document`. If it asks you to install any packages, click yes. You can find the list of packages used in `./runtime/source/source.R`.
+2. Click `Run Document`. If it asks you to install any packages, click yes. You can find the list of packages used in `./runtime/source/setup.R`.
 > Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `results/` and startup should be significantly faster.
 3. Browse the tabs and interact with the data
 
