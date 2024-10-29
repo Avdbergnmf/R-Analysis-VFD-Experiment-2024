@@ -15,7 +15,7 @@ With the files in this repository, you are able to run the code from any device 
 ### Without Docker
 You can also just use the code with your local R-Studio installation:
 1. Within the R instance, navigate to `./runtime/`, and open the `index.Rmd` file.
-2. Click `Run Document`. If it asks you to install any packages, click yes. You can find the list of packages used in `./runtime/source/source.R`.
+2. Click `Run Document`. If it asks you to install any packages, click yes. You can find the list of packages used in `./runtime/source/setup.R`.
 3. Browse the tabs and interact with the data
 
 ## Contents
@@ -23,4 +23,4 @@ You can also just use the code with your local R-Studio installation:
 - `docker-compose.yml` - The description of how to create the docker container. This also sets the port and shared volume.
 - `Dockerfile.rocker` - The dockerfile used to build the docker container - based on [rocker/rstudio:4.4.0](https://rocker-project.org).
 
-- `runtime/` - contains all the code that is ran in the docker container. Note: also contains a `README.md` explaining its contents.
+- `runtime/` - contains all the code that is ran in the docker container. Note: also contains a [`README.md`](./runtime/README.md) explaining its contents.
