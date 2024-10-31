@@ -1,6 +1,8 @@
 # Analysis Code
 The code used for the analysis of kinematic data to investigate the effect of visual feedback distortions (VFD) on gait variability while walking on a treadmill.
 
+> Put participant data ([found on Zenodo](https://zenodo.org/record/14017075)) folders in `./runtime/data` (in the same folder as the `index.Rmd`)
+
 ## How to use
 To run this code with your local R-Studio installation:
 1. Within the R instance, navigate to `./runtime/`, and open the `index.Rmd` file.

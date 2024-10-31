@@ -3,7 +3,14 @@ The code used for the analysis of kinematic data to investigate the effect of vi
 
 With the files in this repository, you are able to run the code from any device that is able to install and run [Docker](https://docs.docker.com/desktop/install/windows-install/#install-interactively).
 
+Links:
+- [Zenodo data upload](https://zenodo.org/record/14017075)
+> Put participant data folders in `./runtime/data` (in the same folder as the `index.Rmd`)
+- [GitHub Repo](https://github.com/Avdbergnmf/R-Analysis-VFD-Experiment-2024)
+- [GitLab Repo](https://gitlab.tudelft.nl/mln-lab-public/r-analysis-alex-van-den-berg-2024-vfd-experiment)
+
 ## How to use
+
 ### Use with Docker
 1. build and start the docker container defined in docker-compose.yml: `docker-compose up --build -d`
 2. Navigate to http://localhost:8787
