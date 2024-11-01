@@ -5,7 +5,7 @@ With the files in this repository, you are able to run the code from any device 
 
 Links:
 - [Zenodo data upload](https://zenodo.org/record/14017075)
-> Put participant data folders in `./runtime/data` (in the same folder as the `index.Rmd`)
+> This repository already contains the calculated step parameters datasets (`./runtime/results/*.rds`). If you want to recalculate step parameters, delete these files, and put participant data ([found on Zenodo](https://zenodo.org/record/14017075)) folders in `./runtime/data/` (in the same folder as the `index.Rmd`).
 - [GitHub Repo](https://github.com/Avdbergnmf/R-Analysis-VFD-Experiment-2024)
 - [GitLab Repo](https://gitlab.tudelft.nl/mln-lab-public/r-analysis-alex-van-den-berg-2024-vfd-experiment)
 
