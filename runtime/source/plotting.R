@@ -428,20 +428,6 @@ make_scatter_plot_steps <- function(data, group, xplot, yplot, show_legend = FAL
   return(p)
 }
 
-make_scatter_plot_mu <- function(data, xinput, yinput, group, baseSize = 10) {
-  if (group == "None") {
-    aes <- aes_string(x = xinput, y = yinput)
-  } else {
-    aes <- aes_string(x = xinput, y = yinput, col = group)
-  }
-
-  p <- ggplot(data, aes) +
-    geom_point(alpha = 0.5, size = round(baseSize / 5)) + # Set the alpha to make overlapping points more visible
-    theme_minimal(base_size = baseSize)
-
-  return(p)
-}
-
 ###### Extra
 
 # Function to save plot as an image

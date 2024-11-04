@@ -41,7 +41,7 @@ get_scatter_data <- reactive({
 })
 
 output$scatter_mu <- renderSVG({ reactive({
-  make_scatter_plot_mu(get_scatter_data(), input$muxscatter, input$muyscatter, input$groupScatter, baseSize = input$baseSize)
+  make_scatter_plot_steps(get_scatter_data(), input$groupScatter, input$muxscatter, input$muyscatter, show_legend=TRUE, baseSize = input$baseSize)
   })
 })
 
