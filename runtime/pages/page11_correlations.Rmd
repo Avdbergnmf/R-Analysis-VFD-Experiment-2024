@@ -50,13 +50,52 @@ get_correlation_data <- reactive({
   return(data)
 })
 
+get_selected_value <- function(current_value, prev_choices, new_choices) {
+  # Check if previous choices exist and if the current value is in the previous choices
+  if (!is.null(prev_choices) && current_value %in% prev_choices) {
+    # Find the index of the currently selected variable in the previous choices
+    index <- match(current_value, prev_choices)
+    # Try to select the same index in the new choices, if it exists
+    if (index <= length(new_choices)) {
+      return(new_choices[index])
+    } else {
+      # Fallback to the first item if index is out of bounds
+      return(new_choices[1])
+    }
+  } else {
+    # Fallback to the first item if previous choices don't exist or current value is not in them
+    return(new_choices[1])
+  }
+}
+
+# Store previous numeric columns as a reactive value
+previous_numeric_cols <- reactiveVal()
+
 # Update the selectizeInput choices based on the filtered data for correlation plot
 observe({
+  # Get the latest data and numeric columns
   data <- get_correlation_data()
   numeric_cols <- names(data)[sapply(data, is.numeric)]
   
-  updateSelectizeInput(session, "xVar", choices = numeric_cols , selected = ifelse(input$diffData, "diff_VEQ.total", "VEQ.total"))
-  updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = ifelse(input$diffData, "diff_stepWidths.sd", "stepWidths.sd"))
+  # Retrieve previous numeric columns and update the stored value
+  prev_numeric_cols <- previous_numeric_cols()
+  
+  # Only proceed if numeric_cols have actually changed to avoid unnecessary updates
+  if (!identical(numeric_cols, prev_numeric_cols)) {
+    previous_numeric_cols(numeric_cols)  # Update reactive value to the current numeric_cols
+    
+    # Use isolate to prevent reactive dependencies within selected variables
+    s_xVar <- isolate(input$xVar)
+    s_yVar <- isolate(input$yVar)
+    
+    # Use the function to get selected values based on previous choices' positions
+    selected_xVar <- get_selected_value(s_xVar, prev_numeric_cols, numeric_cols)
+    selected_yVar <- get_selected_value(s_yVar, prev_numeric_cols, numeric_cols)
+    
+    # Update the selectize inputs only if there has been a change in choices
+    updateSelectizeInput(session, "xVar", choices = numeric_cols, selected = selected_xVar)
+    updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = selected_yVar)
+  }
 })
 
 output$correlation_plot <- renderSVG({ reactive({

@@ -149,6 +149,7 @@ observe({
   updateSelectizeInput(session, "indepInterVars", choices = numeric_cols, selected = ifelse(input$diffData_stats, "diff_VEQ.total", "VFD"))
   updateSelectizeInput(session, "indepVars", choices = numeric_cols)
 })
+
 # Automatically enable "averageData_stats" if paired_ttest is selected
 observe({
   if (input$paired_ttest) {
