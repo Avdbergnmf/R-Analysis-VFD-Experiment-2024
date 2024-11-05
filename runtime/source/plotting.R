@@ -440,3 +440,34 @@ save_plot <- function(plot, filename, width = 8, height = 4, pdf = FALSE) {
     dev.off()
   }
 }
+
+plot_correlation_stats <- function(data, x_var_name, y_var_name, type = "parametric", base_size = 12, do_heatmap = FALSE) {
+  x_var <- sym(x_var_name)
+  y_var <- sym(y_var_name)
+  # Create the base plot with ggscatterstats or a heatmap based on plot_type
+  if (!do_heatmap) {
+    # Scatter plot with statistical summary
+    p <- ggscatterstats(
+      data = data,
+      x = !!x_var,
+      y = !!y_var,
+      type = type
+    ) + 
+    theme_minimal(base_size = base_size)
+    
+  } else {
+    # Heatmap to visualize density of points
+    p <- ggplot(data, aes(x = !!x_var, y = !!y_var)) +
+      stat_bin2d(bins = 30) +
+      scale_fill_gradient(low = "blue", high = "red") +
+      theme_minimal(base_size = base_size) +
+      labs(
+        title = paste("Heatmap of", x_var_name, "and", y_var_name),
+        x = x_var_name,
+        y = y_var_name,
+        fill = "Count"
+      )
+  }
+  
+  return(p)
+}

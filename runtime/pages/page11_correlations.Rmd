@@ -8,6 +8,7 @@ selectInput("par", "Parametric data",
 checkboxInput("getSummarizedData", "Calculate mean, sd, cv", value = TRUE)
 checkboxInput("averageData", "Average data across condition", value = TRUE)
 checkboxInput("diffData", "Calculate difference + means per participant", value = TRUE)
+checkboxInput("heatmap", "Plot heatmap", value = FALSE)
 
 # Add selectors for x and y inputs for the correlation plot
 selectizeInput("xVar", "X Variable for Correlation Plot", choices = muVars, selected = muVars[1], multiple = FALSE)
@@ -104,23 +105,6 @@ observe({
     updateSelectizeInput(session, "yVar", choices = numeric_cols, selected = selected_yVar)
   }
 })
-
-output$correlation_plot <- renderSVG({ reactive({
-  dt <- get_correlation_data()
-  
-  ggplot(dt, aes_string(x = input$xVar, y = input$yVar)) +
-    geom_point(size=input$baseSize/5) +
-    geom_smooth(method = "lm") +
-    theme_minimal(base_size = input$baseSize) +
-    labs(
-      title = paste("Correlation between", input$xVar, "and", input$yVar),
-      x = input$xVar,
-      y = input$yVar
-    )
-  })
-})
-
-
   
 output$correlation_text <- renderPrint({
   dt <- get_correlation_data()
