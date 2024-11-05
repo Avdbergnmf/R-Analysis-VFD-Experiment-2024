@@ -91,9 +91,16 @@ get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories)
   matchByList <- c("participant", "trialNum")
   muTarget <- muTarget %>% select(all_of(matchByList), all_of(matched_columns))
 
-  # Rename matched columns with the prefix "target."
-  muTarget <- muTarget %>%
-    rename_with(~ paste0("target.", .), all_of(matched_columns))
+  if (length(matched_columns) > 0) {
+    muTarget <- muTarget %>% select(all_of(matchByList), all_of(matched_columns))
+    
+    # Rename matched columns with the prefix "target."
+    muTarget <- muTarget %>%
+      rename_with(~ paste0("target.", .), all_of(matched_columns))
+  } else {
+    # If no matched columns, select only matchByList columns to avoid errors
+    muTarget <- muTarget %>% select(all_of(matchByList))
+  }
 
   # Combine the data frames
   combined_mu <- merge(muGait, muTarget, by = matchByList, all = TRUE)

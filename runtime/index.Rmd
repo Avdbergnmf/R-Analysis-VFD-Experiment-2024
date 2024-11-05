@@ -8,7 +8,7 @@ runtime: shinyrmd
 ---
 
 ```{r setup, include=FALSE}
-rmarkdown::shiny_prerendered_clean("workspace/index.Rmd") # we need to clear else it doesnt start the interface for whatever reason.
+rmarkdown::shiny_prerendered_clean("workspace/index.Rmd") # we need to clear else it doesnt start the interface for whatever reason. 
 
 source('source/setup.R')
 source('source/data_loading.R', local = FALSE)
