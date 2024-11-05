@@ -5,6 +5,7 @@ selectInput("par", "Parametric data",
             choices = c("parametric", "nonparametric", "bayes", "robust"), 
             selected = "parametric", multiple = FALSE)
 
+checkboxInput("getSummarizedData", "Calculate mean, sd, cv", value = TRUE)
 checkboxInput("averageData", "Average data across condition", value = TRUE)
 checkboxInput("diffData", "Calculate difference + means per participant", value = TRUE)
 
@@ -40,13 +41,19 @@ imageOutput("homoscedasticity_plot")
 
 ```{r, context="server"}
 get_correlation_data <- reactive({
-  data <- get_mu_dyn_long()
-  if (input$averageData) {
-    data <- summarize_across_conditions(data)
+  if (input$getSummarizedData) {
+    data <- get_mu_dyn_long()
+    if (input$averageData) {
+      data <- summarize_across_conditions(data)
+    }
+    if (input$diffData){
+      data <- calculate_vfd_difference(data)
+    }
   }
-  if (input$diffData){
-    data <- calculate_vfd_difference(data)
+  else {
+    data <- filteredParams()
   }
+
   return(data)
 })
 

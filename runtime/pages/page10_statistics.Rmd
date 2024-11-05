@@ -29,6 +29,7 @@ numericInput("num_tests",
 
 Further data processing:
 ```{r}
+checkboxInput("getSummarizedData_stats", "Calculate mean, sd, cv", value = TRUE)
 checkboxInput("averageData_stats", "Average data across condition", value = FALSE)
 checkboxInput("diffData_stats", "Calculate difference + means per participant", value = FALSE)
 ```
@@ -130,13 +131,19 @@ imageOutput("diff_boxplot")
 ```{r, context="server"}
 ############ Getting and setting data
 get_stats_data <- reactive({
-  data <- get_mu_dyn_long()
-  if (input$averageData_stats) {
-    data <- summarize_across_conditions(data)
+  if (input$getSummarizedData_stats) {
+    data <- get_mu_dyn_long()
+    if (input$averageData_stats) {
+      data <- summarize_across_conditions(data)
+    }
+    if (input$diffData_stats){
+      data <- calculate_vfd_difference(data)
+    } 
   }
-  if (input$diffData_stats){
-    data <- calculate_vfd_difference(data)
+  else {
+    data <- filteredParams()
   }
+  
   return(data)
 })
 
