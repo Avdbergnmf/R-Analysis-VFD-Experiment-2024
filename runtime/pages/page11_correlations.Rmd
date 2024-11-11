@@ -219,5 +219,6 @@ output$scatter <- renderSVG({ reactive({
     plot.new()
     text(0.5, 0.5, "Selected variables not found in the dataset", cex = 1.5, col = "red")
   }
-}) })
+}) 
+})
 ```
