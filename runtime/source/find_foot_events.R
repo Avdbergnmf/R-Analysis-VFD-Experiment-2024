@@ -225,7 +225,7 @@ add_diff_per_foot <- function(relHeelStrikesData) {
   # Combine the data back together
   relHeelStrikesData <- rbind(left_foot_data, right_foot_data)
   # Order the combined data by time to maintain the correct sequence
-  return(relHeelStrikesData[order(relHeelStrikesData$time),])
+  return(relHeelStrikesData[order(relHeelStrikesData$time), ])
 }
 
 calculate_gait_parameters <- function(participant, trialNum) {
@@ -244,7 +244,7 @@ calculate_gait_parameters <- function(participant, trialNum) {
       column # Return non-numeric columns unchanged
     }
   })
-  
+
   relHeelStrikesData <- add_diff_per_foot(relHeelStrikesData)
 
   # time-based

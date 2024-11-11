@@ -197,7 +197,7 @@ get_lmer <- reactive({
     # Identify numeric columns
     numeric_cols <- sapply(dt, is.numeric)
     # Center or scale only the numeric independent variables used in the formula
-    model_vars <- all.vars(formula) # extract all variables in the formula
+    model_vars <- setdiff(all.vars(formula), dep_var) # extract all independent variables in the formula
     numeric_vars_to_center <- intersect(names(dt)[numeric_cols], model_vars) # get only the numeric ones in the model
 
     # Apply centering (or scaling if needed) to selected numeric variables

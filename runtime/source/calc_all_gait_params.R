@@ -5,7 +5,7 @@ allTrials <- c(1, 2, 3, 4, 5, 6) # VFD conditions
 xOptions <- c("time", "pos_x", "pos_y", "pos_z", "actual_pos_z")
 xOptions2D <- colnames(get_t_data(participants[1], "leftfoot", 1)) # options for pos rot trackers
 categories <- c("participant", "VFD", "trialNum") #  "heelStrikes.foot"
-#categoriesInputs <- append(categories, "None")
+# categoriesInputs <- append(categories, "None")
 columns_to_not_summarize <- c("practice", "startedWithNoise", "conditionNumber", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed") # these are categorical columns we may want to use for our statistics but we dont want to summarize in our mu table
 categoriesExtra <- c(categories, columns_to_not_summarize)
 categoriesExtraInputs <- append(categoriesExtra, "None")
@@ -30,17 +30,17 @@ load_or_calculate <- function(filePath, calculate_function) {
 
 add_category_columns <- function(data, participant, trial) {
   # Add a column for the participant identifier
-  data$participant      <- as.factor(participant)
-  data$practice         <- as.factor(get_p_results(participant, "practice", trial) == "True")
-  data$VFD              <- as.factor(get_p_results(participant, "noise_enabled", trial) == "True")
+  data$participant <- as.factor(participant)
+  data$practice <- as.factor(get_p_results(participant, "practice", trial) == "True")
+  data$VFD <- as.factor(get_p_results(participant, "noise_enabled", trial) == "True")
   data$startedWithNoise <- as.factor(started_with_noise(participant))
-  data$noticed          <- as.factor(noticed_vfd(participant))
-  
+  data$noticed <- as.factor(noticed_vfd(participant))
+
   # numerical "categories"
-  data$trialNum                 <- as.numeric(trial)
-  data$conditionNumber          <- as.numeric(c(1, 1, 1, 2, 2, 2)[trial])
-  data$trialNumWithinCondition  <- as.numeric(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
-  data$trialNumWithoutPractice  <- as.numeric(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
+  data$trialNum <- as.numeric(trial)
+  data$conditionNumber <- as.numeric(c(1, 1, 1, 2, 2, 2)[trial])
+  data$trialNumWithinCondition <- as.numeric(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
+  data$trialNumWithoutPractice <- as.numeric(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
 
   return(data)
 }
@@ -128,7 +128,7 @@ get_data_from_loop <- function(get_data_function, ...) {
 
 
 calc_all_gait_params <- function() {
-  return(get_data_from_loop(calculate_gait_parameters))
+  return(get_data_from_loop_parallel(calculate_gait_parameters))
 }
 
 calc_all_target_params <- function() {
