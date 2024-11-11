@@ -17,6 +17,11 @@ textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = 
 checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
 ```
 
+```{r}
+checkboxInput("doCentering", "Center numerical values", value = TRUE)
+checkboxInput("doScaling", "Scale numerical values", value = FALSE)
+```
+
 Use paired t-test instead (handy for questionnaires):
 ```{r}
 # Add a checkbox for paired t-test
@@ -150,11 +155,11 @@ get_stats_data <- reactive({
 # Update the selectizeInput choices based on the filtered data for correlation plot
 observe({
   data <- get_stats_data()
-  numeric_cols <- colnames(data)#[sapply(data, is.numeric)]
+  cols <- colnames(data)#[sapply(data, is.numeric)]
   
-  updateSelectizeInput(session, "depVar", choices = numeric_cols , selected = ifelse(input$diffData_stats, "diff_stepWidths.sd", "stepWidths.sd"))
-  updateSelectizeInput(session, "indepInterVars", choices = numeric_cols, selected = ifelse(input$diffData_stats, "diff_VEQ.total", "VFD"))
-  updateSelectizeInput(session, "indepVars", choices = numeric_cols)
+  updateSelectizeInput(session, "depVar", choices = cols , selected = ifelse(input$diffData_stats, "diff_stepWidths.sd", "stepWidths.sd"))
+  updateSelectizeInput(session, "indepInterVars", choices = cols, selected = ifelse(input$diffData_stats, "diff_VEQ.total", "VFD"))
+  updateSelectizeInput(session, "indepVars", choices = cols)
 })
 
 # Automatically enable "averageData_stats" if paired_ttest is selected
@@ -163,6 +168,10 @@ observe({
     updateCheckboxInput(session, "averageData_stats", value = TRUE)
   }
 })
+
+center_numerical_values <- function(data){
+
+}
 
 get_lmer <- reactive({
   dt <- get_stats_data()#get_mu_dyn_long()
@@ -179,9 +188,27 @@ get_lmer <- reactive({
     finalVars <- paste(interVars, "+", otherVars)
     formula_text <- paste(dep_var, "~", finalVars, "+ (1 | participant)")
   }
-  
+
   # Convert to formula
   formula <- as.formula(formula_text)
+  
+  # Center or scale numeric variables if specified
+  if (input$doCentering) {
+    # Identify numeric columns
+    numeric_cols <- sapply(dt, is.numeric)
+    # Center or scale only the numeric independent variables used in the formula
+    model_vars <- all.vars(formula) # extract all variables in the formula
+    numeric_vars_to_center <- intersect(names(dt)[numeric_cols], model_vars) # get only the numeric ones in the model
+
+    # Apply centering (or scaling if needed) to selected numeric variables
+    dt[numeric_vars_to_center] <- lapply(dt[numeric_vars_to_center], function(x) {
+      if (input$doScaling) {
+        as.numeric(scale(x, center = TRUE, scale = TRUE)) # center and scale if both are selected
+      } else {
+        as.numeric(scale(x, center = TRUE, scale = FALSE)) # only center if doScaling is FALSE
+      }
+    })
+  }
   
   # Fit the model
   return(lmerTest::lmer(formula, data = dt, REML = FALSE)) # put lmerTest:: in front to get p values.

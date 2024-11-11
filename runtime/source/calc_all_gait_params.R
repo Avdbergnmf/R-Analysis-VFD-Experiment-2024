@@ -30,16 +30,17 @@ load_or_calculate <- function(filePath, calculate_function) {
 
 add_category_columns <- function(data, participant, trial) {
   # Add a column for the participant identifier
-  data$participant <- participant
-  data$trialNum <- trial
-  data$practice <- get_p_results(participant, "practice", trial) == "True"
-  data$VFD <- get_p_results(participant, "noise_enabled", trial) == "True"
-  data$startedWithNoise <- started_with_noise(participant)
-  data$noticed <- noticed_vfd(participant)
-
-  data$conditionNumber <- c(1, 1, 1, 2, 2, 2)[trial]
-  data$trialNumWithinCondition <- c(0, 1, 2, 0, 1, 2)[trial] # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
-  data$trialNumWithoutPractice <- c(0, 1, 2, 0, 3, 4)[trial] # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
+  data$participant      <- as.factor(participant)
+  data$practice         <- as.factor(get_p_results(participant, "practice", trial) == "True")
+  data$VFD              <- as.factor(get_p_results(participant, "noise_enabled", trial) == "True")
+  data$startedWithNoise <- as.factor(started_with_noise(participant))
+  data$noticed          <- as.factor(noticed_vfd(participant))
+  
+  # numerical "categories"
+  data$trialNum                 <- as.numeric(trial)
+  data$conditionNumber          <- as.numeric(c(1, 1, 1, 2, 2, 2)[trial])
+  data$trialNumWithinCondition  <- as.numeric(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
+  data$trialNumWithoutPractice  <- as.numeric(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
 
   return(data)
 }
