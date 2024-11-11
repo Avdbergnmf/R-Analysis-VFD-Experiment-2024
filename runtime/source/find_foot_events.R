@@ -141,6 +141,8 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   # We'd like to look at the derrivative of the offset (how much did it change during this step), so we add it to our dataframe here.
   heelStrikes$derrivative_offset_x <- c(NA, diff(heelStrikes$offset_x) / diff(heelStrikes$time))
   heelStrikes$derrivative_offset_z <- c(NA, diff(heelStrikes$offset_z) / diff(heelStrikes$time))
+  heelStrikes$diff_pos_x <- c(NA, diff(heelStrikes$pos_x))
+  heelStrikes$diff_actual_pos_z <- c(NA, diff(heelStrikes$actual_pos_z))
   return(list(heelStrikes = heelStrikes, toeOffs = toeOffs))
 }
 
@@ -212,20 +214,18 @@ find_foot_events <- function(participant, trialNum) {
 }
 
 add_diff_per_foot <- function(relHeelStrikesData) {
-  # I want to add a column for the diff of the heelstrikes of each foot to see if it correlates with the diff of the offset
-  left_foot_data <- subset(relHeelStrikesData, foot == "Left")
-  right_foot_data <- subset(relHeelStrikesData, foot == "Right")
-  # Left Foot: Calculate diff of pos_x and actual_pos_z
-  left_foot_data$diff_stepWidth <- c(NA, diff(left_foot_data$pos_x))
-  left_foot_data$diff_stepLength <- c(NA, diff(left_foot_data$actual_pos_z))
+  # Group by foot, calculate diffs, and create a new dataframe with just the diffs
+  diffData <- relHeelStrikesData %>%
+    arrange(time) %>% # Ensure data is ordered by time within each foot
+    group_by(foot) %>%
+    mutate(
+      stepWidth = c(NA, diff(pos_x)),
+      stepLength = c(NA, diff(actual_pos_z))
+    ) %>%
+    ungroup() %>% # Remove grouping
+    select(time, foot, stepWidth, stepLength) # Select only relevant columns for the new dataframe
 
-  # Right Foot: Calculate diff of pos_x and actual_pos_z
-  right_foot_data$diff_stepWidth <- c(NA, diff(right_foot_data$pos_x))
-  right_foot_data$diff_stepLength <- c(NA, diff(right_foot_data$actual_pos_z))
-  # Combine the data back together
-  relHeelStrikesData <- rbind(left_foot_data, right_foot_data)
-  # Order the combined data by time to maintain the correct sequence
-  return(relHeelStrikesData[order(relHeelStrikesData$time), ])
+  return(diffData)
 }
 
 calculate_gait_parameters <- function(participant, trialNum) {
@@ -245,7 +245,7 @@ calculate_gait_parameters <- function(participant, trialNum) {
     }
   })
 
-  relHeelStrikesData <- add_diff_per_foot(relHeelStrikesData)
+  diffData <- add_diff_per_foot(relHeelStrikesData)
 
   # time-based
   stepTimes <- relHeelStrikesData$time # Calculate step times  >>> NOTE: The first heelstrike is only used as a starting point to the second
@@ -294,7 +294,8 @@ calculate_gait_parameters <- function(participant, trialNum) {
     speed = speed,
     heelStrikes = heelStrikesData,
     toeOffs = toeOffsData,
-    relHeelStrikes = relHeelStrikesData
+    relHeelStrikes = relHeelStrikesData,
+    diffData = diffData
   )
 
   gaitParams <- lapply(gaitParams, function(x) {

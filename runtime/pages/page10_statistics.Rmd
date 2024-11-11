@@ -11,7 +11,7 @@ selectizeInput("indepVars", "+ Independent variables", choices = muVars, selecte
 selectizeInput("correctionMethod", "Correction Method", choices = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"), selected = "bonferroni", multiple = FALSE)
 
 # Add a text input for custom model formula
-textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "stepWidths.sd ~ VFD * startedWithNoise + trialNumWithinCondition + (1 | participant)")
+textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "VFD * startedWithNoise + trialNumWithinCondition + (1 | participant)")
 
 # Add a checkbox to use the custom model formula
 checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
@@ -180,8 +180,8 @@ get_lmer <- reactive({
   dep_var <- input$depVar
   if (input$useCustomModel && input$customModel != "") {
     # Use custom model formula if checkbox is selected and text input is not empty
-    #formula_text <-  paste(dep_var, "~", input$customModel)
-    formula_text <- input$customModel
+    formula_text <-  paste(dep_var, "~", input$customModel)
+    #formula_text <- input$customModel
   } else {
     interVars <- paste(input$indepInterVars, collapse = "*")
     otherVars <- paste(input$indepVars, collapse = "+")
