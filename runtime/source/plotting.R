@@ -158,7 +158,7 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, x_axis = "time", 
   maxTime <- ifelse(get_p_results(participant, "practice", trialNum) == "True", 120, 180)
   xData <- adjust_times(xData, startTime, maxTime)
   yData <- adjust_times(yData, startTime, maxTime)
-  
+
   # Combine the dataframes
   both <- data.frame(
     x = xData[[x_axis]],
@@ -170,7 +170,7 @@ plot_2d <- function(xtracker, ytracker, participant, trialNum, x_axis = "time", 
     theme_minimal(base_size = baseSize) +
     ggtitle(paste(extraTitle, ",", x_axis, "vs.", y_axis))
 
-  #p <- p + coord_cartesian(ylim = override_ylims)
+  # p <- p + coord_cartesian(ylim = override_ylims)
 
   if (plotlines) {
     p <- p + geom_path()
@@ -441,7 +441,7 @@ save_plot <- function(plot, filename, width = 8, height = 4, pdf = FALSE) {
   }
 }
 
-plot_correlation_stats <- function(data, x_var_name, y_var_name, type = "parametric", base_size = 12, do_heatmap = FALSE) {
+plot_correlation_stats <- function(data, x_var_name, y_var_name, type = "parametric", base_size = 12, do_heatmap = FALSE, heatmap_bins = 30) {
   x_var <- sym(x_var_name)
   y_var <- sym(y_var_name)
   # Create the base plot with ggscatterstats or a heatmap based on plot_type
@@ -452,13 +452,12 @@ plot_correlation_stats <- function(data, x_var_name, y_var_name, type = "paramet
       x = !!x_var,
       y = !!y_var,
       type = type
-    ) + 
-    theme_minimal(base_size = base_size)
-    
+    ) +
+      theme_minimal(base_size = base_size)
   } else {
     # Heatmap to visualize density of points
     p <- ggplot(data, aes(x = !!x_var, y = !!y_var)) +
-      stat_bin2d(bins = 30) +
+      stat_bin2d(bins = heatmap_bins) +
       scale_fill_gradient(low = "blue", high = "red") +
       theme_minimal(base_size = base_size) +
       labs(
@@ -468,6 +467,6 @@ plot_correlation_stats <- function(data, x_var_name, y_var_name, type = "paramet
         fill = "Count"
       )
   }
-  
+
   return(p)
 }

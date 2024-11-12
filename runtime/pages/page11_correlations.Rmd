@@ -9,10 +9,15 @@ checkboxInput("getSummarizedData", "Calculate mean, sd, cv", value = TRUE)
 checkboxInput("averageData", "Average data across condition", value = TRUE)
 checkboxInput("diffData", "Calculate difference + means per participant", value = TRUE)
 checkboxInput("heatmap", "Plot heatmap", value = FALSE)
+numericInput("heatmap_bins", "Bins heatmaps", min = 0, max = Inf, value = 30, step = 1)
 
 # Add selectors for x and y inputs for the correlation plot
 selectizeInput("xVar", "X Variable for Correlation Plot", choices = muVars, selected = muVars[1], multiple = FALSE)
 selectizeInput("yVar", "Y Variable for Correlation Plot", choices = muVars, selected = muVars[2], multiple = FALSE)
+```
+
+```{r}
+checkboxInput("rm_clamped","Remove clamped offset values (for non-summarized data only)", value=TRUE)
 ```
 
 Column
@@ -22,8 +27,7 @@ Column
 
 ```{r}
 # Add plot output for the correlation plot
-#plotOutput("correlation_plot")
-imageOutput("scatter")
+imageOutput("correlation_plot")
 ```
 
 
@@ -53,6 +57,12 @@ get_correlation_data <- reactive({
   }
   else {
     data <- filteredParams()
+
+    # Remove clamped data if the option is selected
+    if (input$rm_clamped) {
+    data <- data %>%
+      filter(!(heelStrikes.offset_x == 0.075 | heelStrikes.offset_x == -0.075 | heelStrikes.offset_z == 0.15 | heelStrikes.offset_z == -0.15))
+    }
   }
 
   return(data)
@@ -204,7 +214,7 @@ output$homoscedasticity_plot <- renderSVG({ reactive({
 }) })
 
 
-output$scatter <- renderSVG({ reactive({
+output$correlation_plot <- renderSVG({ reactive({
   dt <- get_correlation_data()
   
   # Ensure the selected variables exist in the dataset
@@ -212,8 +222,8 @@ output$scatter <- renderSVG({ reactive({
     x_var <- sym(input$xVar)
     y_var <- sym(input$yVar)
     
-    ggscatterstats(data = dt, x = !!x_var, y = !!y_var, type = input$par) + 
-      theme_minimal(base_size = input$baseSize)
+    #ggscatterstats(data = dt, x = !!x_var, y = !!y_var, type = input$par) + theme_minimal(base_size = input$baseSize)
+    plot_correlation_stats(dt, input$xVar, input$yVar, input$par, input$baseSize, input$heatmap, input$heatmap_bins)
   } else {
     # Print a message if the variables are not found
     plot.new()
