@@ -7,6 +7,15 @@ selectizeInput("depVar", "Dependent variable", choices = muVars, selected = defa
 selectizeInput("indepInterVars", "* Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
 selectizeInput("indepVars", "+ Independent variables", choices = muVars, selected = defaultIndepVars, multiple = TRUE)
 
+bsTooltip("indepInterVars", 
+          "These independent variables are also multiplied with eachother (including the interaction terms).", 
+          placement = "right", 
+          trigger = "hover")
+bsTooltip("indepVars", 
+          "These independent variables are not multiplied with eachother.", 
+          placement = "right", 
+          trigger = "hover")
+
 # Add a dropdown for selecting the correction method
 selectizeInput("correctionMethod", "Correction Method", choices = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"), selected = "bonferroni", multiple = FALSE)
 
@@ -17,12 +26,41 @@ textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = 
 checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
 ```
 
+
 ```{r}
 checkboxInput("doCentering", "Center numerical values", value = TRUE)
 checkboxInput("doScaling", "Scale numerical values", value = FALSE)
+bsTooltip("doCentering", 
+          "Check this box to centers numerical INDEPENDENT values, except for ordinal values, such as trial and condition numbers.", 
+          placement = "right", 
+          trigger = "hover")
+bsTooltip("doScaling", 
+          "Check this box to scale numerical INDEPENDENT values, except for ordinal values, such as trial and condition numbers.", 
+          placement = "right", 
+          trigger = "hover")
 ```
 
-Use paired t-test instead (handy for questionnaires):
+```{r}
+checkboxInput("rm_clamped_stats","Remove clamped offset values", value=FALSE)
+# Add tooltip
+bsTooltip("rm_clamped_stats", 
+          "Check this box to remove steps taken while the offset value was clamped (to make sure data is normally distributed again). Works only if NOT calculating mean, sd, cv.", 
+          placement = "right", 
+          trigger = "hover")
+```
+
+Further data processing:
+```{r}
+checkboxInput("getSummarizedData_stats", "Calculate mean, sd, cv", value = TRUE)
+checkboxInput("averageData_stats", "Average data across condition", value = FALSE)
+bsTooltip("averageData_stats", 
+          "Make sure to do this when looking at questionnaire data as the dependent variable.", 
+          placement = "right", 
+          trigger = "hover")
+checkboxInput("diffData_stats", "Calculate difference + means per participant", value = FALSE)
+```
+
+Use paired t-test instead of LMM:
 ```{r}
 # Add a checkbox for paired t-test
 checkboxInput("paired_ttest", "Perform Paired t-test", value = FALSE)
@@ -32,12 +70,6 @@ numericInput("num_tests",
              min = 1)  # Minimum value (must be at least one test)
 ```
 
-Further data processing:
-```{r}
-checkboxInput("getSummarizedData_stats", "Calculate mean, sd, cv", value = TRUE)
-checkboxInput("averageData_stats", "Average data across condition", value = FALSE)
-checkboxInput("diffData_stats", "Calculate difference + means per participant", value = FALSE)
-```
 
 Column
 --------------------------------------------
@@ -147,6 +179,12 @@ get_stats_data <- reactive({
   }
   else {
     data <- filteredParams()
+
+    # Remove clamped data if the option is selected
+    if (input$rm_clamped_stats) {
+    data <- data %>%
+      filter(!(heelStrikes.offset_x == 0.075 | heelStrikes.offset_x == -0.075 | heelStrikes.offset_z == 0.15 | heelStrikes.offset_z == -0.15))
+    }
   }
   
   return(data)
@@ -199,6 +237,9 @@ get_lmer <- reactive({
     # Center or scale only the numeric independent variables used in the formula
     model_vars <- setdiff(all.vars(formula), dep_var) # extract all independent variables in the formula
     numeric_vars_to_center <- intersect(names(dt)[numeric_cols], model_vars) # get only the numeric ones in the model
+    
+    # remove ordered variables (to be sure)
+    numeric_vars_to_center <- setdiff(numeric_vars_to_center, c("trialNum","trialNumWithinCondition","trialNumWithoutPractice","conditionNumber"))
 
     # Apply centering (or scaling if needed) to selected numeric variables
     dt[numeric_vars_to_center] <- lapply(dt[numeric_vars_to_center], function(x) {
@@ -249,6 +290,15 @@ output$lmm_text <- renderPrint({
   cat("Deviance:", deviance, "\n")
   cat("Marginal R-squared:", r_squared[1], "\n")
   cat("Conditional R-squared:", r_squared[2], "\n")
+
+  # Calculate and print VIF
+  cat("\nVariance Inflation Factors (VIF):\n")
+  tryCatch({
+    vif_values <- car::vif(lmm)
+    print(vif_values)
+  }, error = function(e) {
+    cat("VIF calculation failed:", e$message, "\n")
+  })
 })
 
 output$fixed_effects_table <- renderTable({

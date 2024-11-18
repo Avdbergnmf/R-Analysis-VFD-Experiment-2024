@@ -61,3 +61,5 @@ library(doParallel)
 library(dbscan) # also for lof filtering ?
 library(DT)
 library(plotly)
+
+library(shinyBS) # For tooltips
