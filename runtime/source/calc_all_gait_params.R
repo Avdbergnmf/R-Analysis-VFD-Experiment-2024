@@ -41,6 +41,11 @@ add_category_columns <- function(data, participant, trial) {
   data$conditionNumber <- as.numeric(c(1, 1, 1, 2, 2, 2)[trial])
   data$trialNumWithinCondition <- as.numeric(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
   data$trialNumWithoutPractice <- as.numeric(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
+  # Convert numerical categories into ordinal factors using as.ordered
+  data$trialNum <- as.ordered(data$trialNum)
+  data$conditionNumber <- as.ordered(data$conditionNumber)
+  data$trialNumWithinCondition <- as.ordered(data$trialNumWithinCondition)
+  data$trialNumWithoutPractice <- as.ordered(data$trialNumWithoutPractice)
 
   return(data)
 }

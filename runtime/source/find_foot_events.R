@@ -139,6 +139,8 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   print(paste("--- ---totalsteps: ", length(heelStrikes$time)))
 
   # We'd like to look at the derrivative of the offset (how much did it change during this step), so we add it to our dataframe here.
+  heelStrikes$diff_offset_x <- c(NA, diff(heelStrikes$offset_x))
+  heelStrikes$diff_offset_z <- c(NA, diff(heelStrikes$offset_z))
   heelStrikes$derrivative_offset_x <- c(NA, diff(heelStrikes$offset_x) / diff(heelStrikes$time))
   heelStrikes$derrivative_offset_z <- c(NA, diff(heelStrikes$offset_z) / diff(heelStrikes$time))
   heelStrikes$diff_pos_x <- c(NA, diff(heelStrikes$pos_x))
