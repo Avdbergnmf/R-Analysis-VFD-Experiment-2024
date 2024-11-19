@@ -139,12 +139,20 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   print(paste("--- ---totalsteps: ", length(heelStrikes$time)))
 
   # We'd like to look at the derrivative of the offset (how much did it change during this step), so we add it to our dataframe here.
-  heelStrikes$diff_offset_x <- c(NA, diff(heelStrikes$offset_x))
-  heelStrikes$diff_offset_z <- c(NA, diff(heelStrikes$offset_z))
-  heelStrikes$derrivative_offset_x <- c(NA, diff(heelStrikes$offset_x) / diff(heelStrikes$time))
-  heelStrikes$derrivative_offset_z <- c(NA, diff(heelStrikes$offset_z) / diff(heelStrikes$time))
+  heelStrikes$diff_offset_x <- c(NA, diff(heelStrikes$offset_x))        # Change in offset relative to previous heelstrike
+  heelStrikes$diff_offset_z <- c(NA, diff(heelStrikes$offset_z))        # Change in offset relative to previous heelstrike
+  heelStrikes$derrivative_offset_x <- c(NA, diff(heelStrikes$offset_x) / diff(heelStrikes$time))  # Average rate of change in offset from heelstrike
+  heelStrikes$derrivative_offset_z <- c(NA, diff(heelStrikes$offset_z) / diff(heelStrikes$time))  # Average rate of change in offset from heelstrike
+
+  # Heelstrike relative to previous heelstrike with same foot
   heelStrikes$diff_pos_x <- c(NA, diff(heelStrikes$pos_x))
   heelStrikes$diff_actual_pos_z <- c(NA, diff(heelStrikes$actual_pos_z))
+  # Center this relative heelstrike (for visualisation)
+  heelStrikes$centered_diff_pos_x <- heelStrikes$diff_pos_x - mean(heelStrikes$diff_pos_x)
+  heelStrikes$centered_diff_actual_pos_z <- heelStrikes$diff_actual_pos_z - mean(heelStrikes$diff_actual_pos_z)
+  # See how this relative heelstrike changes
+  heelStrikes$diff_diff_pos_x <- c(NA, diff(heelStrikes$diff_pos_x))
+  heelStrikes$diff_diff_actual_pos_z <- c(NA, diff(heelStrikes$diff_actual_pos_z))
   return(list(heelStrikes = heelStrikes, toeOffs = toeOffs))
 }
 
