@@ -397,9 +397,9 @@ observeEvent(input$overwrite_outliers, {
     
     if (length(match_indices) > 0) {
       # Take the first match if multiple are found within the time range
-      allGaitParams$heelStrikes.outlierSteps[match_indices[1]] <<- TRUE
+      #allGaitParams$heelStrikes.outlierSteps[match_indices[1]] <<- TRUE % This results in problems when 2 outlier steps are within the threshold value, better to just remove both then.
       # Take all matches
-      #allGaitParams$heelStrikes.outlierSteps[match_indices] <<- TRUE
+      allGaitParams$heelStrikes.outlierSteps[match_indices] <<- TRUE
     }
   }
   
