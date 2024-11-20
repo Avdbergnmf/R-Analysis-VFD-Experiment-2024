@@ -28,24 +28,32 @@ load_or_calculate <- function(filePath, calculate_function) {
   return(data)
 }
 
-add_category_columns <- function(data, participant, trial) {
-  # Add a column for the participant identifier
-  data$participant <- as.factor(participant)
-  data$practice <- as.factor(get_p_results(participant, "practice", trial) == "True")
-  data$VFD <- as.factor(get_p_results(participant, "noise_enabled", trial) == "True")
-  data$startedWithNoise <- as.factor(started_with_noise(participant))
-  data$noticed <- as.factor(noticed_vfd(participant))
+add_identifiers_and_categories <- function(data, participant, trial) {
+  data <- add_identifiers(data, participant, trial)
+  data <- add_category_columns(data)
+  return(data)
+}
 
-  # numerical "categories"
-  data$trialNum <- as.numeric(trial)
-  data$conditionNumber <- as.numeric(c(1, 1, 1, 2, 2, 2)[trial])
-  data$trialNumWithinCondition <- as.numeric(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
-  data$trialNumWithoutPractice <- as.numeric(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
-  # Convert numerical categories into ordinal factors using as.ordered
-  data$trialNum <- as.ordered(data$trialNum)
-  data$conditionNumber <- as.ordered(data$conditionNumber)
-  data$trialNumWithinCondition <- as.ordered(data$trialNumWithinCondition)
-  data$trialNumWithoutPractice <- as.ordered(data$trialNumWithoutPractice)
+add_identifiers <- function(data, participant, trial) {
+  data$participant <- as.factor(participant)
+  data$trialNum <- as.ordered(trial)
+  return(data)
+}
+
+add_category_columns <- function(data) {
+  trial <- data$trialNum
+  participant <- data$participant
+
+  # Add categorical columns
+  data$VFD              <- as.factor(sapply(data$participant, noticed_vfd))
+  data$practice         <- as.factor(mapply(is_practice, data$participant, data$trialNum))
+  data$startedWithNoise <- as.factor(sapply(data$participant, started_with_noise))
+  data$noticed          <- as.factor(sapply(data$participant, noticed_vfd))
+
+  # numerical categories
+  data$conditionNumber          <- as.ordered(c(1, 1, 1, 2, 2, 2)[trial])
+  data$trialNumWithinCondition  <- as.ordered(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
+  data$trialNumWithoutPractice  <- as.ordered(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
 
   return(data)
 }
@@ -60,7 +68,7 @@ get_data_from_loop_parallel <- function(get_data_function, ...) {
   registerDoParallel(cl)
 
   # Export necessary variables and functions to the cluster
-  clusterExport(cl, c("participants", "allTrials", "get_data_function", "add_category_columns"), envir = environment())
+  clusterExport(cl, c("participants", "allTrials", "get_data_function", "add_identifiers_and_categories"), envir = environment())
 
   # Run the loop in parallel using foreach
   data_list <- foreach(
@@ -81,7 +89,7 @@ get_data_from_loop_parallel <- function(get_data_function, ...) {
 
     # Calculate gait data and parameters with optional arguments
     newData <- get_data_function(participant, trial, ...)
-    newData <- add_category_columns(as.data.frame(newData), participant, trial)
+    newData <- add_identifiers_and_categories(as.data.frame(newData), participant, trial)
     newData # Return the new data frame
   }
 
@@ -120,7 +128,7 @@ get_data_from_loop <- function(get_data_function, ...) {
 
       # Calculate gait data and parameters
       newData <- get_data_function(participant, trial, ...)
-      newData <- add_category_columns(as.data.frame(newData), participant, trial) # Convert to DF and add categories
+      newData <- add_identifiers_and_categories(as.data.frame(newData), participant, trial)
       data <- rbind(data, newData) # Bind this participant's gait parameters to the overall data frame
     }
   }
@@ -133,7 +141,7 @@ get_data_from_loop <- function(get_data_function, ...) {
 
 
 calc_all_gait_params <- function() {
-  return(get_data_from_loop_parallel(calculate_gait_parameters))
+  return(get_data_from_loop(calculate_gait_parameters))
 }
 
 calc_all_target_params <- function() {
