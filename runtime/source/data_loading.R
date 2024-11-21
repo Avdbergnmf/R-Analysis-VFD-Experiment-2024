@@ -141,9 +141,14 @@ noticed_vfd <- function(participant) {
   return(get_p_detail(participant, "noticed") == "True")
 }
 
-# did participant notice the VFD?
+# is it a practice trial
 is_practice <- function(participant, trial) {
   return(get_p_results(participant, "practice", trial) == "True")
+}
+
+# does the trial have VFD
+has_vfd <- function(participant, trial) {
+  return(get_p_results(participant, "noise_enabled", trial) == "True")
 }
 
 # get any type of data

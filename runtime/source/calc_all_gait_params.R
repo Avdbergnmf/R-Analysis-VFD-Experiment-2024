@@ -41,14 +41,14 @@ add_identifiers <- function(data, participant, trial) {
 }
 
 add_category_columns <- function(data) {
-  trial <- data$trialNum
-  participant <- data$participant
+  trial <- as.numeric(as.character(data$trialNum))
+  participant <- as.character(data$participant)
 
   # Add categorical columns
-  data$VFD              <- as.factor(sapply(data$participant, noticed_vfd))
-  data$practice         <- as.factor(mapply(is_practice, data$participant, data$trialNum))
-  data$startedWithNoise <- as.factor(sapply(data$participant, started_with_noise))
-  data$noticed          <- as.factor(sapply(data$participant, noticed_vfd))
+  data$VFD              <- as.factor(mapply(has_vfd, participant, trial))
+  data$practice         <- as.factor(mapply(is_practice, participant, trial))
+  data$startedWithNoise <- as.factor(sapply(participant, started_with_noise))
+  data$noticed          <- as.factor(sapply(participant, noticed_vfd))
 
   # numerical categories
   data$conditionNumber          <- as.ordered(c(1, 1, 1, 2, 2, 2)[trial])
