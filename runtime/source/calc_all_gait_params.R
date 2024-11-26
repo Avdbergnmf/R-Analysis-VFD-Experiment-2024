@@ -8,7 +8,7 @@ categories <- c("participant", "VFD", "trialNum") #  "heelStrikes.foot"
 # categoriesInputs <- append(categories, "None")
 columns_to_not_summarize <- c("practice", "startedWithNoise", "conditionNumber", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed") # these are categorical columns we may want to use for our statistics but we dont want to summarize in our mu table
 categoriesExtra <- c(categories, columns_to_not_summarize)
-categoriesExtraInputs <- append(categoriesExtra, "None")
+categoriesExtraInputs <- append(categoriesExtra, c("heelStrikes.foot", "None"))
 
 getTypes <- function(dt) {
   numericDataTypes <- sapply(dt, is.numeric)
