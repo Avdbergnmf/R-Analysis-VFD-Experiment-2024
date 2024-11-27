@@ -78,18 +78,11 @@ average_over_feet <- function(data, types, categories, add_diff = FALSE) {
 
 # This table is huge (like 160 columns)
 summarize_table <- function(data, allQResults, categories, avg_feet = TRUE, add_diff = FALSE) { # note: add diff only works if also averaging over feet
-  if (avg_feet){
-    categories <- c(categories,"heelStrikes.foot")
-  }
-
   dataTypes <- setdiff(getTypes(data), categories)
 
   # Define the list of columns to remove - We add these later, but remove them here so they are not considered for the summary table
   data <- data %>% select(-all_of(columns_to_not_summarize)) # Remove the specified columns from the data
   types <- setdiff(dataTypes, columns_to_not_summarize) # Also remove them from our types list
-
-  # Initialize the list 'mu' to store the final data frames
-  mu <- list()
 
   if (avg_feet) {
     mu <- average_over_feet(data, types, categories, add_diff = add_diff)
@@ -133,7 +126,7 @@ get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories,
   targetColumnsToAdd <- c("score", "targetDist", "rel_x", "rel_z")
 
   # Join the columns
-  muGait <- summarize_table(allGaitParams, allQResults, categories, avg_feet, add_diff) ##### Note that we add heelStrikes.foot here as a category, to make sure we summarize each foot individually
+  muGait <- summarize_table(allGaitParams, allQResults, c(categories,"heelStrikes.foot"), avg_feet, add_diff) ##### Note that we add heelStrikes.foot here as a category, to make sure we summarize each foot individually
   muTarget <- summarize_table(allTargetParams, allQResults, categories, FALSE, FALSE)
 
   # Find columns that partially match the names listed in targetColumnsToAdd
