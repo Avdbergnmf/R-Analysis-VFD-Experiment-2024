@@ -6,7 +6,10 @@ selectizeInput("participantSummary", "participant",
 actionButton("addAllParticipants", "Add All Participants")
 checkboxInput("filterSummary", "Show filtered data",
   value = FALSE)
+```
 
+NOTE: REPORT GENERATION BROKEN FOR NOW.
+```{r}
 actionButton("generateReports", "Generate PDF Reports")
 
 downloadButton("downloadAll", "Download All PDFs", style = "display: block; margin-top: 20px; height: 40px; width: 300px;")
@@ -94,7 +97,7 @@ generate_questionnaire_plots <- function(questionnaireList, participant, baseSiz
 
 generate_variability_plots <- function(data, participant, varList, baseSize = 10) {
   plots <- lapply(varList, function(var) {
-    plot_boxplots(data, participant, var, baseSize = baseSize)
+    #plot_boxplots(data, participant, var, baseSize = baseSize)
   })
   return(plots)
 }

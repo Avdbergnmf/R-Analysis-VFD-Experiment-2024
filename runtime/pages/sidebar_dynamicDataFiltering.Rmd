@@ -18,14 +18,20 @@ selectizeInput("filterTrialsWithoutPractice", "Trials (without practice)", choic
 
 #### Step Filtering
 ```{r}
-selectizeInput("filterSide", "Side", choices = c("Left", "Right"), selected = c("Left", "Right"), multiple = TRUE)
-checkboxInput("avg_feet", "Average across feet", value = TRUE)
-```
-
-```{r}
 selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
 selectizeInput("filterImpossible", "Impossible Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
+```
+
+#### Left vs Right Steps
+```{r}
+selectizeInput("filterSide", "Side", choices = c("Left", "Right"), selected = c("Left", "Right"), multiple = TRUE)
+checkboxInput("avg_feet", "Average across feet", value = TRUE)
+checkboxInput("add_diff", "add diffFeet columns",value = FALSE)
+bsTooltip("add_diff", 
+          "Calculate difference of calculated metrics (mean, sd, cv) between left and right foot and add to summary table.", 
+          placement = "right", 
+          trigger = "hover")
 ```
 
 #### Figure Options

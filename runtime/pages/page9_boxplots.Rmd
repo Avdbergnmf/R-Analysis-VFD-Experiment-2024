@@ -4,7 +4,10 @@
 selectizeInput("plotVar", "Variable", choices = muVars, selected = "stepWidths.sd", multiple = FALSE)
 #selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
 selectizeInput("varCategory", "Category", choices = categoriesExtraInputs, selected = "VFD", multiple = TRUE)
-checkboxInput("doPaired", "Make it a paired plot (takes first category)",value=FALSE)
+selectizeInput("colorCategory", "Color", choices = categoriesExtraInputs, selected = "None", multiple = FALSE)
+selectizeInput("shapeCategory", "Shape", choices = categoriesExtraInputs, selected = "None", multiple = FALSE)
+checkboxInput("doPaired", "Make it a paired plot",value=FALSE)
+selectizeInput("pairedCategory", "Paired Category", choices = categoriesExtraInputs, selected = "None", multiple = FALSE)
 ```
 
 Column
@@ -19,10 +22,10 @@ imageOutput("var")
 output$var <- renderSVG({ reactive({
     mu <- get_mu_dyn_long()
     if (!input$doPaired) {
-      plot_boxplots(mu, participants, input$plotVar, input$varCategory, baseSize = input$baseSize)
+      plot_boxplots(mu, input$plotVar, input$varCategory, input$colorCategory, input$shapeCategory, input$baseSize)
     }
     else {
-      plot_paired(mu, input$plotVar, input$varCategory[1], input$varCategory[-1], input$baseSize)
+      plot_paired(mu, input$plotVar, input$pairedCategory, input$varCategory, input$colorCategory, input$shapeCategory, input$baseSize)
     }
   })
 })
