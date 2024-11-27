@@ -57,5 +57,5 @@ filteredTargetParams <- reactive({
 })
 
 get_mu_dyn_long <- reactive({
-  return(get_full_mu(filteredParams(), filteredTargetParams(), allQResults, categories))
+  return(get_full_mu(filteredParams(), filteredTargetParams(), allQResults, categories, input$avg_feet))
 })

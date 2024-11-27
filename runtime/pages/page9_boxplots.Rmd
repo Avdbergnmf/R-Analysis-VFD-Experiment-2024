@@ -3,21 +3,27 @@
 ```{r}
 selectizeInput("plotVar", "Variable", choices = muVars, selected = "stepWidths.sd", multiple = FALSE)
 #selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
-selectizeInput("varCategory", "Category", choices = categoriesExtra, selected = "VFD", multiple = TRUE)
+selectizeInput("varCategory", "Category", choices = categoriesExtraInputs, selected = "VFD", multiple = TRUE)
+checkboxInput("doPaired", "Make it a paired plot (takes first category)",value=FALSE)
 ```
 
 Column
 --------------------------------------------
 
-### Step Variability Plot  {data-height=1500}
+### Step Variability Plot  {data-height=2500}
 ```{r}
 imageOutput("var")
 ```
 
 ```{r, context="server"}
 output$var <- renderSVG({ reactive({
-  mu <- get_mu_dyn_long()
-  plot_boxplots(mu, participants, input$plotVar, input$varCategory, baseSize = input$baseSize)
+    mu <- get_mu_dyn_long()
+    if (!input$doPaired) {
+      plot_boxplots(mu, participants, input$plotVar, input$varCategory, baseSize = input$baseSize)
+    }
+    else {
+      plot_paired(mu, input$plotVar, input$varCategory[1], input$varCategory[-1], input$baseSize)
+    }
   })
 })
 ```

@@ -138,6 +138,7 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   toeOffs <- data.frame(footData[local_minima, ])
   print(paste("--- ---totalsteps: ", length(heelStrikes$time)))
 
+  # some ideas below I ended up abondoning, left here for later reference just in case (looking at derrivative of offset vs heelstrike change/location)
   # We'd like to look at the derrivative of the offset (how much did it change during this step), so we add it to our dataframe here.
   heelStrikes$diff_offset_x <- c(NA, diff(heelStrikes$offset_x)) # Change in offset relative to previous heelstrike
   heelStrikes$diff_offset_z <- c(NA, diff(heelStrikes$offset_z)) # Change in offset relative to previous heelstrike
@@ -148,14 +149,14 @@ detect_foot_events_coordinates <- function(footData, hipData) {
   heelStrikes$centered_pos_x <- heelStrikes$pos_x - mean(heelStrikes$pos_x, na.rm = TRUE)
   heelStrikes$centered_actual_pos_z <- heelStrikes$actual_pos_z - mean(heelStrikes$actual_pos_z, na.rm = TRUE)
   # Heelstrike relative to previous heelstrike with same foot
-  heelStrikes$diff_pos_x <- c(NA, diff(heelStrikes$pos_x))
-  heelStrikes$diff_actual_pos_z <- c(NA, diff(heelStrikes$actual_pos_z))
+  # heelStrikes$diff_pos_x <- c(NA, diff(heelStrikes$pos_x))
+  # heelStrikes$diff_actual_pos_z <- c(NA, diff(heelStrikes$actual_pos_z))
   # Center this relative heelstrike (for visualisation)
   heelStrikes$centered_diff_pos_x <- heelStrikes$diff_pos_x - mean(heelStrikes$diff_pos_x, na.rm = TRUE)
   heelStrikes$centered_diff_actual_pos_z <- heelStrikes$diff_actual_pos_z - mean(heelStrikes$diff_actual_pos_z, na.rm = TRUE)
   # See how this relative heelstrike changes
-  heelStrikes$diff_diff_pos_x <- c(NA, diff(heelStrikes$diff_pos_x))
-  heelStrikes$diff_diff_actual_pos_z <- c(NA, diff(heelStrikes$diff_actual_pos_z))
+  # heelStrikes$diff_diff_pos_x <- c(NA, diff(heelStrikes$diff_pos_x))
+  # heelStrikes$diff_diff_actual_pos_z <- c(NA, diff(heelStrikes$diff_actual_pos_z))
   return(list(heelStrikes = heelStrikes, toeOffs = toeOffs))
 }
 

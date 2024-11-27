@@ -63,3 +63,5 @@ library(DT)
 library(plotly)
 
 library(shinyBS) # For tooltips
+
+library(ggsci) # for extra colors

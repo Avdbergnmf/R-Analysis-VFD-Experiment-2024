@@ -1,41 +1,29 @@
-get_summ <- function(dataType, categories, data) {
-  data %>%
+get_summ_by_foot <- function(dataType, categories, data, avg_feet = TRUE) {
+  data <- data %>%
     group_by(across(all_of(categories))) %>%
     summarise(
       mean = mean(.data[[dataType]], na.rm = TRUE),
       sd = sd(.data[[dataType]], na.rm = TRUE),
       cv = sd(.data[[dataType]], na.rm = TRUE) / mean(.data[[dataType]], na.rm = TRUE),
       .groups = "drop"
-    )
-}
+    ) 
+  
+  if (avg_feet) {
+    data <- data %>%
+      group_by(across(all_of(setdiff(categories, "heelStrikes.foot")))) %>%
+      summarise(
+        mean = mean(mean, na.rm = TRUE),
+        sd = mean(sd, na.rm = TRUE),
+        cv = mean(cv, na.rm = TRUE),
+        .groups = "drop"
+      )
+  }
 
-get_summ_by_foot <- function(dataType, categories, data) {
-  data %>%
-    group_by(across(all_of(categories))) %>%
-    summarise(
-      mean_foot = mean(.data[[dataType]], na.rm = TRUE),
-      sd_foot = sd(.data[[dataType]], na.rm = TRUE),
-      cv_foot = sd(.data[[dataType]], na.rm = TRUE) / mean(.data[[dataType]], na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    group_by(across(all_of(setdiff(categories, "heelStrikes.foot")))) %>%
-    summarise(
-      mean = mean(mean_foot, na.rm = TRUE),
-      sd = mean(sd_foot, na.rm = TRUE),
-      cv = mean(cv_foot, na.rm = TRUE),
-      .groups = "drop"
-    )
-}
-
-get_mu <- function(data, types, categories) {
-  mu <- lapply(types, get_summ_by_foot, categories = categories, data = data)
-  mu <- setNames(mu, types)
-
-  return(mu)
+  return(data)
 }
 
 # This table is huge (like 160 columns)
-summarize_table <- function(data, allQResults, categories) {
+summarize_table <- function(data, allQResults, categories, avg_feet = TRUE) {
   dataTypes <- setdiff(getTypes(data), categories)
 
   # Define the list of columns to remove - We add these later, but remove them here so they are not considered for the summary table
@@ -43,12 +31,18 @@ summarize_table <- function(data, allQResults, categories) {
   types <- setdiff(dataTypes, columns_to_not_summarize) # also remove them from our types list
 
   # Assuming mu is a list of data frames, each corresponding to a dataType
-  mu <- get_mu(data, types, categories)
+  mu <- lapply(types, get_summ_by_foot, categories, data, avg_feet)
+  mu <- setNames(mu, types)
+
+  # if we average over both feet, we no longer need it as a category
+  if (avg_feet) {
+    categories <- setdiff(categories,"heelStrikes.foot")
+  }
 
   # Convert list to a single data frame
   mu_long <- bind_rows(mu, .id = "dataType") %>%
     pivot_longer(
-      cols = -c(participant, VFD, trialNum, dataType),
+      cols = -c(all_of(categories), dataType),
       names_to = "statistic",
       values_to = "value"
     )
@@ -64,24 +58,19 @@ summarize_table <- function(data, allQResults, categories) {
   mu_full <- merge(allQResults, mu_wide, by = c("participant", "VFD"), all = TRUE)
 
   # Create the new column using mutate and sapply
-  mu_full$trialNumWithinCondition <- c(0, 1, 2, 0, 1, 2)[mu_full$trialNum]
-  mu_full$trialNumWithoutPractice <- c(0, 1, 2, 0, 3, 4)[mu_full$trialNum]
-  mu_full$conditionNumber <- c(1, 1, 1, 2, 2, 2)[mu_full$trialNum]
-  mu_full$startedWithNoise <- sapply(mu_full$participant, started_with_noise)
-  mu_full$practice <- mapply(get_p_results, mu_full$participant, "practice", mu_full$trialNum)
-  mu_full$noticed <- sapply(mu_full$participant, noticed_vfd)
+  mu_full <- add_category_columns(mu_full)
 
   mu_full <- mu_full %>%
-    select(participant, trialNum, all_of(columns_to_not_summarize), everything())
+    select(all_of(categories), all_of(columns_to_not_summarize), everything())
 
   return(mu_full)
 }
 
-get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories) {
+get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories, avg_feet = TRUE) { # I could not get the optional feet averaging to work without having to pass it all the way down (would be nice to have some post-processing function that averages afterwards, optionally, but in the end went with this cumbersome road)
   targetColumnsToAdd <- c("score", "targetDist", "rel_x", "rel_z")
 
   # Join the columns
-  muGait <- summarize_table(allGaitParams, allQResults, c(categories, "heelStrikes.foot")) ##### Note that we add heelStrikes.foot here as a category, to make sure we summarize each foot individually
+  muGait <- summarize_table(allGaitParams, allQResults, c(categories,"heelStrikes.foot"), avg_feet) ##### Note that we add heelStrikes.foot here as a category, to make sure we summarize each foot individually
   muTarget <- summarize_table(allTargetParams, allQResults, categories)
 
   # Find columns that partially match the names listed in targetColumnsToAdd

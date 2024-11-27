@@ -11,17 +11,17 @@ trackers <- names(filenameDict)
 ################ Data retrieval / helper methods ################
 
 # Data retrieval functions
-get_p_dir <- function(pnum) {
-  return(file.path(dataFolder, pnum))
+get_p_dir <- function(participant) {
+  return(file.path(dataFolder, participant))
 }
 
-get_p_resultsFile <- function(pnum) {
-  return(file.path(get_p_dir(pnum), "trial_results.csv"))
+get_p_resultsFile <- function(participant) {
+  return(file.path(get_p_dir(participant), "trial_results.csv"))
 }
 
-get_p_results <- function(pnum, settingName, trialNumber) {
+get_p_results <- function(participant, settingName, trialNumber) {
   # get the path to the settings file for the participant
-  resultsFile <- get_p_resultsFile(pnum)
+  resultsFile <- get_p_resultsFile(participant)
   results <- read.csv(resultsFile)
 
   # retrieve the value of the specific detail
@@ -30,14 +30,14 @@ get_p_results <- function(pnum, settingName, trialNumber) {
   return(resultValue)
 }
 
-get_move_speed <- function(pnum) { # return move speed in m/s
+get_move_speed <- function(participant) { # return move speed in m/s
   trialNum <- 1 # should be the same for all trials
-  return(get_p_results(pnum, "move_speed", trialNum) / 3.6)
+  return(get_p_results(participant, "move_speed", trialNum) / 3.6)
 }
 
-get_p_detail <- function(pnum, detail) {
+get_p_detail <- function(participant, detail) {
   # get the path to the details file for the participant
-  detailsFile <- file.path(get_p_dir(pnum), "session_info/participant_details.csv")
+  detailsFile <- file.path(get_p_dir(participant), "session_info/participant_details.csv")
 
   # read the csv file into a data frame
   details <- read.csv(detailsFile)
@@ -132,9 +132,8 @@ calculate_participant_details <- function(participants) {
 }
 
 # If true, the participant started with noise VFD enabled, otherwise without it enabled
-started_with_noise <- function(pnum) {
-  secondTrialHasNoise <- get_p_results(pnum, "noise_enabled", 2) == "True"
-  return(secondTrialHasNoise)
+started_with_noise <- function(participant) {
+  return(get_p_results(participant, "noise_enabled", 2) == "True")
 }
 
 # did participant notice the VFD?
@@ -142,15 +141,25 @@ noticed_vfd <- function(participant) {
   return(get_p_detail(participant, "noticed") == "True")
 }
 
+# is it a practice trial
+is_practice <- function(participant, trial) {
+  return(get_p_results(participant, "practice", trial) == "True")
+}
+
+# does the trial have VFD
+has_vfd <- function(participant, trial) {
+  return(get_p_results(participant, "noise_enabled", trial) == "True")
+}
+
 # get any type of data
-get_t_data <- function(pnum, trackerType, trialNum) {
+get_t_data <- function(participant, trackerType, trialNum) {
   # Validate trackerType
   if (!trackerType %in% names(filenameDict)) {
     stop("Invalid tracker type specified.")
   }
 
   filename <- paste0(filenameDict[[trackerType]],"_T", sprintf("%03d", trialNum), ".csv")
-  filePath <- file.path(get_p_dir(pnum), "trackers", filename)
+  filePath <- file.path(get_p_dir(participant), "trackers", filename)
   
   # Use tryCatch for more robust error handling
   tryCatch(
@@ -174,15 +183,15 @@ getOptions <- function(tracker) {
   return(numeric_cols)
 }
 
-get_q_file <- function(pnum, qType) { # qType = IMI / SSQ / VEQ
-  return(file.path(get_p_dir(pnum), "Questionnaires", paste0("questionnaireID_", qType, "_ALL_answers.csv")))
+get_q_file <- function(participant, qType) { # qType = IMI / SSQ / VEQ
+  return(file.path(get_p_dir(participant), "Questionnaires", paste0("questionnaireID_", qType, "_ALL_answers.csv")))
 }
 
 ################ Questionnaires ################
 
-get_q_data <- function(pnum, qType) {
+get_q_data <- function(participant, qType) {
   # Get the path to the questionnaire file for the participant
-  questionnaireFile <- get_q_file(pnum, qType)
+  questionnaireFile <- get_q_file(participant, qType)
 
   # Read the CSV file into a data frame
   questionnaire <- read.csv(questionnaireFile)

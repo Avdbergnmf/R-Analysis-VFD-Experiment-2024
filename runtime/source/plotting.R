@@ -227,6 +227,8 @@ plot_questionnaire_data <- function(data, qType, cols_to_include = c(), baseSize
   return(p)
 }
 
+
+
 make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwidth, position, baseSize) {
   aes <- aes_string(x = xinput)
   a <- 1
@@ -258,13 +260,6 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
 }
 
 plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
-  ylims <- c()
-  if (grepl(".sd", datatype)) {
-    # ylims <- c(0, 0.05)
-  } else if (grepl(".cv", datatype)) {
-    # ylims <- c(0, 0.3)
-  }
-
   # Filter data for the specified columns and participants
   data_long <- mu %>%
     select(c("participant", "trialNum", all_of(xaxis), !!datatype))
@@ -299,9 +294,46 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
     scale_shape_manual(name = "Trial Number", values = shapes) +
     get_sized_theme(baseSize)
 
-  if (length(ylims) == 2) {
-    p <- p + coord_cartesian(ylim = ylims)
+  return(p)
+}
+
+plot_paired <- function(mu, datatype, xPaired, split_vars = NULL, baseSize = 10) {
+  split_vars_valid <- !is.null(split_vars) && length(split_vars) > 0
+  # Filter data for the specified columns
+  select_cols <- c("participant", xPaired, datatype)
+  if (split_vars_valid) {
+    select_cols <- unique(c(select_cols, split_vars))
   }
+  data_long <- mu %>%
+    select(all_of(select_cols))
+
+  # Reshape data to long format for ggplot
+  data_long <- data_long %>%
+    pivot_longer(
+      cols = !!datatype,
+      names_to = "variable",
+      values_to = "value"
+    )
+
+  # Ensure xPaired is a factor
+  data_long[[xPaired]] <- factor(data_long[[xPaired]])
+
+  # Create the plot using ggplot
+  p <- ggplot(data_long, aes_string(x = xPaired, y = "value", group = "participant")) +
+    geom_line(aes(group = participant), color = "gray", size = 0.4) +
+    geom_point(aes_string(color = xPaired), size = baseSize / 4) +
+    labs(x = xPaired, y = datatype, title = datatype) +
+    theme(plot.title = element_text(hjust = 0.5)) +
+    get_sized_theme(baseSize) +
+    scale_color_jco()
+
+  # Add facets if split_vars are provided
+  if (split_vars_valid) {
+    # Create facet formula
+    facet_formula <- paste("~", paste(split_vars, collapse = " + "))
+    p <- p + facet_wrap(as.formula(facet_formula))
+  }
+
   return(p)
 }
 
