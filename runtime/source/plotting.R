@@ -259,86 +259,87 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
   return(p)
 }
 
-plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), color = NULL, baseSize = 10) {
-  # Filter data for the specified columns and participants
-  data_long <- mu %>%
-    select(c("participant", "trialNum", all_of(xaxis), !!datatype))
-  data_long <- data_long[data_long$participant %in% participants, ]
-
+plot_boxplots <- function(mu, datatype, xaxis = c("VFD"), color_var = NULL, shape_var = NULL, baseSize = 10) {
   # Reshape data to long format for ggplot
-  data_long <- data_long %>%
+  data_long <- mu %>%
     pivot_longer(
       cols = !!datatype,
       names_to = "variable",
       values_to = "value"
     )
 
-  # Set trialNum as factor so we can use it to color our datapoints
-  data_long$trialNum <- factor(data_long$trialNum, levels = c(2, 3, 5, 6), labels = c(1, 2, 3, 4))
-
   # Create a combined x-axis variable
   data_long$xaxis_combined <- apply(data_long[, xaxis], 1, paste, collapse = "_")
 
-  # Define shapes and colors
-  shapes <- c(15, 15, 16, 16) # Square for 1, 2 and Circle for 3, 4
-  colors <- c("darkred", "pink", "darkblue", "lightblue") # Dark/light for 1, 2 and 3, 4
+  if (is.null(color_var) || color_var=="None"){ # 
+    aesString <- aes_string()
+  }
+  else {
+    aesString <- aes_string(color = color_var)
+  }
 
-  if (is.null(color) || color=="None"){
-    color <- "trialNum"
+  # Dynamically add shape if shape_var is provided
+  if (!(is.null(shape_var) || shape_var == "None")) { 
+    aesString <- modifyList(aesString, aes_string(shape = shape_var))
   }
 
   # Create the plot
   p <- ggplot(data_long, aes(x = xaxis_combined, y = value)) +
     geom_boxplot() +
-    geom_jitter(aes_string(color = color, shape = color), width = 0.2, size = baseSize / 4, alpha = 0.7) +
-    labs(x = paste(xaxis, collapse = " + "), y = datatype) +
-    ggtitle(datatype) +
+    geom_jitter(aesString, width = 0.2, size = baseSize / 4, alpha = 0.7) + # << make this point?
+    labs(x = paste(xaxis, collapse = " + "), y = datatype, title=datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    scale_color_manual(name = "Trial Number", values = colors) +
-    scale_shape_manual(name = "Trial Number", values = shapes) +
+    scale_color_viridis_d(option = "turbo") + # Choose "viridis", "plasma", "magma", etc.
+    #scale_shape_manual(values = c(1:25)) +
     get_sized_theme(baseSize)
+
+  if (color_var == "trialNum") { # special case for trialnum, because we used this in our paper and we wanted this layout there
+    shapes <- c(15, 15, 16, 16) # Square for 1, 2 and Circle for 3, 4
+    colors <- c("darkred", "pink", "darkblue", "lightblue") # Dark/light for 1, 2 and 3, 4
+
+    p <- p +
+      scale_color_manual(name = "Trial Number", values = colors) +
+      scale_shape_manual(name = "Trial Number", values = shapes)
+  }
 
   return(p)
 }
 
-plot_paired <- function(mu, datatype, xPaired, split_vars = NULL, color = NULL, baseSize = 10) {
-  split_vars_valid <- !is.null(split_vars) && length(split_vars) > 0
-  # Filter data for the specified columns
-  select_cols <- c("participant", xPaired, datatype)
-  if (split_vars_valid) {
-    select_cols <- unique(c(select_cols, split_vars))
-  }
-  data_long <- mu %>%
-    select(all_of(select_cols))
-
+plot_paired <- function(mu, datatype, xPaired, xaxis = NULL, color_var = NULL, shape_var = NULL, baseSize = 10) {
   # Reshape data to long format for ggplot
-  data_long <- data_long %>%
+  data_long <- mu %>%
     pivot_longer(
       cols = !!datatype,
       names_to = "variable",
       values_to = "value"
     )
 
-  # Ensure xPaired is a factor
-  data_long[[xPaired]] <- factor(data_long[[xPaired]])
+  if (is.null(color_var) || color_var=="None"){ # 
+    aesString <- aes_string()
+  }
+  else {
+    aesString <- aes_string(color = color_var)
+  }
 
-  if (is.null(color) || color=="None"){
-    color <- xPaired
+  # Dynamically add shape if shape_var is provided
+  if (!(is.null(shape_var) || shape_var == "None")) { 
+    aesString <- modifyList(aesString, aes_string(shape = shape_var))
   }
 
   # Create the plot using ggplot
   p <- ggplot(data_long, aes_string(x = xPaired, y = "value", group = "participant")) +
     geom_line(aes(group = participant), color = "gray", size = 0.4) +
-    geom_point(aes_string(color = color), size = baseSize / 4) +
+    geom_point(aesString, size = baseSize / 4) +
     labs(x = xPaired, y = datatype, title = datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
-    get_sized_theme(baseSize) +
-    scale_color_jco()
+    scale_color_viridis_d(option = "turbo") + # Choose "viridis", "plasma", "magma", etc.
+    #scale_shape_manual(values = c(1:25)) +
+    get_sized_theme(baseSize) #+ scale_color_jco()
 
   # Add facets if split_vars are provided
-  if (split_vars_valid) {
+  if (!is.null(xaxis) && length(xaxis) > 0) {
     # Create facet formula
-    facet_formula <- paste("~", paste(split_vars, collapse = " + "))
+    facet_formula <- paste("~", paste(xaxis, collapse = " + "))
     p <- p + facet_wrap(as.formula(facet_formula))
   }
 
@@ -354,11 +355,11 @@ make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize =
   # outlierSteps              <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
   # bothSteps                 <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
   # new marking
-  incorrectDetectionSteps <- length(data[data$heelStrikes.incorrectDetection == TRUE, ]$VFD)
-  targetIgnoreSteps <- length(data[data$heelStrikes.targetIgnoreSteps == TRUE, ]$VFD)
-  outlierSteps <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  included <- length(data[data$heelStrikes.incorrectDetection == FALSE & data$heelStrikes.targetIgnoreSteps == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$VFD) # non filtered out
-  total_steps <- length(data$VFD)
+  incorrectDetectionSteps   <- length(data[data$heelStrikes.incorrectDetection == TRUE, ]$VFD)
+  targetIgnoreSteps         <- length(data[data$heelStrikes.targetIgnoreSteps == TRUE, ]$VFD)
+  outlierSteps              <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$VFD)
+  included                  <- length(data[data$heelStrikes.incorrectDetection == FALSE & data$heelStrikes.targetIgnoreSteps == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$VFD) # non filtered out
+  total_steps               <- length(data$VFD)
 
   # Create a data frame for ggplot
   df_filtered <- data.frame(
