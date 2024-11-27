@@ -259,7 +259,7 @@ make_histogram <- function(data, mu_data, showMeans, group, split, xinput, binwi
   return(p)
 }
 
-plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize = 10) {
+plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), color = NULL, baseSize = 10) {
   # Filter data for the specified columns and participants
   data_long <- mu %>%
     select(c("participant", "trialNum", all_of(xaxis), !!datatype))
@@ -283,10 +283,14 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
   shapes <- c(15, 15, 16, 16) # Square for 1, 2 and Circle for 3, 4
   colors <- c("darkred", "pink", "darkblue", "lightblue") # Dark/light for 1, 2 and 3, 4
 
+  if (is.null(color) || color=="None"){
+    color <- "trialNum"
+  }
+
   # Create the plot
   p <- ggplot(data_long, aes(x = xaxis_combined, y = value)) +
     geom_boxplot() +
-    geom_jitter(aes(color = trialNum, shape = trialNum), width = 0.2, size = baseSize / 4, alpha = 0.7) +
+    geom_jitter(aes_string(color = color, shape = color), width = 0.2, size = baseSize / 4, alpha = 0.7) +
     labs(x = paste(xaxis, collapse = " + "), y = datatype) +
     ggtitle(datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
@@ -297,7 +301,7 @@ plot_boxplots <- function(mu, participants, datatype, xaxis = c("VFD"), baseSize
   return(p)
 }
 
-plot_paired <- function(mu, datatype, xPaired, split_vars = NULL, baseSize = 10) {
+plot_paired <- function(mu, datatype, xPaired, split_vars = NULL, color = NULL, baseSize = 10) {
   split_vars_valid <- !is.null(split_vars) && length(split_vars) > 0
   # Filter data for the specified columns
   select_cols <- c("participant", xPaired, datatype)
@@ -318,10 +322,14 @@ plot_paired <- function(mu, datatype, xPaired, split_vars = NULL, baseSize = 10)
   # Ensure xPaired is a factor
   data_long[[xPaired]] <- factor(data_long[[xPaired]])
 
+  if (is.null(color) || color=="None"){
+    color <- xPaired
+  }
+
   # Create the plot using ggplot
   p <- ggplot(data_long, aes_string(x = xPaired, y = "value", group = "participant")) +
     geom_line(aes(group = participant), color = "gray", size = 0.4) +
-    geom_point(aes_string(color = xPaired), size = baseSize / 4) +
+    geom_point(aes_string(color = color), size = baseSize / 4) +
     labs(x = xPaired, y = datatype, title = datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
     get_sized_theme(baseSize) +
