@@ -2,6 +2,8 @@
 The code used for the analysis of kinematic data to investigate the effect of visual feedback distortions (VFD) on gait variability while walking on a treadmill.
 
 > This repository already contains the calculated step parameters datasets (`./runtime/results/*.rds`). If you want to recalculate step parameters, delete these files, and put participant data ([found on Zenodo](https://zenodo.org/record/14017075)) folders in `./runtime/data/` (in the same folder as the `index.Rmd`).
+> 
+> If running on a weaker CPU/low memory PC, make sure to use the non-parallel version `get_data_from_loop` instead of the parallelized version `get_data_from_loop_parallel` in the `./source/calc_all_gait_params.R` for the `calc_all_gait_params` function (otherwise will be much slower or may crash/freeze). Calculating the full gait parameter table takes roughly 10 minutes when non-parellelized, and roughly 2-3 minutes when running parellel on a good PC.
 
 ## How to use
 To run this code with your local R-Studio installation:
@@ -9,6 +11,7 @@ To run this code with your local R-Studio installation:
 2. Click `Run Document`. If it asks you to install any packages, click yes. You can find the list of packages used in `./runtime/source/setup.R`.
 > Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `results/` and startup should be significantly faster.
 3. Browse the tabs and interact with the data
+
 
 ## Contents
 - `index.Rmd` - The main Rmd code to run that loads all the source code, calculates or loads the results, and renders all the pages + sidebar. --> Run this code to start the interface.
@@ -24,23 +27,27 @@ To run this code with your local R-Studio installation:
 ## Pages
 Click through the different tabs to get a preview and a brief explanation of what can be found there.
 
-- [Page 0: `sidebar_dynamicDataFiltering.Rmd`](#page-0-sidebar_dynamicDataFilteringrmd)
-- [Page 1: `page1_feetTrajectories.Rmd`](#page-1-page1_feettrajectoriesrmd)
-- [Page 2: `page2_removedSteps.Rmd`](#page-2-page2_removedstepsrmd)
-- [Page 3: `page3_rawTrackerData.Rmd`](#page-3-page3_rawtrackerdatarmd)
-- [Page 4: `page4_targetSteps.Rmd`](#page-4-page4_targetstepsrmd)
-- [Page 5: `page5_histograms.Rmd`](#page-5-page5_histogramsrmd)
-- [Page 6: `page6_scatterplots.Rmd`](#page-6-page6_scatterplotsrmd)
-- [Page 7: `page7_trialScatterplots.Rmd`](#page-7-page7_trialscatterplotsrmd)
-- [Page 8: `page8_questionnaires.Rmd`](#page-8-page8_questionnairesrmd)
-- [Page 9: `page9_boxplots.Rmd`](#page-9-page9_boxplotsrmd)
-- [Page 10: `page10_statistics.Rmd`](#page-10-page10_statisticsrmd)
-- [Page 11: `page11_correlations.Rmd`](#page-11-page11_correlationsrmd)
-- [Page 12: `page12_participantSummary.Rmd`](#page-12-page12_participantsummaryrmd)
-- [Page 13: `page13_table.Rmd`](#page-13-page13_tablermd)
-- [Page 14: `page14_dataCorrection.Rmd`](#page-14-page14_datacorrectionrmd)
-- [Page 15: `page15_dataFiltering.Rmd`](#page-15-page15_datafilteringrmd)
-- [Page 16: `page16_manualOutlierFiltering.Rmd`](#page-16-page16_manualoutlierfilteringrmd)
+- [Analysis Code](#analysis-code)
+  - [How to use](#how-to-use)
+  - [Contents](#contents)
+  - [Pages](#pages)
+    - [Page 0: `sidebar_dynamicDataFiltering.Rmd`](#page-0-sidebar_dynamicdatafilteringrmd)
+    - [Page 1: `page1_feetTrajectories.Rmd`](#page-1-page1_feettrajectoriesrmd)
+    - [Page 2: `page2_removedSteps.Rmd`](#page-2-page2_removedstepsrmd)
+    - [Page 3: `page3_rawTrackerData.Rmd`](#page-3-page3_rawtrackerdatarmd)
+    - [Page 4: `page4_targetSteps.Rmd`](#page-4-page4_targetstepsrmd)
+    - [Page 5: `page5_histograms.Rmd`](#page-5-page5_histogramsrmd)
+    - [Page 6: `page6_scatterplots.Rmd`](#page-6-page6_scatterplotsrmd)
+    - [Page 7: `page7_trialScatterplots.Rmd`](#page-7-page7_trialscatterplotsrmd)
+    - [Page 8: `page8_questionnaires.Rmd`](#page-8-page8_questionnairesrmd)
+    - [Page 9: `page9_boxplots.Rmd`](#page-9-page9_boxplotsrmd)
+    - [Page 10: `page10_statistics.Rmd`](#page-10-page10_statisticsrmd)
+    - [Page 11: `page11_correlations.Rmd`](#page-11-page11_correlationsrmd)
+    - [Page 12: `page12_participantSummary.Rmd`](#page-12-page12_participantsummaryrmd)
+    - [Page 13: `page13_table.Rmd`](#page-13-page13_tablermd)
+    - [Page 14: `page14_dataCorrection.Rmd`](#page-14-page14_datacorrectionrmd)
+    - [Page 15: `page15_dataFiltering.Rmd`](#page-15-page15_datafilteringrmd)
+    - [Page 16: `page16_manualOutlierFiltering.Rmd`](#page-16-page16_manualoutlierfilteringrmd)
 
 
 ---
