@@ -292,7 +292,7 @@ plot_boxplots <- function(mu, datatype, xaxis = c("VFD"), color_var = NULL, shap
     # scale_shape_manual(values = c(1:25)) +
     get_sized_theme(baseSize)
 
-  if (color_var == "trialNum") { # special case for trialnum, because we used this in our paper and we wanted this layout there
+  if (color_var == "trialNum" && shape_var == "trialNum") { # special case for trialnum, because we used this in our paper and we wanted this layout there
     shapes <- c(15, 15, 16, 16) # Square for 1, 2 and Circle for 3, 4
     colors <- c("darkred", "pink", "darkblue", "lightblue") # Dark/light for 1, 2 and 3, 4
 
@@ -440,7 +440,7 @@ make_scatter_plot_steps <- function(data, group, xplot, yplot, show_legend = FAL
   }
 
   p <- ggplot(data, aes) +
-    geom_point(alpha = 0.5) + # Set the alpha to make overlapping points more visible
+    geom_point(alpha = 0.5, size = baseSize / 4) + # Set the alpha to make overlapping points more visible
     theme_minimal(base_size = baseSize)
 
   if (!show_legend) {
