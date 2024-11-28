@@ -45,15 +45,15 @@ add_category_columns <- function(data) {
   participant <- as.character(data$participant)
 
   # Add categorical columns
-  data$VFD              <- as.factor(mapply(has_vfd, participant, trial))
-  data$practice         <- as.factor(mapply(is_practice, participant, trial))
+  data$VFD <- as.factor(mapply(has_vfd, participant, trial))
+  data$practice <- as.factor(mapply(is_practice, participant, trial))
   data$startedWithNoise <- as.factor(sapply(participant, started_with_noise))
-  data$noticed          <- as.factor(sapply(participant, noticed_vfd))
+  data$noticed <- as.factor(sapply(participant, noticed_vfd))
 
   # numerical categories
-  data$conditionNumber          <- as.ordered(c(1, 1, 1, 2, 2, 2)[trial])
-  data$trialNumWithinCondition  <- as.ordered(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
-  data$trialNumWithoutPractice  <- as.ordered(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
+  data$conditionNumber <- as.ordered(c(1, 1, 1, 2, 2, 2)[trial])
+  data$trialNumWithinCondition <- as.ordered(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
+  data$trialNumWithoutPractice <- as.ordered(c(0, 1, 2, 0, 3, 4)[trial]) # outputs T1 & T4 as T0, T2 as T1, T3 as T2, T5 as T3, and T6 as T4
 
   return(data)
 }
@@ -141,7 +141,7 @@ get_data_from_loop <- function(get_data_function, ...) {
 
 
 calc_all_gait_params <- function() {
-  return(get_data_from_loop(calculate_gait_parameters))
+  return(get_data_from_loop_parallel(calculate_gait_parameters))
 }
 
 calc_all_target_params <- function() {

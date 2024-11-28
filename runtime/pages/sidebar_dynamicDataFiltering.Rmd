@@ -20,7 +20,6 @@ selectizeInput("filterTrialsWithoutPractice", "Trials (without practice)", choic
 ```{r}
 selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
-selectizeInput("filterImpossible", "Impossible Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 ```
 
 #### Left vs Right Steps
