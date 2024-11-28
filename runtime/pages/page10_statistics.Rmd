@@ -20,7 +20,7 @@ bsTooltip("indepVars",
 selectizeInput("correctionMethod", "Correction Method", choices = c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none"), selected = "bonferroni", multiple = FALSE)
 
 # Add a text input for custom model formula
-textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "VFD * startedWithNoise + trialNumWithinCondition + (1 | participant)")
+textInput("customModel", "Custom Model Formula: dependent_variable ~ ", value = "VFD * (startedWithNoise+VEQ.total) + trialNumWithinCondition + (1 | participant)")
 
 # Add a checkbox to use the custom model formula
 checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
@@ -29,7 +29,7 @@ checkboxInput("useCustomModel", "Use Custom Model Formula", value = FALSE)
 
 ```{r}
 checkboxInput("doCentering", "Center numerical values", value = TRUE)
-checkboxInput("doScaling", "Scale numerical values", value = FALSE)
+checkboxInput("doScaling", "Scale numerical values", value = TRUE)
 bsTooltip("doCentering", 
           "Check this box to centers numerical INDEPENDENT values, except for ordinal values, such as trial and condition numbers.", 
           placement = "right", 
@@ -299,6 +299,10 @@ output$lmm_text <- renderPrint({
   }, error = function(e) {
     cat("VIF calculation failed:", e$message, "\n")
   })
+
+  cat("\nChecking Singularity:...\n")
+  cat("isSingular:", isSingular(lmm, tol = 1e-4),"\n")
+
 })
 
 output$fixed_effects_table <- renderTable({
@@ -359,7 +363,7 @@ output$post_hoc_table <- renderTable({
   # Function to clean variable names by removing trailing levels (e.g., TRUE, FALSE, numeric values)
   clean_effect_name <- function(effect_name) {
     # Remove trailing TRUE, FALSE, or numbers from variable names
-    cleaned_name <- gsub("(TRUE|FALSE|[0-9.]+)$", "", effect_name)
+    cleaned_name <- gsub("(TRUE|FALSE|.L|.Q|.C|[0-9.]+)$", "", effect_name)
     return(cleaned_name)
   }
   
