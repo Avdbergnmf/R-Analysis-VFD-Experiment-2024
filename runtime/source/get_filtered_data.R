@@ -17,7 +17,6 @@ filteredParams <- reactive({
   included <- included & data[["startedWithNoise"]] %in% input$filterStartCondition
   included <- included & data[["noticed"]] %in% input$filterNoticed
   # Step based
-  included <- included & data[["heelStrikes.incorrectDetection"]] %in% input$filterImpossible
   included <- included & data[["heelStrikes.targetIgnoreSteps"]] %in% input$filterTargets
   included <- included & data[["heelStrikes.outlierSteps"]] %in% input$filterOutliers
 

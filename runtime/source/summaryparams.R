@@ -6,8 +6,8 @@ get_summ_by_foot <- function(dataType, categories, data, avg_feet = TRUE) {
       sd = sd(.data[[dataType]], na.rm = TRUE),
       cv = sd(.data[[dataType]], na.rm = TRUE) / mean(.data[[dataType]], na.rm = TRUE),
       .groups = "drop"
-    ) 
-  
+    )
+
   if (avg_feet) {
     data <- data %>%
       group_by(across(all_of(setdiff(categories, "heelStrikes.foot")))) %>%
@@ -32,7 +32,7 @@ average_over_feet <- function(data, types, categories, add_diff = FALSE) {
   if (add_diff) {
     # Keep heelStrikes.foot in categories for per-foot summaries
     categories_with_foot <- categories
-    
+
     # Step 1: Get per-foot summaries without averaging over feet
     mu_per_foot <- lapply(types, get_summ_by_foot, categories_with_foot, data, avg_feet = FALSE)
     mu_per_foot <- setNames(mu_per_foot, types)
@@ -42,11 +42,11 @@ average_over_feet <- function(data, types, categories, add_diff = FALSE) {
       # Pivot the data wider to have separate columns for left and right foot measurements
       df_wide <- df %>%
         pivot_wider(names_from = heelStrikes.foot, values_from = c(mean, sd, cv))
-      
+
       # Ensure both left and right foot data are available
-      #df_wide <- df_wide %>%
+      # df_wide <- df_wide %>%
       #  filter(!is.na(mean_Left) & !is.na(mean_Right))
-      
+
       # Calculate the difference between left and right foot measurements
       df_wide <- df_wide %>%
         mutate(
@@ -54,8 +54,8 @@ average_over_feet <- function(data, types, categories, add_diff = FALSE) {
           diffFeet_sd = sd_Left - sd_Right,
           diffFeet_cv = cv_Left - cv_Right
         ) %>%
-        select(-starts_with("mean_"), -starts_with("sd_"), -starts_with("cv_"))  # Remove per-foot columns if not needed
-      
+        select(-starts_with("mean_"), -starts_with("sd_"), -starts_with("cv_")) # Remove per-foot columns if not needed
+
       return(df_wide)
     })
     mu_diff <- setNames(mu_diff, types)
@@ -70,8 +70,7 @@ average_over_feet <- function(data, types, categories, add_diff = FALSE) {
     mu <- setNames(mu, types)
 
     return(mu)
-  }
-  else {
+  } else {
     return(mu_avg)
   }
 }
@@ -126,7 +125,7 @@ get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories,
   targetColumnsToAdd <- c("score", "targetDist", "rel_x", "rel_z")
 
   # Join the columns
-  muGait <- summarize_table(allGaitParams, allQResults, c(categories,"heelStrikes.foot"), avg_feet, add_diff) ##### Note that we add heelStrikes.foot here as a category, to make sure we summarize each foot individually
+  muGait <- summarize_table(allGaitParams, allQResults, c(categories, "heelStrikes.foot"), avg_feet, add_diff) ##### Note that we add heelStrikes.foot here as a category, to make sure we summarize each foot individually
   muTarget <- summarize_table(allTargetParams, allQResults, categories, FALSE, FALSE)
 
   # Find columns that partially match the names listed in targetColumnsToAdd
@@ -138,7 +137,7 @@ get_full_mu <- function(allGaitParams, allTargetParams, allQResults, categories,
 
   if (length(matched_columns) > 0) {
     muTarget <- muTarget %>% select(all_of(matchByList), all_of(matched_columns))
-    
+
     # Rename matched columns with the prefix "target."
     muTarget <- muTarget %>%
       rename_with(~ paste0("target.", .), all_of(matched_columns))
@@ -160,17 +159,29 @@ summarize_across_conditions <- function(data) {
   data <- data %>%
     dplyr::filter(trialNum %in% c(2, 3, 5, 6))
 
-  # Group by participant and condition (trialNum)
-  summarized_data <- data %>%
+  # Add condition column based on trial numbers
+  data <- data %>%
     mutate(condition = case_when(
       trialNum %in% c(2, 3) ~ "condition_1",
       trialNum %in% c(5, 6) ~ "condition_2"
-    )) %>%
-    group_by(participant, VFD, startedWithNoise, condition) %>%
-    summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)), .groups = "drop")
+    ))
+
+  # Check if 'heelStrikes.foot' exists in the data
+  if ("heelStrikes.foot" %in% colnames(data)) {
+    # Group by participant, VFD, startedWithNoise, condition, and heelStrikes.foot
+    summarized_data <- data %>%
+      group_by(participant, VFD, startedWithNoise, condition, heelStrikes.foot) %>%
+      summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)), .groups = "drop")
+  } else {
+    # Group by participant, VFD, startedWithNoise, and condition only
+    summarized_data <- data %>%
+      group_by(participant, VFD, startedWithNoise, condition) %>%
+      summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)), .groups = "drop")
+  }
 
   return(summarized_data)
 }
+
 
 calculate_vfd_difference <- function(data) {
   # Split the data into VFD==TRUE and VFD==FALSE
@@ -202,7 +213,7 @@ calculate_vfd_difference <- function(data) {
     final_output <- final_data %>%
       select(participant, condition, starts_with("diff_"), starts_with("mean_"))
   } else {
-    final_data <- difference_data %>%left_join(mean_data %>% select(participant, starts_with("mean_")), by = c("participant"))
+    final_data <- difference_data %>% left_join(mean_data %>% select(participant, starts_with("mean_")), by = c("participant"))
     final_output <- final_data %>%
       select(participant, starts_with("diff_"), starts_with("mean_"))
   }

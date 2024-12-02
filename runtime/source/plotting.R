@@ -271,15 +271,14 @@ plot_boxplots <- function(mu, datatype, xaxis = c("VFD"), color_var = NULL, shap
   # Create a combined x-axis variable
   data_long$xaxis_combined <- apply(data_long[, xaxis], 1, paste, collapse = "_")
 
-  if (is.null(color_var) || color_var=="None"){ # 
+  if (is.null(color_var) || color_var == "None") { #
     aesString <- aes_string()
-  }
-  else {
+  } else {
     aesString <- aes_string(color = color_var)
   }
 
   # Dynamically add shape if shape_var is provided
-  if (!(is.null(shape_var) || shape_var == "None")) { 
+  if (!(is.null(shape_var) || shape_var == "None")) {
     aesString <- modifyList(aesString, aes_string(shape = shape_var))
   }
 
@@ -287,13 +286,13 @@ plot_boxplots <- function(mu, datatype, xaxis = c("VFD"), color_var = NULL, shap
   p <- ggplot(data_long, aes(x = xaxis_combined, y = value)) +
     geom_boxplot() +
     geom_jitter(aesString, width = 0.2, size = baseSize / 4, alpha = 0.7) + # << make this point?
-    labs(x = paste(xaxis, collapse = " + "), y = datatype, title=datatype) +
+    labs(x = paste(xaxis, collapse = " + "), y = datatype, title = datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_viridis_d(option = "turbo") + # Choose "viridis", "plasma", "magma", etc.
-    #scale_shape_manual(values = c(1:25)) +
+    # scale_shape_manual(values = c(1:25)) +
     get_sized_theme(baseSize)
 
-  if (color_var == "trialNum") { # special case for trialnum, because we used this in our paper and we wanted this layout there
+  if (color_var == "trialNum" && shape_var == "trialNum") { # special case for trialnum, because we used this in our paper and we wanted this layout there
     shapes <- c(15, 15, 16, 16) # Square for 1, 2 and Circle for 3, 4
     colors <- c("darkred", "pink", "darkblue", "lightblue") # Dark/light for 1, 2 and 3, 4
 
@@ -314,15 +313,14 @@ plot_paired <- function(mu, datatype, xPaired, xaxis = NULL, color_var = NULL, s
       values_to = "value"
     )
 
-  if (is.null(color_var) || color_var=="None"){ # 
+  if (is.null(color_var) || color_var == "None") { #
     aesString <- aes_string()
-  }
-  else {
+  } else {
     aesString <- aes_string(color = color_var)
   }
 
   # Dynamically add shape if shape_var is provided
-  if (!(is.null(shape_var) || shape_var == "None")) { 
+  if (!(is.null(shape_var) || shape_var == "None")) {
     aesString <- modifyList(aesString, aes_string(shape = shape_var))
   }
 
@@ -333,7 +331,7 @@ plot_paired <- function(mu, datatype, xPaired, xaxis = NULL, color_var = NULL, s
     labs(x = xPaired, y = datatype, title = datatype) +
     theme(plot.title = element_text(hjust = 0.5)) +
     scale_color_viridis_d(option = "turbo") + # Choose "viridis", "plasma", "magma", etc.
-    #scale_shape_manual(values = c(1:25)) +
+    # scale_shape_manual(values = c(1:25)) +
     get_sized_theme(baseSize) #+ scale_color_jco()
 
   # Add facets if split_vars are provided
@@ -349,22 +347,16 @@ plot_paired <- function(mu, datatype, xPaired, xaxis = NULL, color_var = NULL, s
 
 
 make_pie_chart <- function(data, extraTitle = "", show_legend = TRUE, baseSize = 10) {
-  # data <- filteredParams()
-  # incorrectDetectionSteps   <- length(data[data$heelStrikes.incorrectDetection==TRUE  & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  # targetIgnoreSteps         <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  # outlierSteps              <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==FALSE & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  # bothSteps                 <- length(data[data$heelStrikes.incorrectDetection==FALSE & data$heelStrikes.targetIgnoreSteps==TRUE  & data$heelStrikes.outlierSteps == TRUE, ]$VFD)
   # new marking
-  incorrectDetectionSteps   <- length(data[data$heelStrikes.incorrectDetection == TRUE, ]$VFD)
-  targetIgnoreSteps         <- length(data[data$heelStrikes.targetIgnoreSteps == TRUE, ]$VFD)
-  outlierSteps              <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$VFD)
-  included                  <- length(data[data$heelStrikes.incorrectDetection == FALSE & data$heelStrikes.targetIgnoreSteps == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$VFD) # non filtered out
-  total_steps               <- length(data$VFD)
+  targetIgnoreSteps <- length(data[data$heelStrikes.targetIgnoreSteps == TRUE, ]$VFD)
+  outlierSteps <- length(data[data$heelStrikes.outlierSteps == TRUE, ]$VFD)
+  included <- length(data[data$heelStrikes.targetIgnoreSteps == FALSE & data$heelStrikes.outlierSteps == FALSE, ]$VFD) # non filtered out
+  total_steps <- length(data$VFD)
 
   # Create a data frame for ggplot
   df_filtered <- data.frame(
-    StepType = factor(c("Impossible", "Target Ignore", "Outlier", "Included")),
-    TotalCount = c(incorrectDetectionSteps, targetIgnoreSteps, outlierSteps, included)
+    StepType = factor(c("Target Ignore", "Outlier", "Included")),
+    TotalCount = c(targetIgnoreSteps, outlierSteps, included)
   )
 
   # Calculate label positions for the pie chart
@@ -448,7 +440,7 @@ make_scatter_plot_steps <- function(data, group, xplot, yplot, show_legend = FAL
   }
 
   p <- ggplot(data, aes) +
-    geom_point(alpha = 0.5) + # Set the alpha to make overlapping points more visible
+    geom_point(alpha = 0.5, size = baseSize / 4) + # Set the alpha to make overlapping points more visible
     theme_minimal(base_size = baseSize)
 
   if (!show_legend) {
