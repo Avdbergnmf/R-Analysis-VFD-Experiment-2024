@@ -59,7 +59,7 @@ average_over_feet <- function(data, types, categories, add_diff = FALSE) {
       return(df_wide)
     })
     mu_diff <- setNames(mu_diff, types)
-
+    print(names(mu_diff))
     # Step 3: Add diff columns to mu with averaged feet
     mu <- mapply(function(avg_df, diff_df) {
       # Merge the averaged data with the diff data on categories_no_foot

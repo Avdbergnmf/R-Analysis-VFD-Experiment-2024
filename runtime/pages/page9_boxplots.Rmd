@@ -19,8 +19,19 @@ imageOutput("var")
 ```
 
 ```{r, context="server"}
+# Reactive for dynamic data (shared across multiple operations)
+mu_data <- reactive({
+  get_mu_dyn_long()
+})
+
+# Update selectizeInput choices only when `mu_data` changes
+observeEvent(mu_data(), {
+  cols <- colnames(mu_data())
+  updateSelectizeInput(session, "plotVar", choices = cols, selected = "stepWidths.sd")
+})
+
 output$var <- renderSVG({ reactive({
-    mu <- get_mu_dyn_long()
+  mu <- mu_data()
     if (!input$doPaired) {
       plot_boxplots(mu, input$plotVar, input$varCategory, input$colorCategory, input$shapeCategory, input$baseSize)
     }
