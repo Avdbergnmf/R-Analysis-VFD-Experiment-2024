@@ -9,6 +9,7 @@ Column
 --------------------------------------------
 
 ### Questionnaire Boxplots  {data-height=1500}
+This page contains a simple custom plot to get an overview of all the questionnaire results including the individual subcategories (based on the selected data).
 ```{r}
 imageOutput("q")
 ```

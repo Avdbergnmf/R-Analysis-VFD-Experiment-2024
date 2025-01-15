@@ -58,7 +58,14 @@ downloadButton("save_rds", "Save current parameters to RDS.")
 Column
 --------------------------------------------
 ### Foot Trajectories {data-width=650 data-height=1500}
-Click heelstrike to add it to outlier list.   !!SAVE OFTEN TO CSV!!
+This interface was used to manually select the incorrectly detected steps as outliers so they could be removed from the dataset.
+
+Click a heel strike to add it to outlier list. It's wise to enable the auto-saving feature if you wish to reproduce this, as this takes quite some time, and the interface crashes randomly from time to time. You can also browse to the saved outliers (in the `data_extra` folder) and load them to load this list into the interface.
+
+Also be aware that the data shown here is also based on the selection of data in the sidebar (this may already have some steps/trials filtered out).
+
+Finally, this also includes a button on the left to save the new outliers to a `.rds` file (you can use this to overwrite the original automatic calculation of the outliers, which is far from correct).
+
 ```{r}
 plotlyOutput("manualOutlierPlot")
 ```

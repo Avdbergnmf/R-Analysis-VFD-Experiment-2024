@@ -22,6 +22,7 @@ Column
 --------------------------------------------
 
 ### Scatterplot TrialData {data-height=1500}
+Create scatterplots of the aggregated results of the selected data (1 datapoint per foot per trial per participant).
 
 ```{r}
 imageOutput("scatter_mu")

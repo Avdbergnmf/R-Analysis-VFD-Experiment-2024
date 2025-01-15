@@ -24,6 +24,7 @@ Column
 --------------------------------------------
 
 ### Correlation Plots  {data-height=500}
+This page allows you to run some correlation tests on the selected data based on the settings on the left.
 
 ```{r}
 # Add plot output for the correlation plot

@@ -12,7 +12,7 @@ Column
 
 
 ### Removed Steps {data-height=600}
-
+Gives a quick overview of how many steps have been removed and why, used for reporting in the paper. If the filter data checkbox is enabled, the data is filtered based on the selected settings in the sidebar. Note that in the paper we reported this information where we excluded all the steps in the familiarization trials (enable the filter checkbox, add outlier and target steps in the sidebar, but make sure the familiarization trials are removed).
 
 ```{r}
 imageOutput("pie")

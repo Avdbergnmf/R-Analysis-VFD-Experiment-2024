@@ -159,11 +159,6 @@ Y-Rotation Correction
 ```{r, child='pages/page14_dataCorrection.Rmd'}
 ```
 
-Automatic Outlier Filtering
-=====================================
-```{r, child='pages/page15_dataFiltering.Rmd'}
-``` 
-
 Manual Outlier Filtering
 =====================================
 ```{r, child='pages/page16_manualOutlierFiltering.Rmd'}

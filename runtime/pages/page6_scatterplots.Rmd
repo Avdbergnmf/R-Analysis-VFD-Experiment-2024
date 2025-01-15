@@ -16,7 +16,7 @@ Column
 --------------------------------------------
 
 ### Scatterplot  {data-height=1500}
-
+Create scatterplots of the individual steps in the selected data (1 datapoint per step).
 ```{r}
 imageOutput("scatter_steps")
 ```

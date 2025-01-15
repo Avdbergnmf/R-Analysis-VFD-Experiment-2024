@@ -14,6 +14,7 @@ Column
 --------------------------------------------
 
 ### Step Variability Plot  {data-height=2500}
+Generate boxplots of the selected data that are split up according to different categories.
 ```{r}
 imageOutput("var")
 ```

@@ -41,7 +41,9 @@ numericInput("ylim_max_15", "Y-axis maximum",
 Column
 --------------------------------------------
 ### Transformed Feet Trajectories {data-height=1500}
-Save rotations dataset under "./data_extra/rotations_kinematic_data.csv". If there already is a dataset here, remove it and restart the code before making any adjustments here (otherwise you are adjusting a already adjusted dataset).
+Our kinematic data recorded in Unity was sometimes not precisely aligned with the treadmill reference frame. We used the interface here to correct that by selecting a dataset, and observe whether during the stance phase the x position remained constant. If not, we fine-tuned the y-rotation to make sure the reference frame aligns correctly with the treadmill.
+
+Save rotations dataset under "./data_extra/rotations_kinematic_data.csv". If there already is a dataset here, remove it and restart the code before making any adjustments here (otherwise you are adjusting an already adjusted dataset).
 ```{r}
 plotlyOutput("FeetTraj_15", width = "100%", height = "100%")
 ```

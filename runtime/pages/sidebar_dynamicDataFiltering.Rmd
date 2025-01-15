@@ -1,3 +1,5 @@
+This sidebar contains many different ways to filter our complete dataset. All figures and calculations in the windows on the right are using the data that is selected in this sidebar. Data can be filtered based on participants, trials, and steps. Values that are selected in the selection boxes are **included** in the dataset. Removing all data may crash some of the calculations and with that the whole interface, so be aware of that. At the bottom there are some settings you can use to finetune the generation of the figures to get the sizes you require.
+
 #### Participant Filtering
 ```{r}
 selectizeInput("filterParticipants", "Participants", choices = participants, selected = participants, multiple = TRUE)
@@ -23,9 +25,10 @@ selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected 
 ```
 
 #### Left vs Right Steps
+Note: you can also average across feet here, this takes the result of both feet of 1 participant in 1 trial and averages their values to create 1 value per trial per participant for the aggregated data (this step is done last, after calculating the results of the individual feet).
 ```{r}
 selectizeInput("filterSide", "Side", choices = c("Left", "Right"), selected = c("Left", "Right"), multiple = TRUE)
-checkboxInput("avg_feet", "Average across feet", value = TRUE)
+checkboxInput("avg_feet", "Average across feet", value = FALSE)
 checkboxInput("add_diff", "add diffFeet columns",value = FALSE)
 bsTooltip("add_diff", 
           "Calculate difference of calculated metrics (mean, sd, cv) between left and right foot and add to summary table.", 

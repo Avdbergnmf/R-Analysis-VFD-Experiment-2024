@@ -23,7 +23,7 @@ selectizeInput("yplot2d", "yplot",
 Column
 --------------------------------------------
 ### 2D plot {data-height=1500}
-
+Simple interface to create some 2D plots of the raw tracker data for debugging purposes.
 ```{r}
 #imageOutput("TwoD")
 plotlyOutput("TwoD_interactive")
