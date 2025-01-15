@@ -19,7 +19,7 @@ Links:
 > Notes:
 > 1. Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `runtime/results/` and startup should be significantly faster. If you need to recalculate these tabled for any reason, just delete them and they will be recreated with the current contents of the data folder.\
 > 2. If you notice that the output of the *Render* window in R Studio get stuck, and the interface does not load, stop the code, *Clear Prerendered Output* and try again.
-1. Browse the tabs and interact with the data. See [runtime readme](./runtime) for more info.
+4. Browse the tabs and interact with the data. See [runtime readme](./runtime) for more info.
 
 ### Without Docker
 You can also just use the code with your local R-Studio installation:
