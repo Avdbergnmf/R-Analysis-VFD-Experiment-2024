@@ -23,6 +23,7 @@ Column
 --------------------------------------------
 
 ### Histograms  {data-height=1000}
+Here we create a histogram and below a scatterplot of all the steps taken onto a target (not includiong the steps leading up to and succeeding the step onto the target).
 ```{r}
 imageOutput("histTargets")
 ```

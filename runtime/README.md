@@ -165,7 +165,9 @@ Correlation plots showing relationships between different step parameters. Scrol
 
 ### Page 12: `page12_participantSummary.Rmd`
 
-Shows information about participant groups (including demographics and category data). Allows generation of PDF reports per participant, which create all plots of this interface for all trials of a particular participant, and allows you to download the PDF.
+Shows information about participant groups (including demographics and category data). 
+
+> Removed this functionality (but available in older commits if interested) ~Allows generation of PDF reports per participant, which create all plots of this interface for all trials of a particular participant, and allows you to download the PDF.~
 
 ![page12](./readme_figures/p12.png)
 
@@ -190,7 +192,7 @@ Functions to correct step data by rotating the whole dataset around the y-axis (
 ### Page 15: `page15_dataFiltering.Rmd`
 
 Tools for automatically filtering out unwanted data based on local outlier filtering (note: this was not used in the end and may be buggy).
-
+> Note: this page was removed because it was unused (but if you wish to view its available in older commits).
 ![page15](./readme_figures/p15.png)
 
 ---

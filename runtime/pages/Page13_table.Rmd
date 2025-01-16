@@ -2,6 +2,8 @@ Column
 --------------------------------------------
 
 ### Full Results Table {data-height=800}
+This table can be used to view the individual step data, and if the checkbox below is checked, the aggregated results of each trial of participant.
+
 ```{r}
 checkboxInput("avgTable", "Summarize results (calc sd, mean, cv)",
   value = FALSE)

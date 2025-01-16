@@ -75,6 +75,7 @@ Column
 --------------------------------------------
 
 ### Statistics Results  {data-height=500}
+In this page we ran all of our statistical tests. Select the data in the sidebar, and choose the test settings in the options on the left. Be sure to check the assumptions of the test below. Using the custom formula box disables use of the other independent variable selection boxes.
 ```{r}
 #verbatimTextOutput("stats_results")
 uiOutput("stats_results_ui")

@@ -11,12 +11,33 @@ Links:
 
 ## How to use
 
+- [Specific readme for the runtime code](./runtime), ([GitLab specific link](https://gitlab.tudelft.nl/mln-lab-public/r-analysis-alex-van-den-berg-2024-vfd-experiment/-/tree/main/runtime?ref_type=heads))
+
+### License and usage
+This project (including the dataset and code) is licensed under the Creative Commons Attribution 4.0 International.
+
+If used, please adequately cite this work:
+```
+@inproceedings{WIP,
+    author = {Alex van den Berg},
+    title = {PositionNoiseDisturbance},
+    year = {2024},
+    publisher = {WIP},
+    address = {Delft, Zuid-Holland, The Netherlands},
+    url = {WIP},
+    doi = {WIP}
+}
+```
+> Note: this will be updated before the final submission.
+
 ### Use with Docker
 1. build and start the docker container defined in docker-compose.yml: `docker-compose up --build -d`
 2. Navigate to http://localhost:8787
 3. Within the R instance, navigate to `/home/rstudio/workspace/`, and open the `index.Rmd` file.
 3. Click `Run Document` and allow the popup window to appear.
-> Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `runtime/results/` and startup should be significantly faster. If you need to recalculate these tabled for any reason, just delete them and they will be recreated with the current contents of the data folder.
+> Notes:
+> 1. Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `runtime/results/` and startup should be significantly faster. If you need to recalculate these tabled for any reason, just delete them and they will be recreated with the current contents of the data folder.\
+> 2. If you notice that the output of the *Render* window in R Studio get stuck, and the interface does not load, stop the code, *Clear Prerendered Output* and try again.
 4. Browse the tabs and interact with the data. See [runtime readme](./runtime) for more info.
 
 ### Without Docker

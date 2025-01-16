@@ -32,7 +32,7 @@ numericInput("ylim_max", "Y-axis maximum",
 Column
 --------------------------------------------
 ### Feet trajectories {data-height=1500}
-
+This overview shows the stepping data, including the detected heelstrike positions. This interface was used a lot to debug the step detection algorithm.
 ```{r}
 imageOutput("FeetTraj")
 ```
