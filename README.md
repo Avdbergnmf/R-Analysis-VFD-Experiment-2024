@@ -11,6 +11,25 @@ Links:
 
 ## How to use
 
+- [Specific readme for the runtime code](./runtime), ([GitLab specific link](https://gitlab.tudelft.nl/mln-lab-public/r-analysis-alex-van-den-berg-2024-vfd-experiment/-/tree/main/runtime?ref_type=heads))
+
+### License and usage
+This project (including the dataset and code) is licensed under the Creative Commons Attribution 4.0 International.
+
+If used, please adequately cite this work:
+```
+@inproceedings{WIP,
+    author = {Alex van den Berg},
+    title = {PositionNoiseDisturbance},
+    year = {2024},
+    publisher = {WIP},
+    address = {Delft, Zuid-Holland, The Netherlands},
+    url = {WIP},
+    doi = {WIP}
+}
+```
+> Note: this will be updated before the final submission.
+
 ### Use with Docker
 1. build and start the docker container defined in docker-compose.yml: `docker-compose up --build -d`
 2. Navigate to http://localhost:8787
