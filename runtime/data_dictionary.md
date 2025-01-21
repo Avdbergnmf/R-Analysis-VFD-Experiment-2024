@@ -170,7 +170,7 @@ The diff of each of the metrics (how much they changed from one step to the next
 All tracker files follow the pattern:
 
 ```
-[object_name]_movement_T[trial_number].csv
+runtime/data/10/trackers/[object_name]_movement_T[trial_number].csv
 ```
 
 Example filenames:
