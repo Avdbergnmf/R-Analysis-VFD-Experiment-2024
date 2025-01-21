@@ -8,6 +8,18 @@ Each variable is briefly described to help understand its purpose and how it was
 If you are using the interface, the sidebar contains many different ways to filter our complete dataset. All figures and calculations in the windows on the right are using the data that is selected in this sidebar. Data can be filtered based on participants, trials, and steps. Values that are selected in the selection boxes are **included** in the dataset. Removing all data may crash some of the calculations and with that the whole interface, so be aware of that. At the bottom there are some settings you can use to finetune the generation of the figures to get the sizes you require.
 
 
+> NOTE: The initial calculation does an initial outlier selection based on rough threshold values for heelstrike positions. However, this selection is far from correctly identifying all the outliers, and so we implemented a manual outlier removal interface. To load our selected outliers and select them in the dataset, follow the instructions below.
+
+## Remove Outliers
+To reproduce the results in the paper, the outliers we manually selected still need to be removed. Follow the steps below:
+
+1. Perform the initial calculation described above.
+2. Open the **Manual Outlier Filtering** tab.
+3. Find the **Import Outliers from CSV** field, and click `Browse`. Now select the outliers csv under: `./runtime/data_extra/outliers-2024-11-28.csv` and import them.
+4. Make sure the *outlier matching threshold value* is still set to `0.1`s (this affects the outlier selection, if set larger, a larget timespan is used to remove outliers around the selected timestamps in the outlier dataset).
+5. Click **Overwrite Outliers** to write the outliers to the dataset loaded in the interface.
+6. Optional: Click **Save current parameters to RDS** and overwrite the previously calculated rds under `./runtime/results/allGaitParams.rds` so that the next time you load the interface, these outliers will already be marked in the dataset.
+
 ---
 
 ## **1. Participant and Trial Information**
