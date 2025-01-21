@@ -64,4 +64,6 @@ library(plotly)
 
 library(shinyBS) # For tooltips
 
-library(viridis)
+library(viridis) # extra colors
+
+library(markdown) # to render data dictionary.

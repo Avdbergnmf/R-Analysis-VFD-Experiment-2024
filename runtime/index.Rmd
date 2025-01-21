@@ -77,6 +77,12 @@ renderSVG <- function(expr) {
 }
 ```
 
+Data Dictionary.md {data-orientation=columns}
+=====================================
+```{r, echo=FALSE}
+shiny::includeMarkdown('data_dictionary.md')
+```
+
 Feet trajectories {data-orientation=columns}
 =====================================
 ```{r, child='pages/page1_feetTrajectories.Rmd'}
