@@ -10,6 +10,8 @@ If you are using the interface, the sidebar contains many different ways to filt
 
 > NOTE: The initial calculation does an initial outlier selection based on rough threshold values for heelstrike positions. However, this selection is far from correctly identifying all the outliers, and so we implemented a manual outlier removal interface. To load our selected outliers and select them in the dataset, follow the instructions below.
 
+> NOTE 2: Scroll down to find an explanation of the tracker files in the dataset and the variables found within them (column names).
+
 ## Remove Outliers
 To reproduce the results in the paper, the outliers we manually selected still need to be removed. Follow the steps below:
 
@@ -162,4 +164,110 @@ The diff of each of the metrics (how much they changed from one step to the next
 
 ---
 
-This data dictionary provides a general understanding of the variables. For more detailed explanations and usage, please refer to the accompanying scripts and readme's in the repository.
+## **Tracker Data Files**
+
+**File Naming Convention**
+All tracker files follow the pattern:
+
+```
+[object_name]_movement_T[trial_number].csv
+```
+
+Example filenames:
+
+- `camera_movement_T001.csv` → Camera movement data for trial 1.
+- `leftfoottracker_movement_T003.csv` → Left foot tracker data for trial 3.
+
+The dataset includes multiple CSV files that contain tracking data recorded during the experiment. These files are named based on the tracked object and trial number (e.g., `camera_movement_T001.csv`). The tracked objects and corresponding variables within each file type are described below.
+
+### **Tracked Objects and Variables**
+
+#### **General Tracker Files:**
+These files contain positional and rotational data over time for different tracked objects:
+
+- **Tracked Objects:**  
+  - `camera`
+  - `controllerleft` (left controller)
+  - `controllerright` (right controller)
+  - `lefthandtracker`
+  - `righthandtracker`
+  - `hiptracker`
+  - `leftfoottracker`
+  - `rightfoottracker`
+  - `treadmillleft`, `treadmillright`, `treadmillrightback` (used to determine treadmill position in the virtual environment)
+
+- **Variables:**
+  ```plaintext
+  time, pos_x, pos_y, pos_z, rot_x, rot_y, rot_z
+  ```
+
+  - `time`: Timestamp of the recorded frame.
+  - `pos_x, pos_y, pos_z`: Position coordinates of the tracked object in the virtual environment (m).
+  - `rot_x, rot_y, rot_z`: Rotation angles of the tracked object (degrees, in euler angles).
+
+---
+
+#### **Step Target Tracker Files:**
+These files provide information about participants' foot placements relative to visual targets.
+
+- **Filename Example:** `steptargetsmanager_targetsteps_T001.csv`
+- **Variables:**
+  ```plaintext
+  time, foot, score, destroyed, target_x, target_y, target_z, 
+  foot_x, foot_y, foot_z, foot_rot_x, foot_rot_y, foot_rot_z, foot_rot_w
+  ```
+
+  - `time`: Timestamp of the target event.
+  - `foot`: Indicates which foot was used (left/right).
+  - `score`: Points awarded based on target accuracy.
+  - `destroyed`: Boolean value; `TRUE` if the target was missed (this never happened).
+  - `target_x, target_y, target_z`: Target position in the virtual environment.
+  - `foot_x, foot_y, foot_z`: (Disturbed) foot position displayed in VR.
+  - `foot_rot_x, foot_rot_y, foot_rot_z, foot_rot_w`: Foot orientation in VR.
+
+**Note:** The `foot_x`, `foot_y`, and `foot_z` values represent the disturbed foot position shown in VR, which may differ from the actual foot position if VFD was enabled.
+
+---
+
+#### **Eye Tracker Files:**
+Eye tracking data recorded throughout the trials.
+
+- **Filename Example:** `eyetracking_EyeGaze_T001.csv`
+- **Variables:**
+  ```plaintext
+  time, collider, hit_pos_x, hit_pos_y, hit_pos_z, pos_x, pos_y, pos_z, 
+  dir_x, dir_y, dir_z, left_openness, left_diam, left_pupil_x, left_pupil_y, 
+  left_validity, right_openness, right_diam, right_pupil_x, right_pupil_y, 
+  right_validity, combined_conv_dist, combined_conv_validity, combined_openness
+  ```
+
+  - `time`: Timestamp of the gaze event.
+  - `collider`: Object hit by gaze ray.
+  - `hit_pos_x, hit_pos_y, hit_pos_z`: Coordinates of the gaze hit point.
+  - `pos_x, pos_y, pos_z`: Position of the eye-tracking device in the virtual environment.
+  - `dir_x, dir_y, dir_z`: Direction of the gaze.
+  - `left_openness, right_openness`: Eye openness values.
+  - `left_diam, right_diam`: Pupil diameters.
+  - `left_pupil_x, left_pupil_y, right_pupil_x, right_pupil_y`: Pupil center positions.
+  - `left_validity, right_validity`: Validity flags for left and right eye tracking.
+  - `combined_conv_dist, combined_conv_validity, combined_openness`: Combined gaze convergence metrics.
+
+**Note:** This data was not used in the final analysis but is included for completeness.
+
+---
+
+#### **Disturbance Noise Tracker Files:**
+These files track the disturbances applied to foot positions during the experiment.
+
+- **Filename Example:** `leftfoot_disturbance_noise_T001.csv`
+- **Variables:**
+  ```plaintext
+  time, is_active, is_grounded, offset_x, offset_y, offset_z
+  ```
+
+  - `time`: Timestamp of the disturbance event.
+  - `is_active`: Boolean indicating whether the disturbance is currently applied.
+  - `is_grounded`: Boolean indicating whether the foot is below a certain threshold and considered grounded.
+  - `offset_x, offset_y, offset_z`: Offset values applied to the foot position in the VR environment.
+
+---

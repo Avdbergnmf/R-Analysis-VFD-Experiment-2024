@@ -12,7 +12,7 @@ To run this code with your local R-Studio installation:
 > Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `results/` and startup should be significantly faster.
 3. Browse the tabs and interact with the data
 
-> NOTE: Also see [data_dictionary.md](./data_dictionary.md) for an overview of the variable names and their meaning.
+> NOTE: Also see [data_dictionary.md](./data_dictionary.md) for an overview of the variable names and their meaning. This also contains information on the variable names of all the tracker files in the dataset (data recorded within Unity using [UXF](https://github.com/immersivecognition/unity-experiment-framework)).
 
 > NOTE 2: This calculation does an initial outlier selection based on rough threshold values for heelstrike positions. However, this selection is far from correctly identifying all the outliers, and so we implemented a manual outlier removal interface. To load our selected outliers and select them in the dataset, follow the instructions below.
 
