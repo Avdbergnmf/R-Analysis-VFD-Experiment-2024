@@ -10,7 +10,7 @@ If you are using the interface, the sidebar contains many different ways to filt
 
 > NOTE: The initial calculation does an initial outlier selection based on rough threshold values for heelstrike positions. However, this selection is far from correctly identifying all the outliers, and so we implemented a manual outlier removal interface. To load our selected outliers and select them in the dataset, follow the instructions below.
 
-> NOTE 2: Scroll down to find an explanation of the tracker files in the dataset and the variables found within them (column names).
+> NOTE 2: Scroll down to find an explanation of the tracker files in the dataset and the variables found within them (column names of data recorded within Unity using [UXF](https://github.com/immersivecognition/unity-experiment-framework)).
 
 ## Remove Outliers
 To reproduce the results in the paper, the outliers we manually selected still need to be removed. Follow the steps below:
