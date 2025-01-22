@@ -8,7 +8,7 @@ RUN install2.r --skipinstalled \
     ggplot2 ggpubr readxl rstatix plotrix car Rmisc tidyr devtools ggpattern \
     lme4 emmeans sjstats lmerTest MuMIn svglite jsonlite pwr lme4 DT \
     signal ggstatsplot ggside zoo gridExtra ggExtra dbscan plotly lmtest foreach \
-    viridis doParallel\ 
+    viridis doParallel markdown \ 
     && rm -rf /tmp/downloaded_packages \
     && strip /usr/local/lib/R/site-library/*/libs/*.so
 
