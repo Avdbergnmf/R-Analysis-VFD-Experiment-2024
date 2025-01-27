@@ -66,15 +66,15 @@ output$splitMeanTable <- renderTable({
   plotVar <- input$plot
   splitVar <- input$split
   if (splitVar != "None") {
-    aggregate(filteredParams()[[plotVar]], by = list(filteredParams()[[splitVar]]), FUN = mean, na.rm = TRUE)
+    aggregate(filteredParams()[[plotVar]], by = list(filteredParams()[[splitVar]]), FUN = function(x) round(mean(x, na.rm = TRUE), 5))
   }
 })
 
 output$overallMeanTable <- renderTable({
   req(input$plot)
   plotVar <- input$plot
-  overallMean <- mean(filteredParams()[[plotVar]], na.rm = TRUE)
-  overallSD <- sd(filteredParams()[[plotVar]], na.rm = TRUE)
+  overallMean <- round(mean(filteredParams()[[plotVar]], na.rm = TRUE), 5)
+  overallSD <- round(sd(filteredParams()[[plotVar]], na.rm = TRUE), 5)
   data.frame(Statistic = c("Mean", "SD"), Value = c(overallMean, overallSD))
 })
 ```
