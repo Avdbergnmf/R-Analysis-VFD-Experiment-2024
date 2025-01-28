@@ -1,4 +1,4 @@
-# Supplementary Materials for "Visual Disturbances to Avatar Foot Position Increases Step-width Variability in Immersive VR Treadmill Walking"
+# Supplementary Materials for "Visual Disturbances to Avatar Foot Position Increase Step-width Variability in Immersive VR Treadmill Walking"
 
 ## Repository Context
 This Git repository is part of the supplementary materials for the paper referenced above. In alignment with the paper's commitment to transparency and reproducibility, the datasets, analysis code, and detailed instructions for reproducing the results are publicly accessible. These additional supplementary materials, including this repository and a comprehensive read-me document, are available for download via IEEE Xplore ([http://ieeexplore.ieee.org](http://ieeexplore.ieee.org)). These materials provide further methodological insights and statistical details to support the study's findings.
