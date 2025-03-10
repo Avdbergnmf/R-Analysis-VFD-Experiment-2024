@@ -20,6 +20,8 @@ selectizeInput("filterTrialsWithoutPractice", "Trials (without practice)", choic
 ```{r}
 selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
+
+numericInput("slice_length", "Slice data (seconds)",  min = 0, max = 180, value = 180, step = 10)
 ```
 
 #### Left vs Right Steps

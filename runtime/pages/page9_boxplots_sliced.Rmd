@@ -1,0 +1,34 @@
+### Options
+
+```{r}
+categoriesSliced <- c(categoriesExtraInputs,"slice_index")
+selectizeInput("plotVar", "Variable", choices = muVars, selected = "stepWidths.sd", multiple = FALSE)
+#selectizeInput("plotMetric", "Metric", choices = varMetrics, selected = varMetrics[1], multiple = FALSE)
+selectizeInput("varCategory", "Category", choices = categoriesSliced, selected = "VFD", multiple = TRUE)
+selectizeInput("colorCategory", "Color", choices = categoriesSliced, selected = "None", multiple = FALSE)
+selectizeInput("shapeCategory", "Shape", choices = categoriesSliced, selected = "None", multiple = FALSE)
+checkboxInput("doPaired", "Make it a paired plot",value=FALSE)
+selectizeInput("pairedCategory", "Paired Category", choices = categoriesSliced, selected = "None", multiple = FALSE)
+```
+
+Column
+--------------------------------------------
+
+### Step Variability Plot  {data-height=2500}
+Generate boxplots of the selected data that are split up according to different categories.
+```{r}
+imageOutput("var_sliced")
+```
+
+```{r, context="server"}
+output$var_sliced <- renderSVG({ reactive({
+    mu <- get_mu_dyn_long_sliced()
+    if (!input$doPaired) {
+      plot_boxplots(mu, input$plotVar, input$varCategory, input$colorCategory, input$shapeCategory, input$baseSize)
+    }
+    else {
+      plot_paired(mu, input$plotVar, input$pairedCategory, input$varCategory, input$colorCategory, input$shapeCategory, input$baseSize)
+    }
+  })
+})
+```
