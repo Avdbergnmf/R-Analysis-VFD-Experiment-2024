@@ -12,6 +12,19 @@ To run this code with your local R-Studio installation:
 > Initial calculation of the datasets may take some time (~5 minutes). After the first run, the results should be saved to tables in `results/` and startup should be significantly faster.
 3. Browse the tabs and interact with the data
 
+> NOTE: Also see [data_dictionary.md](./data_dictionary.md) for an overview of the variable names and their meaning. This also contains information on the variable names of all the tracker files in the dataset (data recorded within Unity using [UXF](https://github.com/immersivecognition/unity-experiment-framework)).
+
+> NOTE 2: This calculation does an initial outlier selection based on rough threshold values for heelstrike positions. However, this selection is far from correctly identifying all the outliers, and so we implemented a manual outlier removal interface. To load our selected outliers and select them in the dataset, follow the instructions below.
+
+## Remove Outliers
+To reproduce the results in the paper, the outliers we manually selected still need to be removed. Follow the steps below:
+
+1. Perform the initial calculation described above.
+2. Open the **Manual Outlier Filtering** tab.
+3. Find the **Import Outliers from CSV** field, and click `Browse`. Now select the outliers csv under: `./runtime/data_extra/outliers-2024-11-28.csv` and import them.
+4. Make sure the *outlier matching threshold value* is still set to `0.1`s (this affects the outlier selection, if set larger, a larget timespan is used to remove outliers around the selected timestamps in the outlier dataset).
+5. Click **Overwrite Outliers** to write the outliers to the dataset loaded in the interface.
+6. Optional: Click **Save current parameters to RDS** and overwrite the previously calculated rds under `./runtime/results/allGaitParams.rds` so that the next time you load the interface, these outliers will already be marked in the dataset.
 
 ## Contents
 - `index.Rmd` - The main Rmd code to run that loads all the source code, calculates or loads the results, and renders all the pages + sidebar. --> Run this code to start the interface.
@@ -29,6 +42,7 @@ Click through the different tabs to get a preview and a brief explanation of wha
 
 - [Analysis Code](#analysis-code)
   - [How to use](#how-to-use)
+  - [Remove Outliers](#remove-outliers)
   - [Contents](#contents)
   - [Pages](#pages)
     - [Page 0: `sidebar_dynamicDataFiltering.Rmd`](#page-0-sidebar_dynamicdatafilteringrmd)

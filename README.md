@@ -11,7 +11,9 @@ Links:
 
 ## How to use
 
+**Additional information:**
 - [Specific readme for the runtime code](./runtime), ([GitLab specific link](https://gitlab.tudelft.nl/mln-lab-public/r-analysis-alex-van-den-berg-2024-vfd-experiment/-/tree/main/runtime?ref_type=heads))
+- [Supplementary Materials Note](./SUPPLEMENTARY_MATERIALS_INFO.md): This repository is part of the supplementary materials for the associated paper. The `SUPPLEMENTARY_MATERIALS_INFO.md` note provides addition details about this.
 
 ### License and usage
 This project (including the dataset and code) is licensed under the Creative Commons Attribution 4.0 International.

@@ -31,6 +31,16 @@ Create histograms of the step results of the selected data.
 imageOutput("hist")
 ```
 
+### Mean values
+
+
+```{r}
+tableOutput("splitMeanTable")
+tableOutput("overallMeanTable")
+```
+
+
+
 ```{r, context="server"}
 plotCount <- reactive({
   colName <- as.character(input$split)
@@ -49,4 +59,23 @@ output$hist <- renderSVG({ reactive({
     make_histogram(filteredParams(), get_mu_dyn_long(), FALSE, input$group, input$split, input$plot, input$bin, input$position, baseSize=input$baseSize)
   })
 })
+
+# Add mean tables
+output$splitMeanTable <- renderTable({
+  req(input$plot, input$split)
+  plotVar <- input$plot
+  splitVar <- input$split
+  if (splitVar != "None") {
+    aggregate(filteredParams()[[plotVar]], by = list(filteredParams()[[splitVar]]), FUN = mean, na.rm = TRUE)
+  }
+})
+
+output$overallMeanTable <- renderTable({
+  req(input$plot)
+  plotVar <- input$plot
+  overallMean <- mean(filteredParams()[[plotVar]], na.rm = TRUE)
+  overallSD <- sd(filteredParams()[[plotVar]], na.rm = TRUE)
+  data.frame(Statistic = c("Mean", "SD"), Value = c(overallMean, overallSD))
+})
 ```
+

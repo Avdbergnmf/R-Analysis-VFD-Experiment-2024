@@ -1,5 +1,3 @@
-This sidebar contains many different ways to filter our complete dataset. All figures and calculations in the windows on the right are using the data that is selected in this sidebar. Data can be filtered based on participants, trials, and steps. Values that are selected in the selection boxes are **included** in the dataset. Removing all data may crash some of the calculations and with that the whole interface, so be aware of that. At the bottom there are some settings you can use to finetune the generation of the figures to get the sizes you require.
-
 #### Participant Filtering
 ```{r}
 selectizeInput("filterParticipants", "Participants", choices = participants, selected = participants, multiple = TRUE)
@@ -22,6 +20,8 @@ selectizeInput("filterTrialsWithoutPractice", "Trials (without practice)", choic
 ```{r}
 selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE)
 selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
+
+numericInput("slice_length", "Slice data (seconds)",  min = 0, max = 180, value = 180, step = 10)
 ```
 
 #### Left vs Right Steps

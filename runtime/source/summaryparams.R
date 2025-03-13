@@ -220,3 +220,148 @@ calculate_vfd_difference <- function(data) {
 
   return(final_output)
 }
+
+############ Added later to answer question of reviewer
+
+summarize_table_sliced <- function(data, allQResults, categories, slice_length, time_col = "time", avg_feet = TRUE, add_diff = FALSE) {
+  # Split the data into time slices
+  data <- data %>%
+    group_by(participant, trialNum) %>%
+    mutate(
+      slice_index = floor((.data[[time_col]] - min(.data[[time_col]], na.rm = TRUE)) / slice_length) + 1
+    ) %>%
+    ungroup()
+
+  # Identify which columns to summarize
+  dataTypes <- setdiff(getTypes(data), categories)
+
+  # Remove any columns that should not be summarized
+  data <- data %>% select(-all_of(columns_to_not_summarize))
+  types <- setdiff(dataTypes, columns_to_not_summarize)
+
+  # Summarize parameters within each slice
+  # (Reuse existing functions; just add slice_index to the grouping)
+  grouping_cols <- c(categories, "slice_index")
+
+  if (avg_feet) {
+    mu <- average_over_feet(data, types, grouping_cols, add_diff = add_diff)
+    grouping_cols <- setdiff(grouping_cols, "heelStrikes.foot")
+  } else {
+    mu <- lapply(types, get_summ_by_foot, grouping_cols, data, avg_feet = FALSE)
+    mu <- setNames(mu, types)
+  }
+
+  # Combine summaries into long format
+  mu_long <- bind_rows(mu, .id = "dataType") %>%
+    pivot_longer(
+      cols      = -c(all_of(grouping_cols), dataType),
+      names_to  = "statistic",
+      values_to = "value"
+    )
+
+  # Pivot to wide format with dataType.statistic columns
+  mu_wide <- mu_long %>%
+    unite("new_col_name", dataType, statistic, sep = ".") %>%
+    pivot_wider(
+      names_from  = new_col_name,
+      values_from = value
+    )
+
+  # Merge with allQResults (similar to summarize_table)
+  mu_full <- merge(allQResults, mu_wide, by = c("participant", "VFD"), all = TRUE)
+
+  # Add any category columns (if your pipeline expects them)
+  mu_full <- add_category_columns(mu_full)
+
+  # Reorder columns so that grouping_cols and any excluded columns appear first
+  mu_full <- mu_full %>%
+    select(all_of(grouping_cols), all_of(columns_to_not_summarize), everything())
+
+  return(mu_full)
+}
+
+
+get_full_mu_sliced <- function(allGaitParams, allTargetParams, allQResults, categories,
+                               slice_length, avg_feet = TRUE, add_diff = FALSE) {
+  # Columns you plan to add from the target data
+  targetColumnsToAdd <- c("score", "targetDist", "rel_x", "rel_z")
+
+  # Summarize gait parameters in time slices
+  # Note we include heelStrikes.foot in categories so that per-foot summaries are computed if needed
+  muGait <- summarize_table_sliced(
+    data = allGaitParams,
+    allQResults = allQResults,
+    categories = c(categories, "heelStrikes.foot"),
+    slice_length = slice_length,
+    time_col = "heelStrikes.time",
+    avg_feet = avg_feet,
+    add_diff = add_diff
+  )
+
+  # Summarize target parameters in time slices (usually no foot averaging here)
+  muTarget <- summarize_table_sliced(
+    data         = allTargetParams,
+    allQResults  = allQResults,
+    categories   = categories,
+    slice_length = slice_length,
+    time_col = "time",
+    avg_feet     = FALSE,
+    add_diff     = FALSE
+  )
+
+  # Identify columns that match any of the targetColumnsToAdd patterns
+  matched_columns <- unlist(
+    lapply(targetColumnsToAdd, function(x) grep(x, names(muTarget), value = TRUE))
+  )
+
+  # We'll merge on participant, trialNum, and slice_index
+  matchByList <- c("participant", "trialNum", "slice_index")
+
+  # Select and rename target columns, if present
+  if (length(matched_columns) > 0) {
+    muTarget <- muTarget %>%
+      select(all_of(matchByList), all_of(matched_columns)) %>%
+      rename_with(~ paste0("target.", .), all_of(matched_columns))
+  } else {
+    muTarget <- muTarget %>% select(all_of(matchByList))
+  }
+
+  # Combine gait and target data
+  combined_mu <- merge(muGait, muTarget, by = matchByList, all = TRUE)
+  combined_mu <- filter_slices(combined_mu) # sometimes for whatever reason another slice might be detected for some of the participants, we filter those out here.
+
+  return(combined_mu)
+}
+
+filter_slices <- function(data_sliced) {
+  # Count how many rows appear in each trialNum/slice_index
+  slice_counts <- data_sliced %>%
+    group_by(trialNum, slice_index) %>%
+    summarise(n_rows = n(), .groups = "drop")
+
+  # For each trial, find the maximum number of rows among all slices
+  # and compare each slice’s n_rows to that maximum.
+  slice_counts <- slice_counts %>%
+    group_by(trialNum) %>%
+    mutate(max_n_rows_in_trial = max(n_rows)) %>%
+    ungroup() %>%
+    mutate(ratio_of_max = n_rows / max_n_rows_in_trial)
+
+  # Define "bad" slices as those whose ratio_of_max < 1
+  # (or pick a smaller threshold if you only consider < 0.5 etc. "too few")
+  bad_slices <- slice_counts %>%
+    filter(ratio_of_max < 1)
+
+  # If there are any “bad” slices, print them and remove them
+  if (nrow(bad_slices) > 0) {
+    message("Debug: The following trialNum/slice_index combos have fewer rows than the max for that trial; removing them now:")
+    print(bad_slices)
+
+    # Remove those slices from your data_sliced
+    data_sliced <- data_sliced %>%
+      anti_join(bad_slices %>% select(trialNum, slice_index),
+                by = c("trialNum", "slice_index"))
+  }
+
+  return(data_sliced)
+}

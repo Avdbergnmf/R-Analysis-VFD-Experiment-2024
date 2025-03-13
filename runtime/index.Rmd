@@ -36,6 +36,7 @@ dataTypesTargets  <- setdiff(getTypes(allTargetParams), categories)
 
 ## Summary tables
 source('source/summaryparams.R', local = FALSE)
+#mu_sliced <- get_full_mu_sliced(allGaitParams, allTargetParams, allQResults, categories, 60, avg_feet=FALSE, add_diff = TRUE)
 mu <- get_full_mu(allGaitParams, allTargetParams, allQResults, categories, avg_feet=FALSE, add_diff = TRUE)
 muDataTypes <- setdiff(getTypes(mu), categories)
 muVars <- colnames(mu)
@@ -75,6 +76,12 @@ renderSVG <- function(expr) {
     list(src = file, deleteFile = TRUE)
   }, deleteFile = TRUE)
 }
+```
+
+Data Dictionary.md {data-orientation=columns}
+=====================================
+```{r, echo=FALSE}
+shiny::includeMarkdown('data_dictionary.md')
 ```
 
 Feet trajectories {data-orientation=columns}
@@ -127,6 +134,11 @@ Questionnaires
 Boxplots 
 =====================================
 ```{r, child='pages/page9_boxplots.Rmd'}
+```
+
+Boxplots Sliced
+=====================================
+```{r, child='pages/page9_boxplots_sliced.Rmd'}
 ```
 
 
