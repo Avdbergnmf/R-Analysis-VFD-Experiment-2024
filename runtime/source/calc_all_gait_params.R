@@ -50,6 +50,9 @@ add_category_columns <- function(data) {
   data$startedWithNoise <- as.factor(sapply(participant, started_with_noise))
   data$noticed <- as.factor(sapply(participant, noticed_vfd))
 
+  # Add demographic columns
+  data$treadmillSpeed <- as.numeric(mapply(get_move_speed, participant))
+
   # numerical categories
   data$conditionNumber <- as.ordered(c(1, 1, 1, 2, 2, 2)[trial])
   data$trialNumWithinCondition <- as.ordered(c(0, 1, 2, 0, 1, 2)[trial]) # outputs T1 & T4 as T0, T2 and T5 as T1, and T2 and T6 as T2
