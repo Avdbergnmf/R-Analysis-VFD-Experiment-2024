@@ -232,6 +232,8 @@ summarize_table_sliced <- function(data, allQResults, categories, slice_length, 
     ) %>%
     ungroup()
 
+  #data$slice_index <- as.ordered(data$slice_index)
+
   # Identify which columns to summarize
   dataTypes <- setdiff(getTypes(data), categories)
 
@@ -282,7 +284,7 @@ summarize_table_sliced <- function(data, allQResults, categories, slice_length, 
 
 
 get_full_mu_sliced <- function(allGaitParams, allTargetParams, allQResults, categories,
-                               slice_length, avg_feet = TRUE, add_diff = FALSE) {
+                               slice_length = 180, avg_feet = TRUE, add_diff = FALSE, remove_middle_slices = FALSE) {
   # Columns you plan to add from the target data
   targetColumnsToAdd <- c("score", "targetDist", "rel_x", "rel_z")
 
@@ -328,12 +330,20 @@ get_full_mu_sliced <- function(allGaitParams, allTargetParams, allQResults, cate
 
   # Combine gait and target data
   combined_mu <- merge(muGait, muTarget, by = matchByList, all = TRUE)
-  combined_mu <- filter_slices(combined_mu) # sometimes for whatever reason another slice might be detected for some of the participants, we filter those out here.
+  combined_mu <- filter_incomplete_slices(combined_mu)
+
+  if (remove_middle_slices) {
+    # remove all but the first and the last slice.
+    combined_mu <- combined_mu %>%
+      group_by(trialNum) %>%
+      filter(slice_index == min(slice_index, na.rm = TRUE) | slice_index == max(slice_index, na.rm = TRUE)) %>%
+      ungroup()
+  }
 
   return(combined_mu)
 }
 
-filter_slices <- function(data_sliced) {
+filter_incomplete_slices <- function(data_sliced) { # sometimes for whatever reason another slice might be detected for some of the participants, we filter those out here.
   # Count how many rows appear in each trialNum/slice_index
   slice_counts <- data_sliced %>%
     group_by(trialNum, slice_index) %>%

@@ -8,7 +8,7 @@ categories <- c("participant", "VFD", "trialNum") #  "heelStrikes.foot"
 # categoriesInputs <- append(categories, "None")
 columns_to_not_summarize <- c("practice", "startedWithNoise", "conditionNumber", "trialNumWithoutPractice", "trialNumWithinCondition", "noticed") # these are categorical columns we may want to use for our statistics but we dont want to summarize in our mu table
 categoriesExtra <- c(categories, columns_to_not_summarize)
-categoriesExtraInputs <- append(categoriesExtra, c("heelStrikes.foot", "None"))
+categoriesExtraInputs <- append(categoriesExtra, c("heelStrikes.foot", "slice_index", "None"))
 
 getTypes <- function(dt) {
   numericDataTypes <- sapply(dt, is.numeric)
@@ -49,6 +49,9 @@ add_category_columns <- function(data) {
   data$practice <- as.factor(mapply(is_practice, participant, trial))
   data$startedWithNoise <- as.factor(sapply(participant, started_with_noise))
   data$noticed <- as.factor(sapply(participant, noticed_vfd))
+
+  # Add demographic columns
+  data$treadmillSpeed <- as.numeric(mapply(get_move_speed, participant))
 
   # numerical categories
   data$conditionNumber <- as.ordered(c(1, 1, 1, 2, 2, 2)[trial])

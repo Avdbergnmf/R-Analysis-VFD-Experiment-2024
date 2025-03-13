@@ -22,6 +22,7 @@ selectizeInput("filterTargets", "Target Steps", choices = c(TRUE, FALSE), select
 selectizeInput("filterOutliers", "Outliers", choices = c(TRUE, FALSE), selected = c(FALSE), multiple = TRUE) # INCLUDE outliers (TRUE), INCLUDE non-outliers (FALSE)
 
 numericInput("slice_length", "Slice data (seconds)",  min = 0, max = 180, value = 180, step = 10)
+checkboxInput("remove_middle_slices", "Only keep first and last slice", value=FALSE)
 ```
 
 #### Left vs Right Steps

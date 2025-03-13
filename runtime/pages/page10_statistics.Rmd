@@ -208,10 +208,6 @@ observe({
   }
 })
 
-center_numerical_values <- function(data){
-
-}
-
 get_lmer <- reactive({
   dt <- get_stats_data()#get_mu_dyn_long()
   
